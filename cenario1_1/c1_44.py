@@ -132,18 +132,30 @@ def servidor_socket_hosts():
 
 #### OBS -- Implementar : garantir que exista apenas um contrato com match para ip_src, ip_dst - e mais campos se forem usar - que se outro contrato vier com esse match, substituir o que ja existe 
 #OBS - os contratos sao armazenados como string, entao para acessa-los como json, eh preciso carregar como json: json.loads(contrato)['contrato']['ip_origem']
-        
-       ## ##checar se ja existe um contrato e remover
-       ## for i in contratos:
-       ##     if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_origem']==cip_dst:
-       ##         print("[removendo-contrato-antigo] - ip_src:%s; ip_dst:%s; tos:%s\n" % (cip_src, cip_dst,tos))
-       ##         contratos.remove(i)
-       ##         #deletar as regras antigas
+        #pegar os switches da rota
+        switches_rota = SwitchOVS.getRota(cip_src, cip_dst)
+
+       ##checar se ja existe um contrato e remover --- isso ocorre antes de adicionar o novo contrato, por isso consigo pegar o contrato antigo
+        for i in contratos:
+            if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_origem']==cip_dst:
+                print("[removendo-contrato-antigo] - ip_src:%s; ip_dst:%s; tos:%s\n" % (cip_src, cip_dst,tos))
+                
+                #deletar as regras antigas em cada classe switch e no ovs - pegar as informacoes antigas e obter o tos, para entao conseguir remover o contrato/regras antigas
+                classe_antiga = i['contrato']['classe']
+                prioridade_antiga=i['contrato']['prioridade']
+                banda_antiga=i['contrato']['banda']
+                tos_antigo = tos = CPT[(classe_antiga, prioridade_antiga, banda_antiga)]
+                contratos.remove(i)
+                for s in switches_rota:
+                    #deletando na classe switch (de algum dos vetores)
+                    s.delRegra(cip_src, cip_dst, tos_antigo)
+                    #deletando da tabela de fluxos do ovs
+                    s.delRegraF(cip_src, cip_dst, tos_antigo)
 
         print("contrato salvo \n")
         contratos.append(contrato)
 
-        switches_rota = SwitchOVS.getRota(cip_src, cip_dst)
+        
 
         #criando a regra de marcacao - switch mais da borda emissora
         switches_rota[0].addRegraC(cip_src, cip_dst, tos)
@@ -782,6 +794,7 @@ class SwitchOVS:
         #algum erro ocorreu 
         return -1
 
+    ### nao esta funcionando
     #criar uma mensagem para remover uma regra de fluxo no ovsswitch
     def delRegraF(self, ip_src, ip_dst, tos):
 
@@ -799,7 +812,9 @@ class SwitchOVS:
 
         match = parser.OFPMatch(eth_type='0x0800', ipv4_src=ip_src, ipv4_dst=ip_dst, ip_dscp=tos)
         mod = datapath.ofproto_parser.OFPFlowMod(datapath, table_id=FORWARD_TABLE, command=ofproto.OFPFC_DELETE,  match=match)
-
+        print("deletando regra:\n")
+        print(mod)
+        print("\n")
         datapath.send_msg(mod)
 
         return 0
