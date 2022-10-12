@@ -25,17 +25,18 @@ from threading import Thread
 import json
 import unicodedata
 
-import copy
-
 from ryu.lib.ovs import vsctl #ovs-vsctl permite conversar com o protocolo OVSDB
+
+#lidar com bytes
+import struct
 
 ############################################
 # informacoes armazenadas pelo controlador #
 ############################################
-#CONTROLADOR C2
+#CONTROLADOR C1
 #cada controlador deve ter o seu
-IPC = "10.123.123.2" #IP do root/controlador
-MACC = "00:00:00:00:00:06" #MAC do root/controlador
+IPC = "10.123.123.1" #IP do root/controlador
+MACC = "00:00:00:00:00:05" #MAC do root/controlador
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
 
@@ -118,12 +119,6 @@ def servidor_socket_hosts():
         #contrato = data.decode("utf-8")
         contrato = json.loads(data.encode('utf-8'))
 
-#### OBS -- Implementar : garantir que exista apenas um contrato com match para ip_src, ip_dst - e mais campos se forem usar - que se outro contrato vier com esse match, substituir o que ja existe 
-#OBS - os contratos sao armazenados como string, entao para acessa-los como json, eh preciso carregar como json: json.loads(contrato)['contrato']['ip_origem']
-
-        print("contrato salvo \n")
-        contratos.append(contrato)
-
         #criar as regras de marcacao e encaminhamento nos switches da entre ip_src e ip_dst
 #enviar um icmp 15 ja perguntando se existem controladores interessados em receber o contrato
         #pegar os dados do contrato
@@ -135,7 +130,37 @@ def servidor_socket_hosts():
         classe =  contrato['contrato']['classe']
         tos = CPT[(classe, prioridade, banda)]
 
+#### OBS -- Implementar : garantir que exista apenas um contrato com match para ip_src, ip_dst - e mais campos se forem usar - que se outro contrato vier com esse match, substituir o que ja existe 
+#OBS - os contratos sao armazenados como string, entao para acessa-los como json, eh preciso carregar como json: json.loads(contrato)['contrato']['ip_origem']
+        #pegar os switches da rota
         switches_rota = SwitchOVS.getRota(cip_src, cip_dst)
+
+       ##checar se ja existe um contrato e remover --- isso ocorre antes de adicionar o novo contrato, por isso consigo pegar o contrato antigo
+        for i in contratos:
+            if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_destino']==cip_dst:
+                print("[removendo-contrato-antigo] - ip_src:%s; ip_dst:%s; tos:%s\n" % (cip_src, cip_dst,tos))
+                
+                #deletar as regras antigas em cada classe switch e no ovs - pegar as informacoes antigas e obter o tos, para entao conseguir remover o contrato/regras antigas
+                classe_antiga = i['contrato']['classe']
+                prioridade_antiga=i['contrato']['prioridade']
+                banda_antiga=i['contrato']['banda']
+                tos_antigo = tos = CPT[(classe_antiga, prioridade_antiga, banda_antiga)]
+                contratos.remove(i)
+                for s in switches_rota:
+                    #deletando na classe switch (de algum dos vetores)
+#verificando - o alocar gbam ja remove a regra - ver como ele esta fazendo o del regra e o tos que esta sendo usado - esta usando o tos passado na funcao, ou seja, evita que tenha duas regras iguais
+#eh necessario remover aqui a regra que tem os ips iguais mas o tos diferente
+                    out_port = s.getPortaSaida(cip_dst)
+                    porta = s.getPorta(out_port)
+                    #deletando a regra referente ao contrato antigo - pq nao vale mais, ele foi removido
+                    porta.delRegra(cip_src, cip_dst, tos_antigo)
+                    #deletando da tabela de fluxos do ovs
+                    s.delRegraF(cip_src, cip_dst, tos_antigo)
+
+        print("contrato salvo \n")
+        contratos.append(contrato)
+
+        
 
         #criando a regra de marcacao - switch mais da borda emissora
         switches_rota[0].addRegraC(cip_src, cip_dst, tos)
@@ -160,6 +185,8 @@ def servidor_socket_hosts():
 
         #enviando icmp 15, mas com MAC ficticio
         send_icmp(switch_ultimo_dp, MACC, IPC, MACC, cip_dst, out_port, 0, None, 1, 15,64)        
+        #recebeu um contrato fecha a conexao, se o host quiser enviar mais, que inicie outra
+        conn.close()
 
 #servidor para escutar controladores - mesmo que o de hosts, mas o controlador que recebe um contrato nao gera um icmp inf. req.
 def servidor_socket_controladores():
@@ -180,42 +207,53 @@ def servidor_socket_controladores():
         print(addr)
         print("\n")
 
-        data = conn.recv(1024)
-        print(data)
-        #contrato = json.loads(data.encode('utf-8'))
-        #JSON LOADS CARREGA COMO UNICODE essa porcaria
-        #contrato = data.decode("utf-8")
-        contrato = json.loads(data.encode('utf-8'))
+        #primeiro: receber quantos contratos serao enviados para cah - inteiro de 4 bytes
+        data = conn.recv(4)
+        qtdContratos = struct.unpack('<i',data)[0]
+
+        #para cada contrato, receber qtd de bytes (outro inteiro de 4 bytes) e entao receber esses bytes
+        for i in range(qtdContratos):
+            data = conn.recv(4)
+            qtdBytes = struct.unpack('<i',data)[0]
+
+            data = conn.recv(qtdBytes)
+            print(data)
+            #contrato = json.loads(data.encode('utf-8'))
+            #JSON LOADS CARREGA COMO UNICODE essa porcaria
+            #contrato = data.decode("utf-8")
+            contrato = json.loads(data.encode('utf-8'))
 
 #### OBS -- Implementar : garantir que exista apenas um contrato com match para ip_src, ip_dst - e mais campos se forem usar - que se outro contrato vier com esse match, substituir o que ja existe 
 #OBS - os contratos sao armazenados como string, entao para acessa-los como json, eh preciso carregar como json: json.loads(contrato)['contrato']['ip_origem']
 
-        print("contrato salvo \n")
-        contratos.append(contrato)
+            print("contrato salvo \n")
+            contratos.append(contrato)
 
         #criar as regras de marcacao e encaminhamento nos switches da entre ip_src e ip_dst
 #enviar um icmp 15 ja perguntando se existem controladores interessados em receber o contrato
         #pegar os dados do contrato
-        cip_src = contrato['contrato']['ip_origem']
-        cip_dst = contrato['contrato']['ip_destino']
+            cip_src = contrato['contrato']['ip_origem']
+            cip_dst = contrato['contrato']['ip_destino']
 
-        banda = contrato['contrato']['banda']
-        prioridade =  contrato['contrato']['prioridade']
-        classe =  contrato['contrato']['classe']
-        tos = CPT[(classe, prioridade, banda)]
+            banda = contrato['contrato']['banda']
+            prioridade =  contrato['contrato']['prioridade']
+            classe =  contrato['contrato']['classe']
+            tos = CPT[(classe, prioridade, banda)]
 
-        switches_rota = SwitchOVS.getRota(cip_src, cip_dst)
+            switches_rota = SwitchOVS.getRota(cip_src, cip_dst)
 
-        #criando a regra de marcacao - switch mais da borda emissora
-        switches_rota[0].addRegraC(cip_src, cip_dst, tos)
+            #criando a regra de marcacao - switch mais da borda emissora
+            switches_rota[0].addRegraC(cip_src, cip_dst, tos)
 
-        #em todos os switches da rota - criar regras de encaminhamento
-        #nao precisa injetar o pacote,pois era um contrato para este controlador
-        for s in switches_rota:
-            out_port = s.getPortaSaida(cip_dst)
-            s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
+            #em todos os switches da rota - criar regras de encaminhamento
+            #nao precisa injetar o pacote,pois era um contrato para este controlador
+            for s in switches_rota:
+                out_port = s.getPortaSaida(cip_dst)
+                s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
 
-        #Nao enviar um icmp 15, pois o protocolo atual eh que todos respondam o icmp 15 do primeiro controlador
+            #Nao enviar um icmp 15, pois o protocolo atual eh que todos respondam o icmp 15 do primeiro controlador
+        #fechar a conexao e aguardar nova
+        conn.close()
     
 
 #################
@@ -238,16 +276,28 @@ def enviar_contratos(host_ip, host_port, ip_dst_contrato):
 #    tcp.connect(("10.123.123.2", host_port))
 
     print("[enviar-contratos] ip_dst: %s, port_dst: %s" %(host_ip, host_port))
+    contratos_contador = 0
+    #contar quantos contratos enviar
+    for i in contratos:
+        if i['contrato']['ip_destino'] == ip_dst_contrato:
+            contratos_contador = contratos_contador+1
+            
+    #enviar quantos contratos serao enviados
+    tcp.send(struct.pack('<i',contratos_contador))
 
+    #para cada contrato, antes de enviar, verificar o size e enviar o size do vetor de bytes a ser enviado
     #encontrar os contratos que se referem ao ip_dst informado e enviar para o host_ip:host_port
     for i in contratos:
         if i['contrato']['ip_destino'] == ip_dst_contrato:
             print("enviando->%s" % (json.dumps(i)))
-            tcp.sendall(json.dumps(i).encode('utf-8'))
+            vetorbytes = json.dumps(i).encode('utf-8')
+            qtdBytes = struct.pack('<i',len(vetorbytes))
+            tcp.send(qtdBytes)
+            tcp.send(vetorbytes)
             #usar send
             # tcp.send(json.dumps(i).encode('utf-8'))
 
-
+    #fechando a conexao
     print("\n")
     tcp.close()
 
@@ -389,44 +439,44 @@ class Porta:
         #assim, para cada prioridade, testar as duas classes
 
 #        if classe == '1':
-        if prioridade == '1':
-            for i in self.p1c1rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
-                    self.c1U -= int(i.banda)
-                    self.p1c1rules.remove(i)
-                    return 0
+#        if prioridade == '1':
+        for i in self.p1c1rules:
+            if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
+                self.c1U -= int(i.banda)
+                self.p1c1rules.remove(i)
+                return 0
 
-            for i in self.p1c2rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
-                    self.c2U -= int(i.banda)
-                    self.p1c2rules.remove(i)
-                    return 0
+        for i in self.p1c2rules:
+            if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
+                self.c2U -= int(i.banda)
+                self.p1c2rules.remove(i)
+                return 0
 
-        elif prioridade =='2':
-            for i in self.p2c1rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
-                    self.c1U -= int(i.banda)
-                    self.p2c1rules.remove(i)
-                    return 0
+        #elif prioridade =='2':
+        for i in self.p2c1rules:
+            if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
+                self.c1U -= int(i.banda)
+                self.p2c1rules.remove(i)
+                return 0
 
-            for i in self.p2c2rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
-                    self.c2U -= int(i.banda)
-                    self.p2c2rules.remove(i)
-                    return 0
+        for i in self.p2c2rules:
+            if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
+                self.c2U -= int(i.banda)
+                self.p2c2rules.remove(i)
+                return 0
 
-        else: #prioridade ==3
-            for i in self.p3c1rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
-                    self.c1U -= int(i.banda)
-                    self.p3c1rules.remove(i)
-                    return 0
+        #else: #prioridade ==3
+        for i in self.p3c1rules:
+            if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
+                self.c1U -= int(i.banda)
+                self.p3c1rules.remove(i)
+                return 0
 
-            for i in self.p3c2rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
-                    self.c2U -= int(i.banda)
-                    self.p3c2rules.remove(i)
-                    return 0
+        for i in self.p3c2rules:
+            if i.ip_src == ip_src and i.ip_dst == ip_dst and i.tos == tos:
+                self.c2U -= int(i.banda)
+                self.p3c2rules.remove(i)
+                return 0
 
         print("[delRegra]Regra Nao encontrada\n")
         return -1 #regra nao encontrada
@@ -511,7 +561,8 @@ class SwitchOVS:
         #obter a porta de saida do switch com a tabela de roteamento com base no ip da rede destino  -- que ainda nao foi implementada
         out_port = self.getPortaSaida(ip_dst)
         porta = self.getPorta(out_port)
-        porta.delRegra(ip_src, ip_dst, tos)
+        if(porta.delRegra(ip_src, ip_dst, tos)==0):
+            print("[updateRegras]regra-removida ip_src:%s, ip_dst:%s, tos:%s\n" % (ip_src,ip_dst,tos))
 
         print("[S%s]UpdateRegras-ok-out\n" % (str(self.nome)))
 
@@ -580,9 +631,9 @@ class SwitchOVS:
         ### antes de alocar o novo fluxo, verificar se ja nao existe uma regra para este fluxo -- caso exista remover e adicionar de novo? ou so nao alocar?
         #a principio - remover e alocar de novo
         tos = CPT[(str(classe), str(prioridade), str(banda))] 
-        porta.delRegra(origem, destino, tos) 
+        if(porta.delRegra(origem, destino, tos)==0):
+            print("[alocarGBAM]regra removida - ip_src:%s, ip_dst:%s, tos:%s\n" % (origem,destino,tos))
         #pronto, nao vai existir regra duplicada - pode alocar
-
 
         #testando na classe original
         if int(banda) <= cT - cU: #Total - usado > banda necessaria
@@ -748,6 +799,7 @@ class SwitchOVS:
         #algum erro ocorreu 
         return -1
 
+    ### nao esta funcionando
     #criar uma mensagem para remover uma regra de fluxo no ovsswitch
     def delRegraF(self, ip_src, ip_dst, tos):
 
@@ -765,7 +817,9 @@ class SwitchOVS:
 
         match = parser.OFPMatch(eth_type='0x0800', ipv4_src=ip_src, ipv4_dst=ip_dst, ip_dscp=tos)
         mod = datapath.ofproto_parser.OFPFlowMod(datapath, table_id=FORWARD_TABLE, command=ofproto.OFPFC_DELETE,  match=match)
-
+        print("deletando regra:\n")
+        print(mod)
+        print("\n")
         datapath.send_msg(mod)
 
         return 0
@@ -961,14 +1015,13 @@ class Dinamico(app_manager.RyuApp):
         parser = datapath.ofproto_parser
 #        switch = ev.switch.dp
 
-
         print("\n[switch_handler] ")
 
         print("Switch_id: "+ str(datapath.id) + " conectado: interfaces")
 ###################################################
 ###        #criar os switches 
 ###################################################
-        
+   
 #        print("\nEventos possiveis?\n")
 #        print(ofp_event.__dict__)#printar a classe como um dicionario -> identificar os possiveis eventos
 
@@ -1414,7 +1467,7 @@ class Dinamico(app_manager.RyuApp):
                     
                 #enviar_contratos(host_ip, host_port, ip_dst_contrato):
                     #ip_src == controlador que enviou o icmp 16
-                    enviar_contratos(ip_src, PORTAC_C, "172.16.10.4")#deve ir pela fila de controle
+                    enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
                     return 0
 
           ###### (ii) esse controlador nao eh o controlador destino - logo criar as regras de marcacao e encaminhamento para passar os contratos
