@@ -58,6 +58,7 @@ switches = [] #switches administrados pelo controlador
 
 CLASSIFICATION_TABLE = 0 #tabela para marcacao de pacotes
 FORWARD_TABLE = 2 #tabela para encaminhar a porta destino
+ALL_TABLES = 255 #codigo para informar que uma acao deve ser tomada em todas as tabelas
 
 CPT = {} #chave (CLASSE,PRIORIDADE,BANDA): valor TOS  
 CPF = {} #classe + prioridade = fila
@@ -260,13 +261,18 @@ def delContratoERegras(switches_rota, cip_src, cip_dst):
                 out_port = s.getPortaSaida(cip_dst)
                 porta = s.getPorta(out_port)
                 #deletando a regra referente ao contrato antigo - pq nao vale mais, ele foi removido
-                porta.delRegra(cip_src, cip_dst, tos_antigo)
-                #deletando da tabela de fluxos do ovs
-                s.delRegraT(cip_src, cip_dst, int(tos_antigo), FORWARD_TABLE)
-                
-            #no primeiro switch remover a regra de marcacao
-            switches_rota[0].delRegraT(cip_src, cip_dst, int(tos_antigo), CLASSIFICATION_TABLE)
-            #como nao pode ter mais de um contrato, ja pode retornar
+                #se a regra estava ativa, ela sera removida dos switches tbm
+                if(porta.delRegra(cip_src, cip_dst, tos_antigo)==0):
+                    #regra ativa
+                    #deletando da tabela de fluxos do ovs
+                    #s.delRegraT(cip_src, cip_dst, int(tos_antigo), FORWARD_TABLE)
+                    s.delRegraT(cip_src, cip_dst, int(tos_antigo), ALL_TABLES)
+            
+            # aqui fica mais dificil checar se a regra esta ativa - mas eh uma mensagem apenas (aguns pacotes entre controlador e switch de borda)
+            # foi alterado novamente para que delRegraT remova a regra em todas as tabelas
+            # no primeiro switch remover a regra de marcacao
+            #switches_rota[0].delRegraT(cip_src, cip_dst, int(tos_antigo), CLASSIFICATION_TABLE)
+            # como nao pode ter mais de um contrato, ja pode retornar
             return
 
 #################
@@ -817,8 +823,10 @@ class SwitchOVS:
 
     ### nao esta funcionando
     #criar uma mensagem para remover uma regra de fluxo no ovsswitch
-    def delRegraT(self, ip_src, ip_dst, tos, tabela):
-        print("Deletando regra - ipsrc: %s, ipdst: %s, tos: %d\n" % (ip_src, ip_dst, tos))
+    def delRegraT(self, ip_src, ip_dst, tos, tabela=ALL_TABLES):
+
+        #tabela = 255 = ofproto.OFPTT_ALL = todas as tabelas
+        print("Deletando regra - ipsrc: %s, ipdst: %s, tos: %d, tabela: %d\n" % (ip_src, ip_dst, tos, tabela))
         #tendo o datapath eh possivel criar pacotes de comando para o switch/datapath
         #caso precise simplificar, pode chamar o cmd e fazer tudo via ovs-ofctl
 
@@ -835,13 +843,16 @@ class SwitchOVS:
         match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=ip_dst) #, ip_dscp=20)
         #match = parser.OFPMatch()
         #mod = datapath.ofproto_parser.OFPFlowMod(datapath, table_id=tabela, command=ofproto.OFPFC_DELETE,  match=match)
-        mod = datapath.ofproto_parser.OFPFlowMod(datapath, command=ofproto.OFPFC_DELETE, out_port=ofproto.OFPP_ANY, match=match)
-        mod = datapath.ofproto_parser.OFPFlowMod(datapath, command=ofproto.OFPFC_DELETE, match=match, table_id=ofproto.OFPTT_ALL, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
+        
+        #funcionam
+        # mod = datapath.ofproto_parser.OFPFlowMod(datapath, command=ofproto.OFPFC_DELETE, out_port=ofproto.OFPP_ANY, match=match)
+        # mod = datapath.ofproto_parser.OFPFlowMod(datapath, command=ofproto.OFPFC_DELETE, match=match, table_id=ofproto.OFPTT_ALL, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
+        mod = datapath.ofproto_parser.OFPFlowMod(datapath, command=ofproto.OFPFC_DELETE, match=match, table_id=tabela, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
 
         ##esse funciona - remove tudo
         #mod = datapath.ofproto_parser.OFPFlowMod(datapath, command=ofproto.OFPFC_DELETE, table_id=ofproto.OFPTT_ALL, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
         
-        print("deletando regra:\n")
+        print("deletando regra\n")
         print(mod)
         print("\n")
         datapath.send_msg(mod)

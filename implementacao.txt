@@ -49,56 +49,58 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
   #filtrar o ip_dst
   #colocar em enviar contrato
 
-
-
- {nisso agora}
-colocar os diagramas e as atualizacoes no github tbm e deixar publico
-
-
-************* [ARRUMAR] USANDO PCAP::
-- analisar o que está acontecendo nos hosts destino e origem
- 
-************ [Arrumado] VERIFICAR se o remover regra do switch esta funcionando !!!
-- agora estah
-
-************* [ARRUMAR] Deletar regras na tabela de classificacao/marcacao:
-- quando se define um novo contrato, alem de deletar as regras dos switches referentes a encaminhamento, no primeiro switch da rota tbm eh preciso deletar a regra de 
-marcacao, pois uma nova sera criada
-
-
 ************* [Nao tem o que fazer com isso : de boas] Quando o root que quer enviar uma mensagem - por exemplo trocar contratos ou estabelecer uma conexao tcp é preciso já criar as regras com o controlador, caso contrario é gerado um packet_in e entao é gerado as regras:
 - Na verdade acho que não há o que fazer, só se fosse possível prever a conexão de um host com o controlador ou se o tcp esperasse a criação das regras antes de aceitar a conexão
 - no entano é uma regra provisória que vai receber no máximo pacotes de handshake do lado root->host e então vai sumir devido ao idle_time 
 - aparentemente no mesmo momento que se aceita uma conexao ocorre o evento packet_in - melhor printar o tempo para ver se dentro do recebimento da conexao nao se pode ja criar as  regras , mas parece nao ter jeito
 - pq so depois de criar as regras que a conexao é aceita e o contrato é recebido.
+- nao tem importancia acho
 
-************ ARRUMAR - ICMP inf. req. (15) :
-- colocar nos dados o ip_src, que junto com o destino do pacote, formam o par origem e destino do contrato anunciado
-- assim, controladores ao longo da rota podem analisar se desejam o contrato e ainda solicitar exatamente o contrato referente ao ip_src, ip_dst, informando no campo de dados
 
-************** ARRUMAR poderia so enviar a mensagem de deletar regra nos switches caso essa regra esteja ativa (exista nos vetores da classe switch):
-- verificar o retorno do delRegra - que se encontrar a regra nos vetores, retorna positivo - assim, caso o retorno for positivo - remover no switch.
-- isso vai ficar para mais depois.
-
+{{{{{ NISSO AGR }}}}}
+		{{
 ************** ARRUMAR ou pensar sobre - so criar as regras se todos os switches da rota aceitarem os requisitos do contrato/fluxo?:
 - no momento, para cada switch eu aloco espaco (salvo no vetor da classe no controlador) e crio as 
 regras, caso algum deles nao aceite, os outros switches vao ter de esperar a regra criada expirar para entao liberar 
 espaco. - por agora fica assim mesmo, ou entao salvo a saida de cada alocarGBAM e entao se nenhum recursar, ai sim criar as regras
+		}}
+
+************* [ARRUMAR] USANDO PCAP::
+- analisar o que está acontecendo nos hosts destino e origem
 
 
-************* CRIAR um mecanismo para modificar configurações de contrato:
+************ ARRUMAR - colocar mais informacoes no contrato, como porta destino tcp/udp - que vai ter varios contratos por host, cada um valido para uma aplicacao/porta
+
+************ ARRUMAR - criar mecanismo para remover contrato - um host pode querer que um fluxo passe a trafegar como best effort
+
+************ ARRUMAR - ICMP inf. req. (15) :
+- colocar nos dados o ip_src, que junto com o destino do pacote, formam o par origem e destino do contrato anunciado
+- assim, controladores ao longo da rota podem analisar se desejam o contrato e ainda solicitar exatamente o contrato referente ao ip_src, ip_dst, informando no campo de dados
+- pq, o controlador que responde com icmp inf. reply informa o ip_dst, assim, sao enviados todos os contratos referentes. No entanto, para cada novo fluxo
+eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrato, mesmo que tenha acabado de receber o contrato junto em um processo de troca de contratos anterior
+
+************** [FEITO] Quando receber um contraot, poderia so enviar a mensagem de deletar regras nos switches caso essa regra esteja ativa (exista nos vetores da classe switch):
+- verificar o retorno do delRegra - que se encontrar a regra nos vetores, retorna positivo - assim, caso o retorno for positivo - remover no switch.
+
+************* [FEITO] CRIAR um mecanismo para modificar configurações de contrato:
 [implementado no momento]
 - cada host determina pelo contrato os requisitos de seus fluxos para que a emissão seja com QoS
-- no entanto,o host que recebe os dados nada configura.
+- no entanto,o host que recebe os dados nao define os requisitos para receber.
 - neste caso, se o host precisa dos dados com maior urgencia é preciso um mecanismo para que ele possa editar o contrato de
 emissão que configura o fluxo que recebe.
 - pode ser feito modificando o campo de dados do pacote icmp - informando que quer modificar o campo de prioridade do
 contrato e so ocorre se o end. ip for igual ao end. destino do contrato e tals.
+- [solucao] foi implementado um mecanismo que verifica se ja existe um contrato com os mesmos campos de ips e 
+porta (no momento porta nao foi implementado), se existe, remove e adiciona o novo - que tbm se configura como
+um mecanismo de modificar contratos.
 
-[outra implementaçao]
-- quando se cria um contrato, já é para ida e volta --- não, um contrato deve estabelecer apenas os requisitos para 
-o envio de dados.
-- modificar um contrato no controlador já deve desencadear um novo processo de disceminação de contrato.
+************ [Arrumado] VERIFICAR se o remover regra do switch esta funcionando !!!
+- agora estah
+
+************* [ARRUMADO] Deletar regras na tabela de classificacao/marcacao:
+- quando se define um novo contrato, alem de deletar as regras dos switches referentes a encaminhamento, no primeiro switch da rota tbm eh preciso deletar a regra de 
+marcacao, pois uma nova sera criada
+- implementar para a funcao que escuta os hosts e para a que escuta os controladores
 
 
 ************* [ARRUMAdo] alocaGBAM criando regras repetidas ?:
