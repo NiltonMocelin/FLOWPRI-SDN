@@ -49,6 +49,10 @@ FILA_C2P3=5
 FILA_BESTEFFORT=6
 FILA_CONTROLE=7
 
+#codigos das acoes
+CRIAR=0
+REMOVER=1
+
 arpList = {}
 contratos = []
 contratos_enviar = {}
@@ -65,21 +69,82 @@ CPF = {} #classe + prioridade = fila
 #fila + banda = tos
 
 #banda = valor ; indice = meter_id
-RATES = [4,16,32,64,128,500,1000,2000,4000,8000,10000,20000,25000] #sao 13 meter bands
+#RATES = [4,16,32,64,128,500,1000,2000,4000,8000,10000,20000,25000] #sao 13 meter bands
+RATES = [4,32,64,128,500,1000,2000,5000,10000,25000] #novos meters
 
 #alimentar o dicionario CPT !!
 #tem que criar uma nova tabela no TCC - tabela TOS
 #obs: para acessar o TOS -> CPT[(1,1,'1000')] 
 #obs: dscp = int 8 bits
 
-CPT[('1','1','1000')] = 5#'000101'
-CPT[('2','1','1000')] = 20#'010100' 
-CPT[('2','1','500')] = 23#'010111' 
-CPT[('2','2','500')] = 24#'011000' 
-CPT[('2','3','500')] = 25#'011001' 
+CPT[('1','1','4')] = 0#'000000'
+CPT[('1','1','32')] = 1#'000001'
+CPT[('1','1','64')] = 2#'000010'
+CPT[('1','1','128')] = 3
+CPT[('1','1','500')] = 4
+CPT[('1','1','1000')] = 5
+CPT[('1','1','2000')] = 6
+CPT[('1','1','5000')] = 7
+CPT[('1','1','10000')] = 8
+CPT[('1','1','25000')] = 9
 
-CPT[('3','1','')] = 28#'011100' #best-effort
-CPT[('4','2','1000')] = 29#'011101' #controle
+CPT[('1','2','4')] = 10
+CPT[('1','2','32')] = 11
+CPT[('1','2','64')] = 12
+CPT[('1','2','128')] = 13
+CPT[('1','2','500')] = 14
+CPT[('1','2','1000')] = 15
+CPT[('1','2','2000')] = 16
+CPT[('1','2','5000')] = 17
+CPT[('1','2','10000')] = 18
+CPT[('1','2','25000')] = 19
+
+CPT[('1','3','4')] = 20
+CPT[('1','3','32')] = 21
+CPT[('1','3','64')] = 22
+CPT[('1','3','128')] = 23
+CPT[('1','3','500')] = 24
+CPT[('1','3','1000')] = 25
+CPT[('1','3','2000')] = 26
+CPT[('1','3','5000')] = 27
+CPT[('1','3','10000')] = 28
+CPT[('1','3','25000')] = 29
+
+CPT[('2','1','4')] = 30
+CPT[('2','1','32')] = 31
+CPT[('2','1','64')] = 32
+CPT[('2','1','128')] = 33
+CPT[('2','1','500')] = 34
+CPT[('2','1','1000')] = 35
+CPT[('2','1','2000')] = 36
+CPT[('2','1','5000')] = 37
+CPT[('2','1','10000')] = 38
+CPT[('2','1','25000')] = 39
+
+CPT[('2','2','4')] = 40
+CPT[('2','2','32')] = 41
+CPT[('2','2','64')] = 42
+CPT[('2','2','128')] = 43
+CPT[('2','2','500')] = 44
+CPT[('2','2','1000')] = 45
+CPT[('2','2','2000')] = 46
+CPT[('2','2','5000')] = 47
+CPT[('2','2','10000')] = 48
+CPT[('2','2','25000')] = 49
+
+CPT[('2','3','4')] = 50
+CPT[('2','3','32')] = 51
+CPT[('2','3','64')] = 52
+CPT[('2','3','128')] = 53
+CPT[('2','3','500')] = 54
+CPT[('2','3','1000')] = 55
+CPT[('2','3','2000')] = 56
+CPT[('2','3','5000')] = 57
+CPT[('2','3','10000')] = 58
+CPT[('2','3','25000')] = 59
+
+CPT[('3','1','')] = 60 #'111100' #best-effort
+CPT[('4','2','1000')] = 61 #'111101' #controle
 
 #CPF - classe + prioridade = fila
 CPF[(1,1)] = 0 
@@ -610,6 +675,9 @@ class SwitchOVS:
         prioridade = int(prioridade)
         classe = int(classe)
 
+        #armazenar as acoes a serem tomadas
+        acoes = []
+
 #       As regras sempre estao atualizadas, pois quando uma eh modificada, essa notifica o controlador, que chama updateRegras        
 #        self.updateRegras()# atualizar as regras, pois algumas podem nao estar mais ativas = liberou espaco -- implementar
 
@@ -627,20 +695,20 @@ class SwitchOVS:
         #caso seja classe de controle ou best-effort, nao tem BAM, mas precisa criar regras da mesma forma
         #best-effort
         if classe == 3:
-            self.addRegraF(origem,destino, 28, nomePorta, 6,None,0)
+            self.addRegraF(origem,destino, 60, nomePorta, 6,None,0)
             
-            #reinjetar pacote do packet_in
-            if(package != None):
-                self.injetarPacote(self.datapath, FILA_BESTEFFORT, nomePorta, package)
-            return
+            #reinjetar pacote do packet_in - fazer fora do alocarGBAM
+#            if(package != None):
+#                self.injetarPacote(self.datapath, FILA_BESTEFFORT, nomePorta, package)
+            return acoes
 
         #controle
         if classe == 4:
-            self.addRegraF(origem,destino, 29, nomePorta, 7,None,0)
-            #reinjetar pacote do packet_in
-            if(package != None):
-                self.injetarPacote(self.datapath, FILA_CONTROLE, nomePorta, package)
-            return
+            self.addRegraF(origem,destino, 61, nomePorta, 7,None,0)
+            #reinjetar pacote do packet_in - fazer fora do alocarGBAM
+#            if(package != None):
+#                self.injetarPacote(self.datapath, FILA_CONTROLE, nomePorta, package)
+            return acoes
 
         #para generalizar o metodo GBAM e nao ter de repetir codigo testando para uma classe e depois para outra
         outraClasse = 1
@@ -667,20 +735,20 @@ class SwitchOVS:
             fila = CPF[(classe,prioridade)] #com o tos obter a fila = classe + prioridade
                 
             meter_id = 0 #com a banda obter o meter               
-            for i in range(13):
+            for i in range(len(RATES)):
                 if RATES[i] == int(banda):
                     meter_id = i
                     break
-                
-            porta.addRegra(origem, destino, banda, prioridade, classe, tos, 0, nomePorta)
-            #self.addRegraC(origem, destino, tos) #sendo feito apenas no switch de borda
-            self.addRegraF(origem, destino, tos, nomePorta, fila, meter_id, 1)
 
-            #reinjetar pacote do packet_in
-            if(package != None):
-                self.injetarPacote(self.datapath, fila, nomePorta, package)
+            acoes.append( Acao(self.nome, nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,classe,0)))   
+            #porta.addRegra(origem, destino, banda, prioridade, classe, tos, 0, nomePorta)
+            #self.addRegraF(origem, destino, tos, nomePorta, fila, meter_id, 1)
 
-            return 0 #retornar a fila + prioridade = TOS -> procurar o TOS no dicionario CPT
+            #reinjetar pacote do packet_in - fora do alocarGBAM
+            #if(package != None):
+            #    self.injetarPacote(self.datapath, fila, nomePorta, package)
+
+            return acoes #retornando as acoes
 
         else: #nao ha banda suficiente 
             #verificar se existe fluxo emprestando largura = verificar se alguma regra nas filas da classe esta emprestando banda
@@ -709,29 +777,30 @@ class SwitchOVS:
 
                 if bandaE >= int(banda):
                     break
-                
+            
             if bandaE >= int(banda):
                 for i in range(contadorE):
-                    porta.delRegra(emprestando[i].ip_src, emprestando[i].ip_dst, emprestando[i].tos) #remove a regra da classe switch
-                    self.delRegraT(emprestando[i].ip_src, emprestando.ip_dst, emprestando[i].tos,FORWARD_TABLE) #remove a regra no ovswitch
+                    acoes.append( Acao(self.nome, nomePorta, REMOVER, Regra(emprestando[i].ip_src,emprestando[i].ip_dst,nomePorta,emprestando[i].tos,emprestando[i].banda,emprestando[i].prioridade,emprestando[i].classe,emprestando[i].emprestando)))   
+                    #porta.delRegra(emprestando[i].ip_src, emprestando[i].ip_dst, emprestando[i].tos) #remove a regra da classe switch
+                    #self.delRegraT(emprestando[i].ip_src, emprestando.ip_dst, emprestando[i].tos,FORWARD_TABLE) #remove a regra no ovswitch
 
                 tos = CPT[(str(classe), str(prioridade), str(banda))] #obter do vetor CPT - sei a classe a prioridade e a banda = tos
                 fila = CPF[(classe,prioridade)] #com o tos obter a fila = classe + prioridade
                 
                 meter_id = 0 #com a banda obter o meter               
-                for i in range(13):
+                for i in range(len(RATES)):
                     if RATES[i] == int(banda):
                         meter_id = i
                         break
                 
-                porta.addRegra(origem, destino, banda, prioridade, classe, tos, 0, nomePorta)
-                #self.addRegraC(origem, destino, tos)#sendo feito apenas no switch de borda
-                self.addRegraF(origem, destino, tos, nomePorta, fila, meter_id, 1)
+                acoes.append( Acao(self.nome, nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,classe,0)))   
+                #porta.addRegra(origem, destino, banda, prioridade, classe, tos, 0, nomePorta)
+                #self.addRegraF(origem, destino, tos, nomePorta, fila, meter_id, 1)
 
-                #reinjetar pacote do packet_in
-                if(package != None):
-                    self.injetarPacote(self.datapath, fila, nomePorta, package)
-                return 0
+                ##reinjetar pacote do packet_in - fazer fora do alocarGBAM
+                #if(package != None):
+                #    self.injetarPacote(self.datapath, fila, nomePorta, package)
+                return acoes
 
                 
             else:       #nao: testa o nao
@@ -743,24 +812,25 @@ class SwitchOVS:
 
                     #calcular o tos - neste switch o fluxo sera marcado com um tos diferente do original pois ele precisa emprestar banda de outra classe -- [ALTERADO] o tos permanece o mesmo, a regra eh criada no vetor da classe que empresta mas no switch deve ser criada na classe original - isso pode pois todas as filas compartilham da mesma banda e sao limitadas com o controlador
 
-                    tos = CPT[(str(classe), str(prioridade), str(banda))] #mesmo tos original
+                    tos = CPT[(str(outraClasse), str(prioridade), str(banda))] #novo tos equivalente
                     fila = CPF[(outraClasse,prioridade)] #adicionar a regra no vetor da classe switch do controlador em que empresta
-                    fila1 = CPF[(classe,prioridade)] #adicionar a regra na fila original no switch virtual 
+                    #fila1 = CPF[(classe,prioridade)] #adicionar a regra na fila original no switch virtual 
                         
                     meter_id = 0
-                    for i in range(13):
+                    for i in range(len(RATES)):
                         if RATES[i] == int(banda):
                             meter_id = i
                             break
                 
                     #sim: alocar este fluxo - emprestando = 1 na classe em que empresta
-                    porta.addRegra(Regra(origem, destino, banda, prioridade, outraClasse, tos, 1, nomePorta))            
-                    #self.addRegraC(origem, destino, tos)#sendo feito apenas no switch de borda
-                    self.addRegraF(origem, destino, tos, nomePorta, fila1, meter_id, 1)  
-                    #reinjetar pacote do packet_in
-                    if(package != None):
-                        self.injetarPacote(self.datapath, fila, nomePorta, package)                  
-                    return 0
+                    acoes.append( Acao(self.nome, nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,str(outraClasse),1)))   
+                    
+                    #porta.addRegra(Regra(origem, destino, banda, prioridade, outraClasse, tos, 1, nomePorta))            
+                    #self.addRegraF(origem, destino, tos, nomePorta, fila1, meter_id, 1)  
+                    ##reinjetar pacote do packet_in - fazer fora do alocarGBAM
+                    #if(package != None):
+                    #    self.injetarPacote(self.datapath, fila, nomePorta, package)                  
+                    return acoes
 
 
                 else:
@@ -791,37 +861,38 @@ class SwitchOVS:
 
                     if bandaP >= int(banda):
                         for i in remover:
-                            porta.delRegra(i.ip_src, i.ip_dst, i.tos)
-                            self.delRegraT(i.ip_src, i.ip_dst, i.tos, FORWARD_TABLE)
+                            acoes.append( Acao(self.nome, nomePorta, REMOVER, Regra(i.ip_src,i.dst,nomePorta,i.tos,i.banda,i.prioridade,i.classe,i.emprestando)))   
+                            #porta.delRegra(i.ip_src, i.ip_dst, i.tos)
+                            #self.delRegraT(i.ip_src, i.ip_dst, i.tos, FORWARD_TABLE)
 
                         #adiciona na classe original
                         tos = CPT[(classe, prioridade, banda)] #obter do vetor CPT - sei a classe a prioridade e a banda = tos
                         fila = CPF[(classe,prioridade)] #com o tos obter a fila = classe + prioridade
                     
                         meter_id = 0 #com a banda obter o meter               
-                        for i in range(13):
+                        for i in range(len(RATES)):
                             if RATES[i] == int(banda):
                                 meter_id = i
                                 break
-
-                        porta.addRegra(Regra(origem, destino, banda, prioridade, classe, tos, 0, nomePorta))            
-                        #self.addRegraC(origem, destino, tos)#sendo feito apenas no switch de borda
-                        self.addRegraF(origem, destino, tos, nomePorta, fila, meter_id, 1)   
-                        #reinjetar pacote do packet_in
-                        if(package != None):
-                            self.injetarPacote(self.datapath, fila, nomePorta, package)
+                        
+                        acoes.append( Acao(self.nome, nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,classe,0)))   
+                        #porta.addRegra(Regra(origem, destino, banda, prioridade, classe, tos, 0, nomePorta))
+                        #self.addRegraF(origem, destino, tos, nomePorta, fila, meter_id, 1)   
+                        #reinjetar pacote do packet_in - fazer fora do alocarGBAM
+                        #if(package != None):
+                        #    self.injetarPacote(self.datapath, fila, nomePorta, package)
                                 
-                        return 0
+                        return acoes
 
                     else:
 
                         #nao: rejeita o fluxo - criando uma regra de drop por uns 5segundos
                         print("[alocaGBMA]fluxo descartado\n")
                         #FAZER NADA - se nao tiver regra, o pacote eh dropado automaticamente.
-                        return 1
+                        return acoes
 
         #algum erro ocorreu 
-        return -1
+        return None
 
     ### nao esta funcionando
     #criar uma mensagem para remover uma regra de fluxo no ovsswitch
@@ -961,6 +1032,7 @@ class SwitchOVS:
         return
 
     def getPortaSaida(self, ip_dst):
+        #retorna int
 
         if ip_dst in self.redes:
             return self.redes[ip_dst]
@@ -1013,6 +1085,61 @@ class SwitchOVS:
             #print("\n -- C2P3 (qtdregras: %d):" % (este_switch.p3c2rules.length))
             for rp3c2 in porta1.p3c2rules:
                 print(rp3c2.toString()+"\n")
+
+
+#classe para modelar uma acao - remover ou criar regra
+#nome switch - (str) identificar qual switch
+#porta - (int) identificar a porta do switch
+#codigo - (int) identificar a acao 0-CRIAR, 1-REMOVER
+#regra - (Regra) uma regra - com as informacoes suficientes para criar ou remover a regra
+class Acao:
+    def __init__(self, nome_switch, porta, codigo, regra):
+        self.nome_switch=nome_switch
+        self.porta = porta
+        self.codigo = codigo
+        self.regra=regra
+    
+    def getRegra(self):
+        return self.regra
+    #regra = [ip_src, ip_dst, porta_dst, tos, banda, prioridade, classe, emprestando]
+    def executar(self):
+        print(self.toString)
+        if(self.codigo == CRIAR):
+            switch = SwitchOVS.getSwitch(self.nome_switch)
+            porta = switch.getPorta(self.porta)
+            
+            #criando a regra no vetor
+            porta.addRegra(self.regra.ip_src, self.regra.ip_dst, self.regra.banda, self.regra.prioridade, self.regra.classe, self.regra.tos, self.regra.emprestando, self.regra.porta_dst)
+            
+            fila = CPF[(self.regra.classe,self.regra.prioridade)] #com o tos obter a fila = classe + prioridade
+                
+            meter_id = 0 #com a banda obter o meter               
+            for i in range(len(RATES)):
+                if RATES[i] == int(self.regra.banda):
+                    meter_id = i
+                    break
+            
+            #criando a regra na tabela do switch ovs
+            switch.addRegraF(self.regra.ip_src, self.regra.ip_dst, self.regra.tos, self.regra.porta_dst, fila, meter_id, 1)
+        else:
+            #codigo == REMOVER
+            switch = SwitchOVS.getSwitch(self.nome_switch)
+            porta = switch.getPorta(self.porta)
+                        
+            #removendo a regra no vetor
+            porta.delRegra(self.regra.ip_src, self.regra.ip_dst, self.regra.tos)
+
+            #removendo a regra da tabela
+            self.delRegraT(self.regra.ip_src, self.regra.ip_dst, self.regra.tos ,ALL_TABLES) #remove a regra no ovswitch
+
+            #porta.delRegra(emprestando[i].ip_src, emprestando[i].ip_dst, emprestando[i].tos) #remove a regra da classe switch
+            #self.delRegraT(emprestando[i].ip_src, emprestando.ip_dst, emprestando[i].tos,FORWARD_TABLE) #remove a regra no ovswitch
+        return 0
+    
+    def toString(self):
+        if(self.codigo == 0):
+            return "[Acao] Remover: " + self.regra +"\n"
+        return "[Acao] Criar: " + self.regra+"\n"
 
 class Dinamico(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -1125,9 +1252,7 @@ class Dinamico(app_manager.RyuApp):
 ##########        Criando as regras METER - sao identificadas pelo meter_id      ###########
 ############################################################################################
         # transformar isso em um for pf
-
-#### NAO ESTA CRIANDO APARENTEMENTE
-        for i in range(13):
+        for i in range(len(RATES)):
             #criando meter bands
             bands = [parser.OFPMeterBandDrop(type_=ofproto.OFPMBT_DROP, len_=0, rate=RATES[i], burst_size=10)]#e esse burst_size ajustar?
             req = parser.OFPMeterMod(datapath=datapath, command=ofproto.OFPMC_ADD, flags=ofproto.OFPMF_KBPS, meter_id=i, bands=bands)
@@ -1476,7 +1601,8 @@ class Dinamico(app_manager.RyuApp):
                     #criar a regra de encaminhamento + marcacao --- para enviar os contratos
                     #regra de marcacao - apenas no switch que esta conectado ao controlador
                     #primeiro switch == switch conectado ao controlador
-                    switch_primeiro.addRegraC(ip_dst, ip_src, 29)
+                    switch_primeiro.addRegraC(ip_dst, ip_src, 61)
+    
                     #out_port = switch_primeiro.getPortaSaida(ip_src)
 
                     #criar regras de encaminhamento de contratos nos switches da rota 
@@ -1510,7 +1636,7 @@ class Dinamico(app_manager.RyuApp):
           ###### (ii) esse controlador nao eh o controlador destino - logo criar as regras de marcacao e encaminhamento para passar os contratos
                 #os contratos virao do controlador destino -> controlador origem de icmp 16
                 #switches_rota == switches da rota(destino, origem), logo precisa marcar no primeiro switch apenas
-                switch_primeiro.addRegraC(ip_dst, ip_src, 29)
+                switch_primeiro.addRegraC(ip_dst, ip_src, 61)
 
                 #demais switches: regras de encaminhamento - ida
                 for i in switches_rota:
@@ -1565,22 +1691,55 @@ class Dinamico(app_manager.RyuApp):
                              
                     print("[%s] Criando regra tabela de marcacao no switch de borda (0) - toda regra vinda de outro dominio (borda) deve ser remarcada para valer nesse dominio\n" % (switches_rota[0].nome))
                              
-                    #1 criar regra de marcacao/classificacao - switch mais da borda = que disparou o packet_in
-                    switches_rota[0].addRegraC(ip_src, ip_dst, tos)
-                            
                     #adicionar a regra na classe switch
                     #adicionar a regra na tabela do ovsswitch
+                    acoes = []
 
                     #ANTES VERIFICAR SE A PORTA POSSUI FILA, se nao, nao adianta utilizar GBAM ## no caso todas as portas possuem filas, eu pensava que somente a porta 4 possuia, mas nao eh verdade
                     #### criar as regras em cada switch da rota entre ip_src -> ip_dest
                      #IDA -- em todos os switches da rota
-                    for i in range(len(switches_rota)-1):
+                    for i in range(len(switches_rota)):
                         out_port = switches_rota[i].getPortaSaida(ip_dst)
-                        switches_rota[i].alocarGBAM(out_port, ip_src, ip_dst, banda, prioridade, classe)
-                        
+                        #obtendo o vetor de acoes
+                        acoes_aux = switches_rota[i].alocarGBAM(out_port, ip_src, ip_dst, banda, prioridade, classe)
+
+                        #se algum dos switches nao puder alocar, rejeitar o fluxo
+                        #retorno None - deu algum erro em alocarGBAM - None eh o ultimo caso de retorno
+                        if acoes_aux == None:
+                            #rejeitar o fluxo
+                            print("Fluxo rejeitado!\n")
+                            return
+                        #retorno vazio = nao tem espaco para alocar o fluxo
+                        if len(acoes_aux)==0:
+                            #rejeitar o fluxo
+                            print("Fluxo rejeitado!\n")
+                            return
+
+                        #adicionando as acoes
+                        for a in acoes_aux:
+                            acoes.append(a)
+                    
+                    #chegou ate aqui, entao todos os switches possuem espaco para alocar o fluxo
+                    #executar cada acao de criar/remover regras
+                    for a in acoes:
+                        a.executar()
+
                     #pegar o switch mais proximo do destino e injetar o pacote que gerou o packet_in
                     out_port = switch_ultimo.getPortaSaida(ip_dst)
-                    switch_ultimo.alocarGBAM(out_port, ip_src, ip_dst, banda, prioridade, classe, msg)
+                    #a ultima acao deve ser de criar a regra no ultimo switch da rota
+                    ultima_acao = acoes[len(acoes)-1]
+                    #isso esta sendo feito no for
+                    #switch_ultimo.alocarGBAM(out_port, ip_src, ip_dst, ultima_acao.regra.banda, ultima_acao.regra.prioridade, ultima_acao.regra.classe, msg)
+                    fila = CPF[(ultima_acao.regra.classe, ultima_acao.regra.prioridade)]
+                    switch_ultimo.injetarPacote(switch_ultimo.datapath,fila, out_port, msg)
+
+                    #1 criar regra de marcacao/classificacao - switch mais da borda = que disparou o packet_in
+                    #encontrar qual tos foi definido para a criacao da regra no switch de borda mais proximo do emissor
+                    for a in acoes:
+                        if(a.nome_switch == str(dpid) and a.regra.codigo == CRIAR):
+                            switches_rota[0].addRegraC(ip_src, ip_dst, a.regra.tos)
+                            break
+                            
 
                     return
 				
@@ -1610,6 +1769,8 @@ class Dinamico(app_manager.RyuApp):
             switch_ultimo = switches_rota[-1]
             out_port = switch_ultimo.getPortaSaida(ip_dst)
             switch_ultimo.alocarGBAM(out_port, ip_src, ip_dst, '0', 3, 3, msg)
+            fila = CPF[(3,1)]
+            switch_ultimo.injetarPacote(switch_ultimo.datapath,fila, out_port, msg)
 
             return	 
                     

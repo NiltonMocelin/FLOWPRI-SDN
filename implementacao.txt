@@ -60,6 +60,8 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 {{{{{ NISSO AGR }}}}}
 		{{
 
+************** ARRUMAR - no packet_in :: reinjetar o pacote fora do alocarGBAM
+
 ************** ARRUMAR criar novos codigos dscp:
 - no momento, quando se quer emprestar largura de banda da outra classe (ex classe2), a regra é criada para a fila da classe
 original, mas é salva no vetor da fila que emprestou, na classe do switch no controlador.
@@ -72,7 +74,7 @@ estarão competindo por essa banda e não transferindo para a fila que solicitou
 para seus requisitos entre as duas classes. Assim, não é necessário colocar na classe do switch que emprestou no controlador e no 
 ovs colocar na fila original, pois eh so trocar o dscp pelo equivalente e colocar na fila em que emprestou.
 --- o explicacao confusa ... melhorar
--[solucao] duplicar os códigos dscp e criar as regras para a fila que emprestou, com a meter correta equivalente.
+-[solucao] duplicar os códigos dscp e criar as regras para a fila que emprestou, com a meter correta equivalente - classe e prioridade ficam iguais o original, mas o tos fica o equivalente
 
 ************** ARRUMAR - quando a regra de marcacao expira, remover o contrato:
 - o contrato eh valido para o fluxo, e se esse fluxo nao existe mais, deve remove-lo
@@ -130,11 +132,12 @@ E entao, se todos os switches retornarem positivo para a verificacao, comecar a 
 		- questao de tempo para o primeiro pacote chegar no destino
 		- tempo entre o primeiro pacote e o segundo
 		- perda de pacotes quando uma aplicacao usa toda a banda e um novo fluxo prioritario necessita trafegar
-
+		- efeito que um switch best-effort causa, efeito que varios switches best-effort causam
+		- tempo de comunicacao entre controladores
+		- banda utilizada pela comunicacao entre controladores para o estabelecimento de um contrato e multiplos contratos
+		- efeito da priorizacao - comparar se uma fila com maior prioridade entrega com menor atraso que uma fila com menor prioridade.
 	- ver do novo mecanismo de emprestimo, mudar os campos tos para que as duas classes tenham tos equivalentes
 }
-
-
 
 ************* [ARRUMAR] USANDO PCAP::
 - analisar o que está acontecendo nos hosts destino e origem
@@ -393,10 +396,8 @@ tratamento de pacotes em geral (toda a parte de verificar contrato, alocar banda
 - [ok] testar se eh possivel enviar pacotes utilizando datapaths salvos dos switches
 
 
-
 - [verificar] testar se as regras de emprestimo são criadas corretamente
 - [verificar] testar se eh possivel gerar tráfego com wireshark/tshark conforme as bases de dados
-
 
 
 --- usar geradores de tráfego para utilizar bases de dados IoT e injetar na rede:
@@ -407,8 +408,6 @@ tratamento de pacotes em geral (toda a parte de verificar contrato, alocar banda
 		- (um exemplo gerando) https://forum.mikrotik.com/viewtopic.php?t=168534
 		- (lista de geradores) https://www.dnsstuff.com/network-traffic-generator-software
 		]
-
-
 
 
 ################################################################################################################
@@ -563,113 +562,113 @@ nao funcionou ainda  -- apenas o drop esta funcionando
 
 
 
-#############################################################
-Tabela 	dscp     --- 	dscp são 6 bits do cabeçalho IPv4, logo se pode utilizar 64 códigos	:
- ___________________________________________________________________________________
-|	Aplicacoes	   			   |Tipo de tráfego(classe)  |		banda				|
-|-----------------------------------------------------------------------------------|
-|	Voip,streaming,mensagem	   |		Áudio(1)		 |  4,32,64,128,500			|
-|	chamadas,streaming		   |		Vídeo(1)		 |	1,2,5,10,25				|
-|	web,jogos,down/upload...   |		Dados(2)		 |os msms da c1 p/ emprestar|
-|	geral		               |		Best-effort(3)	 |		     				|
-|	comunicacao entre control  |		Controle(4)		 |		  --				|
-|___________________________________________________________________________________|
+				#############################################################
+	Tabela 	dscp     --- 	dscp são 6 bits do cabeçalho IPv4, logo se pode utilizar 64 códigos	:
+	 ___________________________________________________________________________________
+	|	Aplicacoes	   			   |Tipo de tráfego(classe)  |		banda				|
+	|-----------------------------------------------------------------------------------|
+	|	Voip,streaming,mensagem	   |		Áudio(1)		 |  4,32,64,128,500			|
+	|	chamadas,streaming		   |		Vídeo(1)		 |	1,2,5,10,25				|
+	|	web,jogos,down/upload...   |		Dados(2)		 |os msms da c1 p/ emprestar|
+	|	geral		               |		Best-effort(3)	 |		     				|
+	|	comunicacao entre control  |		Controle(4)		 |		  --				|
+	|___________________________________________________________________________________|
 
 ####################		Outros			############################
-_________________________________________________
-|	classe	|	banda	|	prioridade	|	dscp  |
-|-------------------------------------------------|
-|	  3 	|	--		|		1		|	61	  |
-|	  4 	|	--		|		1		|	62	  |
-|_________________________________________________|
+		_________________________________________________
+		|	classe	|	banda	|	prioridade	|	dscp  |
+		|-------------------------------------------------|
+		|	  3 	|	--		|		1		|	61	  |
+		|	  4 	|	--		|		1		|	62	  |
+		|_________________________________________________|
 
 ####################		Tabela Classe 1			############################
- _________________________________________________
-|	classe	|	banda	|	prioridade	|	dscp  |
-|-------------------------------------------------|
-|	  1 	|	4kb		|		1		|	1	  |
-|	  1 	|	32kb	|		1		|	2	  |
-|	  1 	|	64kb	|		1		|	3	  |
-|	  1 	|	128kb	|		1		|	4	  |
-|	  1 	|	500kb	|		1		|	5	  |
-|	  1 	|	1mb		|		1		|	6	  |
-|	  1 	|	2mb		|		1		|	7	  |
-|	  1 	|	5mb		|		1		|	8	  |
-|	  1 	|	10mb	|		1		|	9	  |
-|	  1 	|	25mb	|		1		|	1	  |
-|_________________________________________________|
- _________________________________________________
-|	classe	|	banda	|	prioridade	|	dscp  |
-|-------------------------------------------------|
-|	  1 	|	4kb		|		2		|	11 	  |
-|	  1 	|	32kb	|		2		|	12	  |
-|	  1 	|	64kb	|		2		|	13	  |
-|	  1 	|	128kb	|		2		|	14	  |
-|	  1 	|	500kb	|		2		|	15	  |
-|	  1 	|	1mb		|		2		|	16	  |
-|	  1 	|	2mb		|		2		|	17	  |
-|	  1 	|	5mb		|		2		|	18	  |
-|	  1 	|	10mb	|		2		|	19	  |
-|	  1 	|	25mb	|		2		|	20	  |
-|_________________________________________________|
- _________________________________________________
-|	classe	|	banda	|	prioridade	|	dscp  |
-|-------------------------------------------------|
-|	  1 	|	4kb		|		3		|	21 	  |
-|	  1 	|	32kb	|		3		|	22	  |
-|	  1 	|	64kb	|		3		|	23	  |
-|	  1 	|	128kb	|		3		|	24	  |
-|	  1 	|	500kb	|		3		|	25	  |
-|	  1 	|	1mb		|		3		|	26	  |
-|	  1 	|	2mb		|		3		|	27	  |
-|	  1 	|	5mb		|		3		|	28	  |
-|	  1 	|	10mb	|		3		|	29	  |
-|	  1 	|	25mb	|		3		|	30	  |
-|_________________________________________________|
+		 _________________________________________________
+		|	classe	|	banda	|	prioridade	|	dscp  |
+		|-------------------------------------------------|
+		|	  1 	|	4kb		|		1		|	1	  |
+		|	  1 	|	32kb	|		1		|	2	  |
+		|	  1 	|	64kb	|		1		|	3	  |
+		|	  1 	|	128kb	|		1		|	4	  |
+		|	  1 	|	500kb	|		1		|	5	  |
+		|	  1 	|	1mb		|		1		|	6	  |
+		|	  1 	|	2mb		|		1		|	7	  |
+		|	  1 	|	5mb		|		1		|	8	  |
+		|	  1 	|	10mb	|		1		|	9	  |
+		|	  1 	|	25mb	|		1		|	1	  |
+		|_________________________________________________|
+		 _________________________________________________
+		|	classe	|	banda	|	prioridade	|	dscp  |
+		|-------------------------------------------------|
+		|	  1 	|	4kb		|		2		|	11 	  |
+		|	  1 	|	32kb	|		2		|	12	  |
+		|	  1 	|	64kb	|		2		|	13	  |
+		|	  1 	|	128kb	|		2		|	14	  |
+		|	  1 	|	500kb	|		2		|	15	  |
+		|	  1 	|	1mb		|		2		|	16	  |
+		|	  1 	|	2mb		|		2		|	17	  |
+		|	  1 	|	5mb		|		2		|	18	  |
+		|	  1 	|	10mb	|		2		|	19	  |
+		|	  1 	|	25mb	|		2		|	20	  |
+		|_________________________________________________|
+		 _________________________________________________
+		|	classe	|	banda	|	prioridade	|	dscp  |
+		|-------------------------------------------------|
+		|	  1 	|	4kb		|		3		|	21 	  |
+		|	  1 	|	32kb	|		3		|	22	  |
+		|	  1 	|	64kb	|		3		|	23	  |
+		|	  1 	|	128kb	|		3		|	24	  |
+		|	  1 	|	500kb	|		3		|	25	  |
+		|	  1 	|	1mb		|		3		|	26	  |
+		|	  1 	|	2mb		|		3		|	27	  |
+		|	  1 	|	5mb		|		3		|	28	  |
+		|	  1 	|	10mb	|		3		|	29	  |
+		|	  1 	|	25mb	|		3		|	30	  |
+		|_________________________________________________|
 
 ####################		Tabela Classe 2			############################
- _________________________________________________
-|	classe	|	banda	|	prioridade	|	dscp  |
-|-------------------------------------------------|
-|	  2 	|	4kb		|		1		|	31 	  |
-|	  2 	|	32kb	|		1		|	32	  |
-|	  2 	|	64kb	|		1		|	33	  |
-|	  2 	|	128kb	|		1		|	34	  |
-|	  2 	|	500kb	|		1		|	35	  |
-|	  2 	|	1mb		|		1		|	36	  |
-|	  2 	|	2mb		|		1		|	37	  |
-|	  2 	|	5mb		|		1		|	38	  |
-|	  2 	|	10mb	|		1		|	39	  |
-|	  2 	|	25mb	|		1		|	40	  |
-|_________________________________________________|
- _________________________________________________
-|	classe	|	banda	|	prioridade	|	dscp  |
-|-------------------------------------------------|
-|	  2 	|	4kb		|		2		|	41 	  |
-|	  2 	|	32kb	|		2		|	42	  |
-|	  2 	|	64kb	|		2		|	43	  |
-|	  2 	|	128kb	|		2		|	44	  |
-|	  2 	|	500kb	|		2		|	45	  |
-|	  2 	|	1mb		|		2		|	46	  |
-|	  2 	|	2mb		|		2		|	47	  |
-|	  2 	|	5mb		|		2		|	48	  |
-|	  2 	|	10mb	|		2		|	49	  |
-|	  2 	|	25mb	|		2		|	50	  |
-|_________________________________________________|
- _________________________________________________
-|	classe	|	banda	|	prioridade	|	dscp  |
-|-------------------------------------------------|
-|	  2 	|	4kb		|		3		|	51	  |
-|	  2 	|	32kb	|		3		|	52	  |
-|	  2 	|	64kb	|		3		|	53	  |
-|	  2 	|	128kb	|		3		|	54	  |
-|	  2 	|	500kb	|		3		|	55	  |
-|	  2 	|	1mb		|		3		|	56	  |
-|	  2 	|	2mb		|		3		|	57	  |
-|	  2 	|	5mb		|		3		|	58	  |
-|	  2 	|	10mb	|		3		|	59	  |
-|	  2 	|	25mb	|		3		|	60	  |
-|_________________________________________________|
+		 _________________________________________________
+		|	classe	|	banda	|	prioridade	|	dscp  |
+		|-------------------------------------------------|
+		|	  2 	|	4kb		|		1		|	31 	  |
+		|	  2 	|	32kb	|		1		|	32	  |
+		|	  2 	|	64kb	|		1		|	33	  |
+		|	  2 	|	128kb	|		1		|	34	  |
+		|	  2 	|	500kb	|		1		|	35	  |
+		|	  2 	|	1mb		|		1		|	36	  |
+		|	  2 	|	2mb		|		1		|	37	  |
+		|	  2 	|	5mb		|		1		|	38	  |
+		|	  2 	|	10mb	|		1		|	39	  |
+		|	  2 	|	25mb	|		1		|	40	  |
+		|_________________________________________________|
+		 _________________________________________________
+		|	classe	|	banda	|	prioridade	|	dscp  |
+		|-------------------------------------------------|
+		|	  2 	|	4kb		|		2		|	41 	  |
+		|	  2 	|	32kb	|		2		|	42	  |
+		|	  2 	|	64kb	|		2		|	43	  |
+		|	  2 	|	128kb	|		2		|	44	  |
+		|	  2 	|	500kb	|		2		|	45	  |
+		|	  2 	|	1mb		|		2		|	46	  |
+		|	  2 	|	2mb		|		2		|	47	  |
+		|	  2 	|	5mb		|		2		|	48	  |
+		|	  2 	|	10mb	|		2		|	49	  |
+		|	  2 	|	25mb	|		2		|	50	  |
+		|_________________________________________________|
+		 _________________________________________________
+		|	classe	|	banda	|	prioridade	|	dscp  |
+		|-------------------------------------------------|
+		|	  2 	|	4kb		|		3		|	51	  |
+		|	  2 	|	32kb	|		3		|	52	  |
+		|	  2 	|	64kb	|		3		|	53	  |
+		|	  2 	|	128kb	|		3		|	54	  |
+		|	  2 	|	500kb	|		3		|	55	  |
+		|	  2 	|	1mb		|		3		|	56	  |
+		|	  2 	|	2mb		|		3		|	57	  |
+		|	  2 	|	5mb		|		3		|	58	  |
+		|	  2 	|	10mb	|		3		|	59	  |
+		|	  2 	|	25mb	|		3		|	60	  |
+		|_________________________________________________|
 
 Por que ter duas classes se possuem as mesmas prioridades e bandas disponíveis?
 R: Porque com duas classes, sendo uma voltada para aplicacoes que envolvem streaming/video/audio (classe 1) e outra 
