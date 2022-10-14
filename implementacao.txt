@@ -60,6 +60,20 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 {{{{{ NISSO AGR }}}}}
 		{{
 
+************** ARRUMAR criar novos codigos dscp:
+- no momento, quando se quer emprestar largura de banda da outra classe (ex classe2), a regra é criada para a fila da classe
+original, mas é salva no vetor da fila que emprestou, na classe do switch no controlador.
+No entanto, na pratica, esse fluxo estará na fila original, que já está sem banda disponível, assim utilizando mais largura
+de banda do que é garantido pela fila orinal dele, utilizando a largura de banda extra de outras filas.
+Mesmo o controlador garantindo que a banda foi emprestada e a fila que emprestou não utiliza essa partição, na prática, o htb
+distribui essa banda entre as outras filas que solicitam, de forma que a fila de best-effort e a fila da classe que emprestou 
+estarão competindo por essa banda e não transferindo para a fila que solicitou o emprestimo.
+- Para resolver, é proposto estender os códigos dscp para que cubram as duas classes e que os fluxos tenham códigos equivalentes 
+para seus requisitos entre as duas classes. Assim, não é necessário colocar na classe do switch que emprestou no controlador e no 
+ovs colocar na fila original, pois eh so trocar o dscp pelo equivalente e colocar na fila em que emprestou.
+--- o explicacao confusa ... melhorar
+-[solucao] duplicar os códigos dscp e criar as regras para a fila que emprestou, com a meter correta equivalente.
+
 ************** ARRUMAR - quando a regra de marcacao expira, remover o contrato:
 - o contrato eh valido para o fluxo, e se esse fluxo nao existe mais, deve remove-lo
 - quando um contrato eh salvo, as regras de fluxo sao criadas com idle_time = 30s
