@@ -2,7 +2,7 @@
 
 * Código referente ao projeto da disciplina TCC-002 - UDESC 2022
 
-* Versão dos recursos utilizados:
+## Versão dos recursos utilizados:
 - Mininet: 2.3.0b2
 - OVS: 2.13.1
 - Ryu: 4.34
