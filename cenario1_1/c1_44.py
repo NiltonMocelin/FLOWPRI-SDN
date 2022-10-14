@@ -362,6 +362,8 @@ class Regra:
         self.tos = tos
         self.emprestando=emprestando
         self.banda = banda
+        self.prioridade=prioridade
+        self.classe = classe
 
         print("[regra-init]src:%s; dst=%s; banda:%s, porta_dst=%d, tos=%s, emprestando=%d" % (self.ip_src, self.ip_dst, self.banda, self.porta_dst, self.tos, self.emprestando)) 
 

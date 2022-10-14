@@ -58,6 +58,7 @@ switches = [] #switches administrados pelo controlador
 
 CLASSIFICATION_TABLE = 0 #tabela para marcacao de pacotes
 FORWARD_TABLE = 2 #tabela para encaminhar a porta destino
+ALL_TABLES = 255 #codigo para informar que uma acao deve ser tomada em todas as tabelas
 
 CPT = {} #chave (CLASSE,PRIORIDADE,BANDA): valor TOS  
 CPF = {} #classe + prioridade = fila
@@ -112,6 +113,7 @@ def servidor_socket_hosts():
         print(addr)
         print("\n")
 
+        #como eh so um contrato, nao importa saber exatamente a quantidade de bytes a receber
         data = conn.recv(1024)
         print(data)
         #contrato = json.loads(data.encode('utf-8'))
@@ -135,32 +137,11 @@ def servidor_socket_hosts():
         #pegar os switches da rota
         switches_rota = SwitchOVS.getRota(cip_src, cip_dst)
 
-       ##checar se ja existe um contrato e remover --- isso ocorre antes de adicionar o novo contrato, por isso consigo pegar o contrato antigo
-        for i in contratos:
-            if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_destino']==cip_dst:
-                print("[removendo-contrato-antigo] - ip_src:%s; ip_dst:%s; tos:%s\n" % (cip_src, cip_dst,tos))
-                
-                #deletar as regras antigas em cada classe switch e no ovs - pegar as informacoes antigas e obter o tos, para entao conseguir remover o contrato/regras antigas
-                classe_antiga = i['contrato']['classe']
-                prioridade_antiga=i['contrato']['prioridade']
-                banda_antiga=i['contrato']['banda']
-                tos_antigo = tos = CPT[(classe_antiga, prioridade_antiga, banda_antiga)]
-                contratos.remove(i)
-                for s in switches_rota:
-                    #deletando na classe switch (de algum dos vetores)
-#verificando - o alocar gbam ja remove a regra - ver como ele esta fazendo o del regra e o tos que esta sendo usado - esta usando o tos passado na funcao, ou seja, evita que tenha duas regras iguais
-#eh necessario remover aqui a regra que tem os ips iguais mas o tos diferente
-                    out_port = s.getPortaSaida(cip_dst)
-                    porta = s.getPorta(out_port)
-                    #deletando a regra referente ao contrato antigo - pq nao vale mais, ele foi removido
-                    porta.delRegra(cip_src, cip_dst, tos_antigo)
-                    #deletando da tabela de fluxos do ovs
-                    s.delRegraF(cip_src, cip_dst, tos_antigo)
+        #deletando o contrato anterior e as regras a ele associadas
+        delContratoERegras(switches_rota, cip_src, cip_dst)
 
         print("contrato salvo \n")
-        contratos.append(contrato)
-
-        
+        contratos.append(contrato)      
 
         #criando a regra de marcacao - switch mais da borda emissora
         switches_rota[0].addRegraC(cip_src, cip_dst, tos)
@@ -226,10 +207,7 @@ def servidor_socket_controladores():
 #### OBS -- Implementar : garantir que exista apenas um contrato com match para ip_src, ip_dst - e mais campos se forem usar - que se outro contrato vier com esse match, substituir o que ja existe 
 #OBS - os contratos sao armazenados como string, entao para acessa-los como json, eh preciso carregar como json: json.loads(contrato)['contrato']['ip_origem']
 
-            print("contrato salvo \n")
-            contratos.append(contrato)
-
-        #criar as regras de marcacao e encaminhamento nos switches da entre ip_src e ip_dst
+                   #criar as regras de marcacao e encaminhamento nos switches da entre ip_src e ip_dst
 #enviar um icmp 15 ja perguntando se existem controladores interessados em receber o contrato
         #pegar os dados do contrato
             cip_src = contrato['contrato']['ip_origem']
@@ -240,7 +218,14 @@ def servidor_socket_controladores():
             classe =  contrato['contrato']['classe']
             tos = CPT[(classe, prioridade, banda)]
 
+            #pegando os switches da rota
             switches_rota = SwitchOVS.getRota(cip_src, cip_dst)
+
+            #deletando o contrato anterior e as regras a ele associadas
+            delContratoERegras(switches_rota, cip_src, cip_dst)
+
+            print("contrato salvo \n")
+            contratos.append(contrato)
 
             #criando a regra de marcacao - switch mais da borda emissora
             switches_rota[0].addRegraC(cip_src, cip_dst, tos)
@@ -255,6 +240,40 @@ def servidor_socket_controladores():
         #fechar a conexao e aguardar nova
         conn.close()
     
+#remove um contrato e as regras associadas a ele nos switches da rota entre ip_src, ip_dst
+def delContratoERegras(switches_rota, cip_src, cip_dst):
+    ##checar se ja existe um contrato e remover --- isso ocorre antes de adicionar o novo contrato, por isso consigo pegar o contrato antigo
+    for i in contratos:
+        if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_destino']==cip_dst:
+
+            #deletar as regras antigas em cada classe switch e no ovs - pegar as informacoes antigas e obter o tos, para entao conseguir remover o contrato/regras antigas
+            classe_antiga = i['contrato']['classe']
+            prioridade_antiga=i['contrato']['prioridade']
+            banda_antiga=i['contrato']['banda']
+            tos_antigo = CPT[(classe_antiga, prioridade_antiga, banda_antiga)]
+            print("[removendo-contrato-antigo] - ip_src:%s; ip_dst:%s; tos:%s\n" % (cip_src, cip_dst,tos_antigo))
+
+            contratos.remove(i)
+            for s in switches_rota:
+                #deletando na classe switch (de algum dos vetores)
+#verificando - o alocar gbam ja remove a regra - ver como ele esta fazendo o del regra e o tos que esta sendo usado - esta usando o tos passado na funcao, ou seja, evita que tenha duas regras iguais
+#eh necessario remover aqui a regra que tem os ips iguais mas o tos diferente
+                out_port = s.getPortaSaida(cip_dst)
+                porta = s.getPorta(out_port)
+                #deletando a regra referente ao contrato antigo - pq nao vale mais, ele foi removido
+                #se a regra estava ativa, ela sera removida dos switches tbm
+                if(porta.delRegra(cip_src, cip_dst, tos_antigo)==0):
+                    #regra ativa
+                    #deletando da tabela de fluxos do ovs
+                    #s.delRegraT(cip_src, cip_dst, int(tos_antigo), FORWARD_TABLE)
+                    s.delRegraT(cip_src, cip_dst, int(tos_antigo), ALL_TABLES)
+            
+            # aqui fica mais dificil checar se a regra esta ativa - mas eh uma mensagem apenas (aguns pacotes entre controlador e switch de borda)
+            # foi alterado novamente para que delRegraT remova a regra em todas as tabelas
+            # no primeiro switch remover a regra de marcacao
+            #switches_rota[0].delRegraT(cip_src, cip_dst, int(tos_antigo), CLASSIFICATION_TABLE)
+            # como nao pode ter mais de um contrato, ja pode retornar
+            return
 
 #################
 #   INICIANDO SOCKET - RECEBER CONTRATOS (hosts e controladores)
@@ -343,6 +362,8 @@ class Regra:
         self.tos = tos
         self.emprestando=emprestando
         self.banda = banda
+        self.prioridade=prioridade
+        self.classe = classe
 
         print("[regra-init]src:%s; dst=%s; banda:%s, porta_dst=%d, tos=%s, emprestando=%d" % (self.ip_src, self.ip_dst, self.banda, self.porta_dst, self.tos, self.emprestando)) 
 
@@ -422,6 +443,9 @@ class Porta:
         return 0
 
     def delRegra(self, ip_src, ip_dst, tos):
+        #tos eh inteiro no dict
+        tos = int(tos)
+
         #busca e remove a regra seja onde estiver - eh dito que nao deve existir duas regras iguais em nenhum lugar ....
         #regras podem estar na classe original, com uma prioridade, ou emprestando (na outra classe, com a mesma prioridade)
 
@@ -689,7 +713,7 @@ class SwitchOVS:
             if bandaE >= int(banda):
                 for i in range(contadorE):
                     porta.delRegra(emprestando[i].ip_src, emprestando[i].ip_dst, emprestando[i].tos) #remove a regra da classe switch
-                    self.delRegraF(emprestando[i].ip_src, emprestando.ip_dst, emprestando[i].tos) #remove a regra no ovswitch
+                    self.delRegraT(emprestando[i].ip_src, emprestando.ip_dst, emprestando[i].tos,FORWARD_TABLE) #remove a regra no ovswitch
 
                 tos = CPT[(str(classe), str(prioridade), str(banda))] #obter do vetor CPT - sei a classe a prioridade e a banda = tos
                 fila = CPF[(classe,prioridade)] #com o tos obter a fila = classe + prioridade
@@ -768,7 +792,7 @@ class SwitchOVS:
                     if bandaP >= int(banda):
                         for i in remover:
                             porta.delRegra(i.ip_src, i.ip_dst, i.tos)
-                            self.delRegraF(i.ip_src, i.ip_dst, i.tos)
+                            self.delRegraT(i.ip_src, i.ip_dst, i.tos, FORWARD_TABLE)
 
                         #adiciona na classe original
                         tos = CPT[(classe, prioridade, banda)] #obter do vetor CPT - sei a classe a prioridade e a banda = tos
@@ -801,8 +825,10 @@ class SwitchOVS:
 
     ### nao esta funcionando
     #criar uma mensagem para remover uma regra de fluxo no ovsswitch
-    def delRegraF(self, ip_src, ip_dst, tos):
+    def delRegraT(self, ip_src, ip_dst, tos, tabela=ALL_TABLES):
 
+        #tabela = 255 = ofproto.OFPTT_ALL = todas as tabelas
+        print("Deletando regra - ipsrc: %s, ipdst: %s, tos: %d, tabela: %d\n" % (ip_src, ip_dst, tos, tabela))
         #tendo o datapath eh possivel criar pacotes de comando para o switch/datapath
         #caso precise simplificar, pode chamar o cmd e fazer tudo via ovs-ofctl
 
@@ -815,9 +841,20 @@ class SwitchOVS:
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
-        match = parser.OFPMatch(eth_type='0x0800', ipv4_src=ip_src, ipv4_dst=ip_dst, ip_dscp=tos)
-        mod = datapath.ofproto_parser.OFPFlowMod(datapath, table_id=FORWARD_TABLE, command=ofproto.OFPFC_DELETE,  match=match)
-        print("deletando regra:\n")
+        #match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip_src, ipv4_dst=ip_dst, ip_dscp=tos)
+        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=ip_dst) #, ip_dscp=20)
+        #match = parser.OFPMatch()
+        #mod = datapath.ofproto_parser.OFPFlowMod(datapath, table_id=tabela, command=ofproto.OFPFC_DELETE,  match=match)
+        
+        #funcionam
+        # mod = datapath.ofproto_parser.OFPFlowMod(datapath, command=ofproto.OFPFC_DELETE, out_port=ofproto.OFPP_ANY, match=match)
+        # mod = datapath.ofproto_parser.OFPFlowMod(datapath, command=ofproto.OFPFC_DELETE, match=match, table_id=ofproto.OFPTT_ALL, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
+        mod = datapath.ofproto_parser.OFPFlowMod(datapath, command=ofproto.OFPFC_DELETE, match=match, table_id=tabela, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
+
+        ##esse funciona - remove tudo
+        #mod = datapath.ofproto_parser.OFPFlowMod(datapath, command=ofproto.OFPFC_DELETE, table_id=ofproto.OFPTT_ALL, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
+        
+        print("deletando regra\n")
         print(mod)
         print("\n")
         datapath.send_msg(mod)
@@ -861,7 +898,7 @@ class SwitchOVS:
         
         if(ip_dscp != None):
             match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP,ipv4_src=ip_src, ipv4_dst=ip_dst,ip_dscp=ip_dscp)
-
+        
         actions = [parser.OFPActionSetQueue(fila), parser.OFPActionOutput(out_port)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)] # essa instrucao eh necessaria?
  

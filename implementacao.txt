@@ -59,11 +59,68 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 
 {{{{{ NISSO AGR }}}}}
 		{{
+
+************** ARRUMAR - quando a regra de marcacao expira, remover o contrato:
+- o contrato eh valido para o fluxo, e se esse fluxo nao existe mais, deve remove-lo
+- quando um contrato eh salvo, as regras de fluxo sao criadas com idle_time = 30s
+- se os fluxos levarem mais de 30s para enviarem um pacote, as regras expiram e sao removidas.
+- isso pode ser problematico para cenarios iot, de sensores, pois os contratos sao provisorios com essa implementacao
+- seria interessante a ideia de contratos permanentes, justamente para casos de cenarios iot
+
 ************** ARRUMAR ou pensar sobre - so criar as regras se todos os switches da rota aceitarem os requisitos do contrato/fluxo?:
 - no momento, para cada switch eu aloco espaco (salvo no vetor da classe no controlador) e crio as 
 regras, caso algum deles nao aceite, os outros switches vao ter de esperar a regra criada expirar para entao liberar 
 espaco. - por agora fica assim mesmo, ou entao salvo a saida de cada alocarGBAM e entao se nenhum recursar, ai sim criar as regras
+
+[desenvolvimento]
+ ---> duas opcoes:
+(1 - primeira) fazer a verificacao se existe espaco para alocar o fluxo em cada switch e caso um nao aceite, rejeitar - passando todos os processos de:
+		1-tem espaco suficiente na classe?
+		2-tem fluxos suficientes emprestando, para remover ?
+		3-tem espaco na outra classe?
+		4-tem fluxos de menor prioridade na classe original?
+	E entao se todos os switches retornarem positivo para essas perguntas, repetir os processos para entao alocar - no caso, eh preciso repetir para saber quais regras de fluxos sao necessarias remocao
+
+(2- segunda) durante a verificacao, salvar a acao que deve ser tomada para cada switch - por exemplo - s1, deletar [regra1,regra2,regra3], s1,alocar [regra1] classe 1,p1,emprestando=0
+E entao, se todos os switches retornarem positivo para a verificacao, comecar a aplicar as acoes. Teria que ser tipo uma classe, com o nome do switch, int codigo, vetor de regras - algo assim
+	- se a verificacao for positiva (todos aceitam o fluxo) - chamar a funcao porta.delRegra(origem, destino, tos) em cada switch - para nao aceitar regras
+	repetidas - remover antes eh util se a regra que estou tentando alocar ja existe, entao eh melhor remover antes que tenho ctz que vou conseguir colocar a nova.
+
+	- acoes do alocarGBAM:
+		- se tiver espaco suficiente na classe original - alocar o fluxo e criar as regras
+
+		- obter os fluxos que estao emprestando largura de banda na classe original, verificar se eles fornecem banda suficiente - remover os fluxos, alocar o novo e criar a nova regra
+
+		- se tiver espaco suficiente na outra classe - alocar o fluxo e criar as regras
+
+		- verificar na classe original se existem fluxos com menor prioridade o suficiente - remover essas regras
+
+		-obs: fluxos que estao emprestando, sao colocados no vetor de mesma prioridade so que na outra classe, no entanto, mantem os dados de classe, 
+		prioridade, banda e tos iguais ao original, a ideia eh que ele seja colocado na fila original, mas seja descontado da largura de banda total,
+		 na fila emprestada - isso na verdade tem um problema, pq o htb vai entender que a fila que emprestou nao esta usando aquela parte da banda e
+		  vai distribuir para todas as outras filas, inclusive a de best effort - o melhor seria ter um tos equivalente e colocar na outra
+		  classe - por agr fica assim msm.
+		  -- solucao nao implementada: so emprestar largura de banda entre classe 1 e classe 2, nao permitir que a fila de best-effor emprestar banda, nem a de controle
+		  -- o melhor seria, colocar o fluxo que esta emprestando, na fila da classe a qual se empresta.
+		  - [solucao] - ter tos equivalentes nas duas classes e quando for emprestar, mantem os dados, mas muda o tos - assim, o fluxo vai para a fila correta, na qual se empresta
+		  Entao, para remover, remove pelos campos - ip, porta
+		  -------issaq nao vai ficar pronto para amanha
 		}}
+
+[[ hoje ainda ]]
+{
+	- implementar o novo alocarGBAM
+	- testar as filas, como se comportam cheias - com toda a banda alocada
+	- testar a parte de emprestar banda
+	- comparar um cenario com o framework e um sem:
+		- questao de tempo para o primeiro pacote chegar no destino
+		- tempo entre o primeiro pacote e o segundo
+		- perda de pacotes quando uma aplicacao usa toda a banda e um novo fluxo prioritario necessita trafegar
+
+	- ver do novo mecanismo de emprestimo, mudar os campos tos para que as duas classes tenham tos equivalentes
+}
+
+
 
 ************* [ARRUMAR] USANDO PCAP::
 - analisar o que está acontecendo nos hosts destino e origem
