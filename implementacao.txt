@@ -83,6 +83,16 @@ ovs colocar na fila original, pois eh so trocar o dscp pelo equivalente e coloca
 - isso pode ser problematico para cenarios iot, de sensores, pois os contratos sao provisorios com essa implementacao
 - seria interessante a ideia de contratos permanentes, justamente para casos de cenarios iot
 
+************** Arrumar - modificar a remocao do controlador com timestamp:
+- thread para remover quando o contrato expirar
+
+************** Arrumar - enviar no icmp 15 :
+- ja os ip_src,dst,porta e tos 
+- comparar se o tos for igual, nao enviar o contrato.
+
+************** [ir colhendo as contribuicoes]:
+------
+
 ************** ARRUMAR ou pensar sobre - so criar as regras se todos os switches da rota aceitarem os requisitos do contrato/fluxo?:
 - no momento, para cada switch eu aloco espaco (salvo no vetor da classe no controlador) e crio as 
 regras, caso algum deles nao aceite, os outros switches vao ter de esperar a regra criada expirar para entao liberar 

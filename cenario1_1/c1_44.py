@@ -208,14 +208,47 @@ def servidor_socket_hosts():
         print("contrato salvo \n")
         contratos.append(contrato)      
 
-        #criando a regra de marcacao - switch mais da borda emissora
-        switches_rota[0].addRegraC(cip_src, cip_dst, tos)
+        #pegando as acoes do alocarGBAM
+        acoes = []
 
         #em todos os switches da rota - criar regras de encaminhamento
         #nao precisa injetar o pacote,pois era um contrato para este controlador
         for s in switches_rota:
             out_port = s.getPortaSaida(cip_dst)
-            s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
+            acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
+
+            #se algum dos switches nao puder alocar, rejeitar o fluxo
+            #retorno None - deu algum erro em alocarGBAM - None eh o ultimo caso de retorno
+            if acoes_aux == None:
+                #rejeitar o fluxo
+                print("Fluxo rejeitado!\n")
+                break
+
+            #retorno vazio = nao tem espaco para alocar o fluxo
+            if len(acoes_aux)==0:
+                #rejeitar o fluxo
+                print("Fluxo rejeitado!\n")
+                return
+            
+            #adicionando as acoes
+            for a in acoes_aux:
+                acoes.append(a)
+
+        #chegou ate aqui, entao todos os switches possuem espaco para alocar o fluxo
+        #executar cada acao de criar/remover regras
+        for a in acoes:
+            a.executar()
+
+        #1 criar regra de marcacao/classificacao - switch mais da borda = que disparou o packet_in
+        #encontrar qual tos foi definido para a criacao da regra no switch de borda mais proximo do emissor
+        #pq pegar o tos da regra definida na acao e nao o tos baseado na classe, prioridade e banda do
+        # contrato? - pq a regra pode estar emprestando banda, nesse caso, a classe esta diferente da original, e consequentemente o tos tbm esta
+
+        for a in acoes:
+            if(a.nome_switch == switches_rota[0].nome and a.regra.codigo == CRIAR):
+                #criando a regra de marcacao - switch mais da borda emissora
+                switches_rota[0].addRegraC(cip_src, cip_dst, a.regra.tos)
+                break
 
         #enviando o icmp 15 ---- obs nao posso enviar o icmp 15, pois o controlador nao  conhece o end MAC do destino
         # o melhor jeito seria inserir isso no contrato PENSAR
@@ -292,14 +325,47 @@ def servidor_socket_controladores():
             print("contrato salvo \n")
             contratos.append(contrato)
 
-            #criando a regra de marcacao - switch mais da borda emissora
-            switches_rota[0].addRegraC(cip_src, cip_dst, tos)
+            #pegando as acoes do alocarGBAM
+            acoes = []
 
             #em todos os switches da rota - criar regras de encaminhamento
             #nao precisa injetar o pacote,pois era um contrato para este controlador
             for s in switches_rota:
                 out_port = s.getPortaSaida(cip_dst)
-                s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
+                acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
+
+                #se algum dos switches nao puder alocar, rejeitar o fluxo
+                #retorno None - deu algum erro em alocarGBAM - None eh o ultimo caso de retorno
+                if acoes_aux == None:
+                    #rejeitar o fluxo
+                    print("Fluxo rejeitado!\n")
+                    break
+
+                #retorno vazio = nao tem espaco para alocar o fluxo
+                if len(acoes_aux)==0:
+                    #rejeitar o fluxo
+                    print("Fluxo rejeitado!\n")
+                    return
+
+                #adicionando as acoes
+                for a in acoes_aux:
+                    acoes.append(a)
+
+            #chegou ate aqui, entao todos os switches possuem espaco para alocar o fluxo
+            #executar cada acao de criar/remover regras
+            for a in acoes:
+                a.executar()
+
+            #1 criar regra de marcacao/classificacao - switch mais da borda = que disparou o packet_in
+            #encontrar qual tos foi definido para a criacao da regra no switch de borda mais proximo do emissor
+            #pq pegar o tos da regra definida na acao e nao o tos baseado na classe, prioridade e banda do
+            # contrato? - pq a regra pode estar emprestando banda, nesse caso, a classe esta diferente da original, e consequentemente o tos tbm esta
+            
+            for a in acoes:
+                if(a.nome_switch == switches_rota[0].nome and a.regra.codigo == CRIAR):
+                    #criando a regra de marcacao - switch mais da borda emissora
+                    switches_rota[0].addRegraC(cip_src, cip_dst, a.regra.tos)
+                    break
 
             #Nao enviar um icmp 15, pois o protocolo atual eh que todos respondam o icmp 15 do primeiro controlador
         #fechar a conexao e aguardar nova
