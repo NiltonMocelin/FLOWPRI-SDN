@@ -36,9 +36,13 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 ****** [funcionou]NAO SEI, NAO FUNCIONOU DIREITO ::: AGR FUNCIONOU -- settar PermitRootLogin yes em /etc/sshd/sshd_config e definir a senha do root sudo passwd root, entao pode dar ssh ip
 ****** }
 
+************** [ir colhendo as contribuicoes]:
+------
+
 
 ################################################################################################################
 ######################################## ERROS/SOLUCOES/TODO ###################################################
+
 
 ************* ARRUMAR ICMP/contratos - configurar o envio dos contratos para o controlador que responder
 - #enviar_contratos(host_ip, host_port, ip_dst_contrato)
@@ -60,79 +64,6 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 {{{{{ NISSO AGR }}}}}
 		{{
 
-************** ARRUMAR - no packet_in :: reinjetar o pacote fora do alocarGBAM
-
-************** ARRUMAR criar novos codigos dscp:
-- no momento, quando se quer emprestar largura de banda da outra classe (ex classe2), a regra é criada para a fila da classe
-original, mas é salva no vetor da fila que emprestou, na classe do switch no controlador.
-No entanto, na pratica, esse fluxo estará na fila original, que já está sem banda disponível, assim utilizando mais largura
-de banda do que é garantido pela fila orinal dele, utilizando a largura de banda extra de outras filas.
-Mesmo o controlador garantindo que a banda foi emprestada e a fila que emprestou não utiliza essa partição, na prática, o htb
-distribui essa banda entre as outras filas que solicitam, de forma que a fila de best-effort e a fila da classe que emprestou 
-estarão competindo por essa banda e não transferindo para a fila que solicitou o emprestimo.
-- Para resolver, é proposto estender os códigos dscp para que cubram as duas classes e que os fluxos tenham códigos equivalentes 
-para seus requisitos entre as duas classes. Assim, não é necessário colocar na classe do switch que emprestou no controlador e no 
-ovs colocar na fila original, pois eh so trocar o dscp pelo equivalente e colocar na fila em que emprestou.
---- o explicacao confusa ... melhorar
--[solucao] duplicar os códigos dscp e criar as regras para a fila que emprestou, com a meter correta equivalente - classe e prioridade ficam iguais o original, mas o tos fica o equivalente
-
-************** ARRUMAR - quando a regra de marcacao expira, remover o contrato:
-- o contrato eh valido para o fluxo, e se esse fluxo nao existe mais, deve remove-lo
-- quando um contrato eh salvo, as regras de fluxo sao criadas com idle_time = 30s
-- se os fluxos levarem mais de 30s para enviarem um pacote, as regras expiram e sao removidas.
-- isso pode ser problematico para cenarios iot, de sensores, pois os contratos sao provisorios com essa implementacao
-- seria interessante a ideia de contratos permanentes, justamente para casos de cenarios iot
-
-************** Arrumar - modificar a remocao do controlador com timestamp:
-- thread para remover quando o contrato expirar
-
-************** Arrumar - enviar no icmp 15 :
-- ja os ip_src,dst,porta e tos 
-- comparar se o tos for igual, nao enviar o contrato.
-
-************** [ir colhendo as contribuicoes]:
-------
-
-************** ARRUMAR ou pensar sobre - so criar as regras se todos os switches da rota aceitarem os requisitos do contrato/fluxo?:
-- no momento, para cada switch eu aloco espaco (salvo no vetor da classe no controlador) e crio as 
-regras, caso algum deles nao aceite, os outros switches vao ter de esperar a regra criada expirar para entao liberar 
-espaco. - por agora fica assim mesmo, ou entao salvo a saida de cada alocarGBAM e entao se nenhum recursar, ai sim criar as regras
-
-[desenvolvimento]
- ---> duas opcoes:
-(1 - primeira) fazer a verificacao se existe espaco para alocar o fluxo em cada switch e caso um nao aceite, rejeitar - passando todos os processos de:
-		1-tem espaco suficiente na classe?
-		2-tem fluxos suficientes emprestando, para remover ?
-		3-tem espaco na outra classe?
-		4-tem fluxos de menor prioridade na classe original?
-	E entao se todos os switches retornarem positivo para essas perguntas, repetir os processos para entao alocar - no caso, eh preciso repetir para saber quais regras de fluxos sao necessarias remocao
-
-(2- segunda) durante a verificacao, salvar a acao que deve ser tomada para cada switch - por exemplo - s1, deletar [regra1,regra2,regra3], s1,alocar [regra1] classe 1,p1,emprestando=0
-E entao, se todos os switches retornarem positivo para a verificacao, comecar a aplicar as acoes. Teria que ser tipo uma classe, com o nome do switch, int codigo, vetor de regras - algo assim
-	- se a verificacao for positiva (todos aceitam o fluxo) - chamar a funcao porta.delRegra(origem, destino, tos) em cada switch - para nao aceitar regras
-	repetidas - remover antes eh util se a regra que estou tentando alocar ja existe, entao eh melhor remover antes que tenho ctz que vou conseguir colocar a nova.
-
-	- acoes do alocarGBAM:
-		- se tiver espaco suficiente na classe original - alocar o fluxo e criar as regras
-
-		- obter os fluxos que estao emprestando largura de banda na classe original, verificar se eles fornecem banda suficiente - remover os fluxos, alocar o novo e criar a nova regra
-
-		- se tiver espaco suficiente na outra classe - alocar o fluxo e criar as regras
-
-		- verificar na classe original se existem fluxos com menor prioridade o suficiente - remover essas regras
-
-		-obs: fluxos que estao emprestando, sao colocados no vetor de mesma prioridade so que na outra classe, no entanto, mantem os dados de classe, 
-		prioridade, banda e tos iguais ao original, a ideia eh que ele seja colocado na fila original, mas seja descontado da largura de banda total,
-		 na fila emprestada - isso na verdade tem um problema, pq o htb vai entender que a fila que emprestou nao esta usando aquela parte da banda e
-		  vai distribuir para todas as outras filas, inclusive a de best effort - o melhor seria ter um tos equivalente e colocar na outra
-		  classe - por agr fica assim msm.
-		  -- solucao nao implementada: so emprestar largura de banda entre classe 1 e classe 2, nao permitir que a fila de best-effor emprestar banda, nem a de controle
-		  -- o melhor seria, colocar o fluxo que esta emprestando, na fila da classe a qual se empresta.
-		  - [solucao] - ter tos equivalentes nas duas classes e quando for emprestar, mantem os dados, mas muda o tos - assim, o fluxo vai para a fila correta, na qual se empresta
-		  Entao, para remover, remove pelos campos - ip, porta
-		  -------issaq nao vai ficar pronto para amanha
-		}}
-
 [[ hoje ainda ]]
 {
 	- implementar o novo alocarGBAM
@@ -149,19 +80,107 @@ E entao, se todos os switches retornarem positivo para a verificacao, comecar a 
 	- ver do novo mecanismo de emprestimo, mudar os campos tos para que as duas classes tenham tos equivalentes
 }
 
+************** ARRUMAR melhorar o contrato - inserir protoco: tcp ou udp, e porta destino:
+- adaptar o codigo
+-- que vai ter varios contratos por host, cada um valido para uma aplicacao/porta
+
+************** Arrumar - enviar no icmp 15 :
+- ja os ip_src,dst,porta e tos 
+- comparar se o tos for igual, nao enviar o contrato.
+
+
 ************* [ARRUMAR] USANDO PCAP::
 - analisar o que está acontecendo nos hosts destino e origem
 
-
-************ ARRUMAR - colocar mais informacoes no contrato, como porta destino tcp/udp - que vai ter varios contratos por host, cada um valido para uma aplicacao/porta
-
 ************ ARRUMAR - criar mecanismo para remover contrato - um host pode querer que um fluxo passe a trafegar como best effort
+
 
 ************ ARRUMAR - ICMP inf. req. (15) :
 - colocar nos dados o ip_src, que junto com o destino do pacote, formam o par origem e destino do contrato anunciado
 - assim, controladores ao longo da rota podem analisar se desejam o contrato e ainda solicitar exatamente o contrato referente ao ip_src, ip_dst, informando no campo de dados
 - pq, o controlador que responde com icmp inf. reply informa o ip_dst, assim, sao enviados todos os contratos referentes. No entanto, para cada novo fluxo
 eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrato, mesmo que tenha acabado de receber o contrato junto em um processo de troca de contratos anterior
+
+
+************** ARRUMAR - envio de contratos e expiraçao de contratos:
+ x- [rejeitado] quando a regra de marcacao expira, remover o contrato? [NAO - ideia rejeitada]
+ x- [rejeitado] modificar a remocao do controlador com timestamp, marcar os contratos e definir uma thread para observar os timestamps e remover [NAO - ideia melhorada]
+-> [envio de contratos] no momento, sempre que ocorre um packet in, o contrato eh oferecido, os controladores respondem icmp 16 para receber o novo contrato, independente se ja possuem o mais atualizado
+[solucao] - modificar para que enviem o tos e as informacoes necessarias para identificar um contrato, como (ip e porta), ou no icmp 15 ou no 16, para que seja possivel identificar se eh necessario enviar/solicitar o contrato, ou se ja tem o mais atualizado
+
+-> [expiracao] no momento, os contratos sao permanentes:
+[solucao] - criar um timestamp que sempre que ocorrer um packet in, os contratos que passaram o timestamp sejam removidos.
+
+
+   ################################################################################################################
+######################################  FEITO/ARRUMADO/RESOLVIDO #####################################################
+
+************** [FEITO] - no packet_in :: reinjetar o pacote fora do alocarGBAM
+
+************** [FEITO - nao testado completamente] além dos codigos dscp, verificar se as regras sao removidas corretamente
+-obs: fluxos que estao emprestando, sao colocados no vetor de mesma prioridade so que na outra classe, no entanto, mantem os dados de classe, 
+prioridade, banda e tos iguais ao original, a ideia eh que ele seja colocado na fila original, mas seja descontado da largura de banda total,
+ na fila emprestada - isso na verdade tem um problema, pq o htb vai entender que a fila que emprestou nao esta usando aquela parte da banda e
+  vai distribuir para todas as outras filas, inclusive a de best effort - o melhor seria ter um tos equivalente e colocar na outra
+  classe - por agr fica assim msm.
+  -- solucao nao implementada: so emprestar largura de banda entre classe 1 e classe 2, nao permitir que a fila de best-effor emprestar banda, nem a de controle
+  -- o melhor seria, colocar o fluxo que esta emprestando, na fila da classe a qual se empresta.
+  - [solucao] - ter tos equivalentes nas duas classes e quando for emprestar, mantem os dados, mas muda o tos - assim, o fluxo vai para a fila correta, na qual se empresta
+  Entao, para remover, remove pelos campos - ip, porta
+  
+
+************** [FEITO opcao 2 - nao testado completamente] ou pensar sobre - so criar as regras se todos os switches da rota aceitarem os requisitos do contrato/fluxo?:
+- no momento, para cada switch eu aloco espaco (salvo no vetor da classe no controlador) e crio as 
+regras, caso algum deles nao aceite, os outros switches vao ter de esperar a regra criada expirar para entao liberar 
+espaco. - por agora fica assim mesmo, ou entao salvo a saida de cada alocarGBAM e entao se nenhum recursar, ai sim criar as regras
+
+[desenvolvimento]
+ ---> duas opcoes:
+(1 - primeira) fazer a verificacao se existe espaco para alocar o fluxo em cada switch e caso um nao aceite, rejeitar - passando todos os processos de:
+		1-tem espaco suficiente na classe?
+		2-tem fluxos suficientes emprestando, para remover ?
+		3-tem espaco na outra classe?
+		4-tem fluxos de menor prioridade na classe original?
+	E entao se todos os switches retornarem positivo para essas perguntas, repetir os processos para entao alocar - no caso, eh preciso repetir para saber quais regras de fluxos sao necessarias remocao
+	|->Um alocarGBAM que nao cria regras, so para ver se tem espaco + um alocarGBAM para alocar
+
+(2- segunda) durante a verificacao, salvar a acao que deve ser tomada para cada switch - por exemplo - s1, deletar [regra1,regra2,regra3], s1,alocar [regra1] classe 1,p1,emprestando=0
+E entao, se todos os switches retornarem positivo para a verificacao, comecar a aplicar as acoes.
+ Teria que ser tipo uma classe, com o nome do switch, int codigo, vetor de regras - algo assim
+	- se a verificacao for positiva (todos aceitam o fluxo) - chamar a funcao porta.delRegra(origem, destino, tos) em cada switch - para nao aceitar regras
+	repetidas - remover antes eh util se a regra que estou tentando alocar ja existe, entao eh melhor remover antes que tenho ctz que vou conseguir colocar a nova.
+	|-> so um alocarGBAM que retorna as regras para remover e criar de cada switch, que sao armazenas em formas de acoes (uma classe) e:
+		- se todos os switches retornarem acoes: executar todas as acoes (criar e remover as regras corretamente)
+		- se algum switch retornar um vetor de acoes vazio, quer dizer que nao eh possivel alocar o fluxo, entao, nenhuma acao eh tomada (nenhuma regra criada), e o fluxo vai ser descartado.
+
+	- acoes do alocarGBAM:
+		- se tiver espaco suficiente na classe original - alocar o fluxo e criar as regras
+
+		- obter os fluxos que estao emprestando largura de banda na classe original, verificar se eles fornecem banda suficiente - remover os fluxos, alocar o novo e criar a nova regra
+
+		- se tiver espaco suficiente na outra classe - alocar o fluxo e criar as regras
+
+		- verificar na classe original se existem fluxos com menor prioridade o suficiente - remover essas regras
+		}}
+
+************** [FEITO] criar novos codigos dscp:
+- no momento, quando se quer emprestar largura de banda da outra classe (ex classe2), a regra é criada para a fila da classe
+original, mas é salva no vetor da fila que emprestou, na classe do switch no controlador.
+No entanto, na pratica, esse fluxo estará na fila original, que já está sem banda disponível, assim utilizando mais largura
+de banda do que é garantido pela fila orinal dele, utilizando a largura de banda extra de outras filas.
+Mesmo o controlador garantindo que a banda foi emprestada e a fila que emprestou não utiliza essa partição, na prática, o htb
+distribui essa banda entre as outras filas que solicitam, de forma que a fila de best-effort e a fila da classe que emprestou 
+estarão competindo por essa banda e não transferindo para a fila que solicitou o emprestimo.
+- Para resolver, é proposto estender os códigos dscp para que cubram as duas classes e que os fluxos tenham códigos equivalentes 
+para seus requisitos entre as duas classes. Assim, não é necessário colocar na classe do switch que emprestou no controlador e no 
+ovs colocar na fila original, pois eh so trocar o dscp pelo equivalente e colocar na fila em que emprestou.
+--- o explicacao confusa ... melhorar
+-[solucao] duplicar os códigos dscp e criar as regras para a fila que emprestou, com a meter correta equivalente - classe e prioridade ficam iguais o original, mas o tos fica o equivalente
+
+
+************** [FEITO] Novo delRegras:
+- como agr um fluxo pode estar emprestando e armazenado no vetor da outra classe, entao um fluxo de prioridade 1, classe 1 originalmente, pode estar armazenado com prioridade 1, classe 2 emprestando
+- entao, para remover um fluxo eh preciso testar nas duas filas, p1c1 e p1c2
 
 ************** [FEITO] Quando receber um contraot, poderia so enviar a mensagem de deletar regras nos switches caso essa regra esteja ativa (exista nos vetores da classe switch):
 - verificar o retorno do delRegra - que se encontrar a regra nos vetores, retorna positivo - assim, caso o retorno for positivo - remover no switch.
