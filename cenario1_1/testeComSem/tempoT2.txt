@@ -1,0 +1,36 @@
+
+T2 - Verificar o tempo que leva entre emitir um contrato e conseguir enviar pacotes (criar um contrato e enviar um ping -c 1):
+
+
+-- ver quando chegou o contrato chegou em todos os controladores para entao enviar o ping.
+
+Em cada rodada os controladores sao reiniciados - para estabelecer o contrato do zero
+Cenario:
+    1- h1 quer se comunicar com h4 (tempo registrado)
+    2- h1 cria um contrato com c1
+    3- imediatamente h1 envia um pacote e recebe o retorno (tempo registrado) - time registra a volta, que utiliza outra regra de fluxo, nao indicado.
+
+#teste com time:
+* comando: 
+    [h1] time(python contrato_cli_c1.py 172.16.10.1 172.16.10 1000 1 1 , ping -c 1 172.16.10.4)
+    
+    Tempos: (nem vou fazer esse)
+
+#teste com tcpdump:
+    3- imediatamente h1 envia um pacote (tempo registrado), nao registramos o tempo da volta, pq se refere a outra regra de fluxo
+* comandos: 
+    [h1] tcpdump -vvv -i h1-eth0
+    [h4] tcpdump -vvv -i h4-eth0
+    [h1] python contrato_cli_c1.py 172.16.10.1 172.16.10.4 1000 1 1 && ping -c 1 172.16.10.4
+    3- imediatamente h1 envia um pacote (tempo registrado), nao registramos o tempo da volta, pq se refere a outra regra de fluxo
+
+- verificado o pacote que sai de h1 (para estabelecer o contrato) [marcado o tempo]
+- verificado o pacote de ping recebido em h4 [marcado o tempo]
+    Tempos:
+    h1->c1: 09:50:55.368444 (primeiro pacote)
+    h4: 09:50:55.499043 (ping recebido)
+    dif .499043 - .368444 = 0.13059
+
+    h1->c1: 09:52:44.166356 (primeiro pacote)
+    h1->h4: 09:52:44.236503 (ping)
+    dif .236503 - .166356 =0.07014

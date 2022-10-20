@@ -73,17 +73,13 @@ def myNet():
     root1.cmd( 'route add -host 172.16.10.1 dev root1-eth0')
     root1.cmd( 'route add -host 172.16.10.2 dev root1-eth0')
     root1.cmd( 'route add -host 172.16.10.3 dev root1-eth0')
-    root1.cmd( 'route add -host 10.123.123.2 dev root1-eth0')
     root1.cmd( 'arp -s 172.16.10.1 8e:49:d6:d3:1e:df' )
     root1.cmd( 'arp -s 172.16.10.2 0e:7b:ac:84:a3:69' )
     root1.cmd( 'arp -s 172.16.10.3 ae:f4:cf:ab:4c:15' )
-    root1.cmd( 'arp -s 10.123.123.2 00:00:00:00:00:06' )
 
     #os controladores conhecem apenas os hosts do seu dominio
     root2.cmd( 'route add -host 172.16.10.4 dev root2-eth0')
-    root1.cmd( 'route add -host 10.123.123.1 dev root2-eth0')
     root2.cmd( 'arp -s 172.16.10.4 b2:2c:c7:c1:72:a4' )
-    root1.cmd( 'arp -s 10.123.123.1 00:00:00:00:00:05' )
 
     h1.cmd('route add -host 172.16.10.2 dev h1-eth0')
     h1.cmd('route add -host 172.16.10.3 dev h1-eth0')

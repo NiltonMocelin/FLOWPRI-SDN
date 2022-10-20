@@ -1,0 +1,28 @@
+
+T3 - Verificar o tempo que leva para encaminhar o segundo pacote de um fluxo:
+- observar os tcpdump dos hosts origem e destino
+
+Em cada rodada os controladores sao reiniciados - para estabelecer o contrato do zero
+Cenario:
+    1- h1 quer se comunicar com h4
+    2- h1 cria um contrato com c1
+    3- imediatamente h1 envia um pacote e recebe o retorno
+    4- h1 envia outro pacote icmp (tempo registrado)
+
+#teste com tcpdump:
+    3- imediatamente h1 envia um pacote (tempo registrado), nao registramos o tempo da volta, pq se refere a outra regra de fluxo
+* comandos: 
+    [h1] tcpdump -vvv -i h1-eth0
+    [h4] tcpdump -vvv -i h4-eth0
+    [h1] python contrato_cli_c1.py 172.16.10.1 172.16.10.4 1000 1 1
+
+- verificado o pacote que sai de h1 (para estabelecer o contrato) [marcado o tempo]
+- verificado o pacote de ping recebido em h4 [marcado o tempo]
+    Tempos:
+    h1->h4:  (segundo pacote)
+    h1->h4:   (ping recebido)
+    dif  = 
+
+    h1->h4:  (segundo pacote)
+    h1->h4:  (ping recebido)
+    dif = 

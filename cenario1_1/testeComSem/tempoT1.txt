@@ -1,0 +1,24 @@
+[tempo] contrato-host(conexao aceita) -> enviar icmp 15 - tempo: 1666186545896
+
+[tempo] contrato-controlador (conexao finalizada) -> recebido contrato - tempo: 1666186545936
+
+[tempo] contrato-host(conexao aceita) -> enviar icmp 15 - tempo: 1666186670291
+
+[tempo] contrato-controlador (conexao finalizada) -> recebido contrato - tempo: 1666186670331
+
+[tempo] contrato-host(conexao aceita) -> enviar icmp 15 - tempo: 1666186738600
+
+[tempo] contrato-controlador (conexao finalizada) -> recebido contrato - tempo: 1666186738639
+
+[tempo] contrato-host(conexao aceita) -> enviar icmp 15 - tempo: 1666186847030
+
+[tempo] contrato-controlador (conexao finalizada) -> recebido contrato - tempo: 1666186847068
+
+[tempo] contrato-host(conexao aceita) -> enviar icmp 15 - tempo: 1666186954193
+
+[tempo] contrato-controlador (conexao finalizada) -> recebido contrato - tempo: 1666186954235
+
+[tempo] contrato-host(conexao aceita) -> enviar icmp 15 - tempo: 1666187242016
+
+[tempo] contrato-controlador (conexao finalizada) -> recebido contrato - tempo: 1666187242057
+

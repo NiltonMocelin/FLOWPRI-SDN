@@ -1,3 +1,7 @@
+c1_v1: o basico esta implementado (alocarGBAM, troca de contratos, estabelcer contratos, criacao de regras ...), porém, a comunicacao entre controladores ocorre fora do mininer.
+(trabalhando nessa versao) c1_v2: modificado a forma de comunicacao entre controladores, agora ocorre dentro do mininet + os contratos so sao trocados caso o solicitante tenha um contrato com tos diferente
+
+
 -------------------------
 *** Controlador dominio 1 - - - c1_44.txt
 - revisar o código [ok]
@@ -63,6 +67,9 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 
 {{{{{ NISSO AGR }}}}}
 		{{
+--- fazer os testes
+---- depois melhorar os contratos
+---- depois escrever o texto
 
 [[ hoje ainda ]]
 {
@@ -80,20 +87,31 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 	- ver do novo mecanismo de emprestimo, mudar os campos tos para que as duas classes tenham tos equivalentes
 }
 
+************** ARRUMAR - controladores se comunicam pela interface lo entre si:
+- comunicacao controladores-host acontece pela interface correta e dentro do ambiente mininet
+- comunicacao controlador-controlador acontecendo pelo loopback?
+- [Verificar] tabelas route + arp
+- [Verificar] ip tables e firewall
+- [outra ideia] verificar a possibilidade de criar hosts remotos, assim, os hosts root1 e root2 poderiam ser criados remotos como container, assim, cada um teria sua tabela de route
+
+(essa parece a mais facil e rapida de implementar)
+- [se nao] criar uma logica de remarcacao, com um ip que obriga a enviar pelo ambiente mininet: rotas para um ip inventado, com MAC do controlador destino, entao no switch remarca esse ip inventado pelo do controlador destino (meio que gambiarra)
+|->> como todos os controladores estao fora do ambiente mininet, eles usam as mesmas tabelas de arp e route, assim definir uma interface destino para cada endereco nao vai ser possivel.
+|->> criar um endereco ficticio para cada controlador e em cada codigo fazer com que quando um controlador tentar mandar um pacote para um controlador, usar esse endereco ficticio e criar uma regra de fluxo para alterar esse endereco no endereco correto.
+
+************** Arrumar - otimizar trocas de contratos  :
+- icmp 15 tem que ser capaz de informar os elementos identificadores do contrato (depende da versao do contrato implementada: ip_src,dst(que esta no destino do pacote, nao precisa ser nos dados),porta e tos)
+- icmp 16-reply informa o tos que o controlador possui, se nao tive tos (nao tem o contrato), responde com o campo vazio ou -1
+- quando o controlador recebe o icmp 16-reply, verifica se o tos eh o mesmo que ele possui, se for, nao envia, se nao for, entao envia
+
 ************** ARRUMAR melhorar o contrato - inserir protoco: tcp ou udp, e porta destino:
 - adaptar o codigo
 -- que vai ter varios contratos por host, cada um valido para uma aplicacao/porta
-
-************** Arrumar - enviar no icmp 15 :
-- ja os ip_src,dst,porta e tos 
-- comparar se o tos for igual, nao enviar o contrato.
-
 
 ************* [ARRUMAR] USANDO PCAP::
 - analisar o que está acontecendo nos hosts destino e origem
 
 ************ ARRUMAR - criar mecanismo para remover contrato - um host pode querer que um fluxo passe a trafegar como best effort
-
 
 ************ ARRUMAR - ICMP inf. req. (15) :
 - colocar nos dados o ip_src, que junto com o destino do pacote, formam o par origem e destino do contrato anunciado

@@ -1,0 +1,23 @@
+# T1 - Verificar o tempo que leva para estabelecer um contrato e o tempo que leva para um controlador apartir de uma conexao tcp: receber um contrato, anunciar (icmp 15) + controlador responder (icmp 16) + controlador receber o contrato:
+#medido quando aceita a conexao e depois de receber o contrato e criar as regras nos switches.
+Cenario:
+    1- h1 quer se comunicar com h4 (tempo registrado)
+    2- h1 cria um contrato e envia para c1
+    3- c1 realiza os procedimentos de envio de contrato com c2 e cria as regras
+    4- c2 recebe o contrato e cria as regras (tempo registrado)
+
+#6 tomadas
+execucao: 
+root1: $ ryu-manager c1_44_T1.py --ofp-tcp-listen-port 7000 > c1_T1.saida
+root2: $ ryu-manager c2_44_T1.py --ofp-tcp-listen-port 6699 > c2_T1.saida
+host1: $ python contrato_cli_c1.py 172.16.10.1 172.16.10.4 1000 1 1
+
+1666186545936-1666186545896=40ms
+1666186670331-1666186670291=40ms
+1666186738639-1666186738600=39ms
+1666186847068-1666186847030=38ms
+1666186954235-1666186954193=42ms
+1666187242057-1666187242016=41ms
+
+#novos testes observando as interfaces
+# observando 

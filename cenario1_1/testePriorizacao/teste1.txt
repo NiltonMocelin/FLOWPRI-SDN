@@ -1,0 +1,17 @@
+#teste de priorizacao:
+* A fila de maior prioridade entrega primeiro? O HTB desinfileira as filas por meio de round robin, comecando com as de maior prioridade (quanto menor o priority - maior a prioridade).
+- alem disso, as filas de menor prioridade emprestam primeiro a banda sobresalente.
+- Como as filas sao do mesmo tamanho da largura de banda do link, elas nao precisam "desinfileirar",
+pois tudo seria entregue de forma instantanea. No entanto
+
+(T1) [priorizacao HTB] Dois fluxos de mesma banda (meter band), mas um com prioridade 1 e outro com prioridade 2:
+- Qual fila entrega mais rapido, de prioridade 1 ou de prioridade 2, qual fluxo tem mais pacotes sendo entregues?
+(nao faz sentido, pq nao tem enfileiramento, entao serao entregues ao mesmo tempo... o mecanismo do htb nao esta sendo usado nesse caso)
+
+(T2) [Emprestar banda-BAM] Toda a banda de uma classe sendo usada e um fluxo de baixa prioridade tenta alocar banda.
+
+(T3) [Emprestar banda-BAM] Toda a banda de uma classe sendo usada e um fluxo de alta prioridade tenta alocar banda.
+
+(T4) [Emprestar banda-BAM] Toda a banda das duas classes sendo usadas e um fluxo de baixa prioridade tenta alocar banda.
+
+(T5) [Emprestar banda-BAM] Toda a banda das duas classes sendo usadas e um fluxo de alta prioridade tenta alocar banda.

@@ -1,0 +1,66 @@
+#       teste de overhead:
+
+-- separar os tempos de processamento (criar regras ) e tempo de troca de contratos.
+
+
+#### Controlador modificado para medir TEMPO (c1_44.py e c2_44.py) - removido todos os prints, menos os do tempo
+
+# comando watch monitora um comando com saidas a cada 2s
+# comando time retorna o tempo percorrido entre a chamada e o retorno de um comando (pouco preciso)
+
+[feito] T1 - Verificar o tempo que leva para estabelecer um contrato e o tempo que leva para um controlador apartir de uma conexao tcp: receber um contrato, anunciar (icmp 15) + controlador responder (icmp 16) + controlador receber o contrato:
+- medir os tcpdump de cada interface + medir tempo no controlador
+- medindo o tempo quando aceita a conexao tcp (socket que escuta contratos de hosts), apos receber o contrato e criar as regras. 
+
+- infelizmente a comunicacao entre os controladores ocorre por fora do mininet. Mas a comunicacao entre controladores e hosts ocorre dentro do mininet.
+- o controlador enxerga o ip de controlador como um ip localhost....
+- por isso, nao foi possivel medir com o tcpdump a chegada dos contratos, mas pela captura de tempo nos controladores foi possivel.
+- como tem uma banda reservada, abstraise a comunicacao no caso de nao estar ocorrendo congestionamento de trafego de controle. No caso, dizemos que o tempo de trafego quando se tem banda suficiente sempre disponivel, como no trafego de controle, podemos dizer que o tempo de transporte eh desprezivel com relacao ao tempo de processamento de alocacao de fluxo e criacao de regras
+- [nao foi feito] posso medir o tempo de envio de um contrato entre c1 e c2, mas por meio de uma modificacao, usar o estabelecimento de contrato entre h1 e c2, que eh a mesma funcao basicamente host-controlador == controlador-controlador.
+- [nao foi feito] posso inventar um ip que nao seja reconhecido como localhost
+- [nao foi feito] o problema esta nas rotas provavelmente tabela route, 10.123.123.1 deve estar enviando para uma interface errada
+
+- (faz sentido) medir tempo quando recebe um icmp 15 (que eh quando tbm envia o icmp 16), quando recebe um icmp 16.
+
+.   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   . 
+
+T2 - X - Verificar o tempo que leva entre emitir um contrato e conseguir enviar pacotes (criar um contrato e enviar um ping -c 1): 
+- observar os tcpdump dos hosts origem e destino
+- usar o time python contrato_cli_c1.py && ping -c 1 ...
+ex: time (echo "a"; echo "b")
+
+T4 - Verificar o tempo que leva para encaminhar o primeiro pacote de um fluxo -  ja tenho o contrato + as regras expiraram + enviar um ping -c 1
+- medir com time
+- observar os tcpdump dos hosts origem e destino
+
+
+T3 - Verificar o tempo que leva para encaminhar o segundo pacote de um fluxo:
+- observar os tcpdump dos hosts origem e destino
+
+
+T5 - Verificar o tempo que um fluxo leva para entregar 10 pacotes em um cenario com o framework, estabelecendo o contrato
+- observar os tcpdump dos hosts origem e destino
+- usar o time python contrato_cli_c1.py && ping -c 10 ...
+
+
+T6 - Verificar o tempo que um fluxo leva para entregar 10 pacotes em um cenario com o framework, com o contrato pre-estabelecido
+- observar os tcpdump dos hosts origem e destino
+- usar o time ping -c 10 ...
+
+
+T7 - Verificar o tempo que um fluxo leva para entregar 10 pacotes em um cenario sem o framework, roteador normal
+- observar os tcpdump dos hosts origem e destino
+- usar o time ping -c 10 ...
+
+T8 - Verificar se a largura de banda acordada eh a mesma entregue - com um fluxo que nao empresta e com um fluxo que empresta:
+- verificar com iperf
+
+T8 - Verificar o impacto de um switch sem suporte ao framework, sem congestionamento, entre dois dominios com suporte:
+- banda acordada eh a mesma recebida: - verificar com iperf
+
+- tempo de estabelecer contrato: aumenta? (mas agr tem 3 switches e antes so teria 2)
+
+
+T9 - Verificar o impacto de um switch sem suporte ao framework, com congestionamento, entre dois dominios com suporte:
+- observar os tcpdump dos hosts origem e destino
+- usar time
