@@ -89,15 +89,27 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 
 ************** ARRUMAR - controladores se comunicam pela interface lo entre si:
 - comunicacao controladores-host acontece pela interface correta e dentro do ambiente mininet
-- comunicacao controlador-controlador acontecendo pelo loopback?
-- [Verificar] tabelas route + arp
-- [Verificar] ip tables e firewall
-- [outra ideia] verificar a possibilidade de criar hosts remotos, assim, os hosts root1 e root2 poderiam ser criados remotos como container, assim, cada um teria sua tabela de route
+- comunicacao controlador-controlador acontecendo pelo loopback? Na vida real os controladores estariam em ambientes/computadores diferentes, e isso nao ocorreria, nao seria necessario tomar a acao abaixo...
+(a troca de icmps ocorria dentro do ambiente mininet pq sao pacotes INJETADOS (criados com o openflow) - nao sao pacotes com origem no ROOT/CONTROLADOR, mas os contratos tem origem no controlador e nesse caso ocorre um problema, pq vao por fora do mininet)
+(no caso seria necessario essa traducao apenas no caso onde os pacotes tem origem no controlador -> envio de contratos)
 
-(essa parece a mais facil e rapida de implementar)
-- [se nao] criar uma logica de remarcacao, com um ip que obriga a enviar pelo ambiente mininet: rotas para um ip inventado, com MAC do controlador destino, entao no switch remarca esse ip inventado pelo do controlador destino (meio que gambiarra)
-|->> como todos os controladores estao fora do ambiente mininet, eles usam as mesmas tabelas de arp e route, assim definir uma interface destino para cada endereco nao vai ser possivel.
-|->> criar um endereco ficticio para cada controlador e em cada codigo fazer com que quando um controlador tentar mandar um pacote para um controlador, usar esse endereco ficticio e criar uma regra de fluxo para alterar esse endereco no endereco correto.
+- [Verificar] tabelas route + arp (parece td certo e ainda nao encaminha corretamente (c1 ping 10.123.123.2 vai pelo lo))
+- [Verificar] ip tables e firewall (firewall nao se, mas ip tables esta limpo)
+- [outra ideia] verificar a possibilidade de criar hosts remotos, assim, os hosts root1 e root2 poderiam ser criados remotos como container, assim, cada um teria sua tabela de route
+- [IDEIA ESCOLHIDA] criar uma logica de remarcacao, com um ip que obriga a enviar pelo ambiente mininet: rotas para um ip inventado, com MAC do controlador destino, entao no switch remarca esse ip inventado pelo do controlador destino (meio que gambiarra):
+[(essa parece a mais facil e rapida de implementar)]
+	|->> como todos os controladores estao fora do ambiente mininet, eles usam as mesmas tabelas de arp e route, assim definir uma interface destino para cada endereco nao vai ser possivel.
+	|->> criar um endereco ficticio para cada controlador e em cada codigo fazer com que quando um controlador tentar mandar um pacote para um controlador, usar esse endereco ficticio e criar uma regra de fluxo para alterar esse endereco no endereco correto.
+	|->> na topologia, criar uma entrada na tabela route e na tabela arp com os enderecos ficticios + mac real
+	|->> no momento que for necessario enviar um pacote para um controlador de ip X, sera traduzido esse ip para um ficticio Y e colocado no destino do pacote e aliado a isso, no switch vai ter uma regra para retornara esse ip Y para X, assim, o mac continua o correto e sera entregue normalmente
+	* [aqui nao eh necessario pois o pacote eh criado e injetado com o openflow] aplicar a traducao de ip + regra de remacarcar campo de ip em send_icmp + acao de mudar o ip
+	* em addRegra mas se o controaldor nao for o destino = nao precisa
+	* [aqui precisa com certeza == unico lugar onde o controlador/root precisa enviar pacotes para outro controlador a partir de sua interface] enviar contrato - mudar o ip destino na hora de enviar o contrato
+	* caso a remarcacao na origem ainda resulte em problemas, trafegar em todo o percurso com ip ficticio e apenas no destino-ultimo ip antes de chegar no controlador, fazer a traducao/remarcacao
+# para remarcar actions = [parser.OFPActionSetField(ip_dscp=ip_dscp)]
+
+*** trafego bate na interface mas o root nao responde :::::: ver o que esta ocorrendo + pensar em outras solucoes
+(caso isso nao se resolva o tempo de trafego dos contratos nao sera corretamente calculado)
 
 ************** Arrumar - otimizar trocas de contratos  :
 - icmp 15 tem que ser capaz de informar os elementos identificadores do contrato (depende da versao do contrato implementada: ip_src,dst(que esta no destino do pacote, nao precisa ser nos dados),porta e tos)
@@ -504,6 +516,7 @@ caminho para tratar esse único pacote.
 	- primeiro problema: nao responde o pacote, mas ele chega na interface - end. MAC errado - arrumar a tabela arp no emissor
 	- primeiro problema: nao alcancavel - revisar as regras de encaminhamento e as tabelas arp/route
 	- segundo problema: os hosts fora do espaco mininet utilizam todos da mesma tabela, assim, a primeira entrada que tiver sera usada - ou deixar apenas um match para cada entrada ou ficar excluindo e adicionando quando for usar...
+
 
 
 *********** [resolvido] COMPATIBILIDADE Meter_table:

@@ -31,6 +31,13 @@ from ryu.lib.ovs import vsctl #ovs-vsctl permite conversar com o protocolo OVSDB
 import struct
 
 ############################################
+#       Tabela de traducao de enderecos de controladores (para burlar o uso da mesma tabela (route) e forcar o encaminhamento pela interface correta)
+#  CADA CONTROLADOR TEM A SUA (caso seja apenas dois controladores, nao tem problema)
+TC = {}
+TC['10.123.123.1'] = '10.10.10.1'
+TC['10.123.123.2'] = '10.10.10.2'
+
+############################################
 # informacoes armazenadas pelo controlador #
 ############################################
 #CONTROLADOR C1
@@ -457,16 +464,23 @@ def enviar_contratos(host_ip, host_port, ip_dst_contrato):
 
 ############# send_icmp TORNADO GLOBAL EM 06/10 - para ser aproveitado em server socket ###################
 #https://ryu-devel.narkive.com/1CxrzoTs/create-icmp-pkt-in-the-controller
-def send_icmp(datapath, srcMac, srcIp, dstMac, dstIp, outPort, seq, data, id=1, type=8, ttl=64):
+#se o ip dest for de um controlador, tem que traduzir o ip para um ficticio para que seja encaminhado pela interface correta, caso contrario esta indo pelo loopback
+def send_icmp(datapath, srcMac, srcIp, dstMac, dstIp, outPort, seq, data, id=1, type=8, ttl=64, dst_controlador=False):
     print("[send-icmp] type:%d, src:%s, ip_src:%s, dst:%s, ip_dst:%s, psaida %d\n" % (type, srcMac, srcIp, dstMac,dstIp, outPort))
 
     e = ethernet.ethernet(dst=dstMac, src=srcMac, ethertype=ether.ETH_TYPE_IP)
-    iph = ipv4.ipv4(4, 5, 0, 0, 0, 2, 0, ttl, 1, 0, srcIp, dstIp)
-#        echo = icmp.echo(id, seq, data)
-#        icmph = icmp.icmp(type, 0, 0, echo)
 
-    # icmph = icmp.icmp(15, 0, 0, echo)
-    #icmph = icmp.icmp(type, 0, 0, data=None)#pode enviar os dados que quiser, mas tem que ser um vetor binario
+    iph = ipv4.ipv4(4, 5, 0, 0, 0, 2, 0, ttl, 1, 0, srcIp, dstIp)
+
+    actions = [datapath.ofproto_parser.OFPActionSetQueue(FILA_CONTROLE), datapath.ofproto_parser.OFPActionOutput(outPort)] #no fim tem que ir na fila de controle
+
+    #se o ip destino for de um controlador, fazer o pacote ser enviado para um ip ficticio e remarcado com o ip correto no switch.
+    #se mostrou desnecessario pois eh um pacote injetado, nao originado pela interface do root
+    #if dst_controlador == True:
+    #    dstIp_traduzido = TC[dstIp]
+    #    iph = ipv4.ipv4(4, 5, 0, 0, 0, 2, 0, ttl, 1, 0, srcIp, dstIp_traduzido)
+    #    actions = [datapath.ofproto_parser.OFPActionSetField(ipv4_dst=dstIp), datapath.ofproto_parser.OFPActionSetQueue(FILA_CONTROLE), datapath.ofproto_parser.OFPActionOutput(outPort)] #no fim tem que ir na fila de controle
+
     icmph = icmp.icmp(type, 0, 0, data=data)#pode enviar os dados que quiser, mas tem que ser um vetor binario
         
     p = packet.Packet()
@@ -475,7 +489,6 @@ def send_icmp(datapath, srcMac, srcIp, dstMac, dstIp, outPort, seq, data, id=1, 
     p.add_protocol(icmph)
     p.serialize()
 
-    actions = [datapath.ofproto_parser.OFPActionSetQueue(FILA_CONTROLE), datapath.ofproto_parser.OFPActionOutput(outPort)] #no fim tem que ir na fila de controle
     out = datapath.ofproto_parser.OFPPacketOut(
     datapath=datapath,
     buffer_id=datapath.ofproto.OFP_NO_BUFFER,
@@ -1020,7 +1033,8 @@ class SwitchOVS:
         datapath.send_msg(mod)
         
 #add regra tabela CLASSIFICATION
-    def addRegraC(self, ip_src, ip_dst, ip_dscp):
+#se o destino for um ip de controlador, 
+    def addRegraC(self, ip_src, ip_dst, ip_dscp, dst_controlador=False):
         #https://ryu.readthedocs.io/en/latest/ofproto_v1_3_ref.html#flow-instruction-structures
          #criar regra na tabela de marcacao - obs - utilizar idletime para que a regra suma - serve para que em switches que nao sao de borda essa regra nao exista
                          #obs: cada switch passa por um processo de enviar um packet_in para o controlador quando um fluxo novo chega,assim, com o mecanismo de GBAM, pode ser que pacotes de determinados fluxos sejam marcados com TOS diferentes da classe original, devido ao emprestimo, assim, em cada switch o pacote pode ter uma marcacao - mas com essa regra abaixo, os switches que possuem marcacao diferentes vao manter a regra de remarcacao. Caso ela expire e cheguem novos pacotes, ocorrera novo packet in e o controlador ira executar um novo GBAM - que vai criar uma nova regra de marcacao
@@ -1035,6 +1049,13 @@ class SwitchOVS:
         
         match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip_src, ipv4_dst=ip_dst)
         actions = [parser.OFPActionSetField(ip_dscp=ip_dscp)]
+
+        #destino eh um controlador - traduzir o ip_dst para um ficticio para fazer o match e remarcar novamente para o correto
+        if(dst_controlador==True):
+            ipv4_dst_traduzido = TC[ip_dst]
+            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip_src, ipv4_dst=ipv4_dst_traduzido)
+            actions = [parser.OFPActionSetField(ip_dscp=ip_dscp), parser.OFPActionSetField(ipv4_dst=ip_dst)]
+
         inst = [parser.OFPInstructionGotoTable(FORWARD_TABLE), parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         idletime = 30 # 5s sem pacotes, some
         hardtime = 30 # 5s e some
@@ -1555,7 +1576,7 @@ class Dinamico(app_manager.RyuApp):
 ######### etapa 3 - responder com icmp 16                  
 ### RESPONDENDO ICMP 15 inf. req com um ICMP 16 inf. reply + ip_dst que quero dos contratos - injetar pelo primeiro switch da rota entre este controlador e o emissor == switch que gerou o packet_in
                 ### o primeiro switch da rota eh o proprio que enviou o packet_in
-                send_icmp(dp,MACC, IPC, src, ip_src, in_port,0,data,1,16,64)
+                send_icmp(dp,MACC, IPC, src, ip_src, in_port,0,data,1,16,64) # se mostrou desnecessario, mas deixei a implementacao de qualquer forma, dst_controlador=True)
                 print("[ICMP-15] ICMP Information Request -> Replied\n")
 
 ######### etapa 4 - suprimida - movida para o switch_feature_handler
@@ -1622,7 +1643,7 @@ class Dinamico(app_manager.RyuApp):
                     #criar a regra de encaminhamento + marcacao --- para enviar os contratos
                     #regra de marcacao - apenas no switch que esta conectado ao controlador
                     #primeiro switch == switch conectado ao controlador
-                    switch_primeiro.addRegraC(ip_dst, ip_src, 61)
+                    switch_primeiro.addRegraC(ip_dst, ip_src, 61, dst_controlador=True)
     
                     #out_port = switch_primeiro.getPortaSaida(ip_src)
 
@@ -1651,7 +1672,10 @@ class Dinamico(app_manager.RyuApp):
                     
                 #enviar_contratos(host_ip, host_port, ip_dst_contrato):
                     #ip_src == controlador que enviou o icmp 16
-                    enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
+                    #enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
+                    #enviar para um ip ficticio que sera transformado no correto, assim, a interface 
+                    dst_traduzido = TC[ip_src]
+                    enviar_contratos(dst_traduzido, PORTAC_C, cip_dst)#deve ir pela fila de controle
                     return 0
 
           ###### (ii) esse controlador nao eh o controlador destino - logo criar as regras de marcacao e encaminhamento para passar os contratos
