@@ -2,6 +2,10 @@ c1_v1: o basico esta implementado (alocarGBAM, troca de contratos, estabelcer co
 (trabalhando nessa versao) c1_v2: modificado a forma de comunicacao entre controladores, agora ocorre dentro do mininet + os contratos so sao trocados caso o solicitante tenha um contrato com tos diferente
 
 
+
+
+OBS: as acoes no vetor actions de uma mensagem de modificacao OpenFlow, ocorrem em ordem posicional do vetor - cuidado com a ordem das acoes
+
 -------------------------
 *** Controlador dominio 1 - - - c1_44.txt
 - revisar o código [ok]
@@ -110,6 +114,8 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 
 *** trafego bate na interface mas o root nao responde :::::: ver o que esta ocorrendo + pensar em outras solucoes
 (caso isso nao se resolva o tempo de trafego dos contratos nao sera corretamente calculado)
+- provavelmente pq o socket tcp pega o endereco ip da origem para realizar o handshake, e no caso o endereco origem eh o endereco do controlador - e ai tem todo aquele problema - tentar mudar o endereco origem
+- mudar o endereco origem na hora de enviar os contratos...
 
 ************** Arrumar - otimizar trocas de contratos  :
 - icmp 15 tem que ser capaz de informar os elementos identificadores do contrato (depende da versao do contrato implementada: ip_src,dst(que esta no destino do pacote, nao precisa ser nos dados),porta e tos)
@@ -735,3 +741,72 @@ R: Porque com duas classes, sendo uma voltada para aplicacoes que envolvem strea
 voltada para transaçoes de dados no geral, como download de arquivos, troca de mensagens, e-mail entre outros, é possível 
 evitar que os fluxos de uma classe dominem toda a largura de banda reservada e ainda se beneficiem do emprestimo da banda
 não utilizada. Isso torna os recursos mais flexiveis, mas disponíveis prioritariamente para as classes definidas.
+
+
+
+##############################################################################################################
+#						LOGICA DE ENDERECOS IP FICTICIOS - 2 controladores:
+				###################################################################
+
+
+	* os enderecos ficticios serao usados dentro do mininet como sendo os enderecos reais
+	* no switch mais proximo do controlador, o endereco ficticio deve ser traduzido pelo real para que a interface correta receba e possa responder
+
+	host: root1-c1 root2-c2
+
+	root1-C1
+	TC['10.123.123.1']='10.10.10.1'
+	TC['10.123.123.2']='10.10.10.2'
+	
+	root2-C2
+	TC['10.123.123.1']='10.10.10.1'
+	TC['10.123.123.2']='10.10.10.2'
+	
+	route table
+		dst			 dev
+	10.10.10.1		root2-eth0 (c2->c1)
+	10.10.10.2		root1-eth0 (c1->c2)
+
+#unico momento que usa eh para envio de contratos
+ip_dst tem que ser trocado e remarcado no primeiro switch, na ida
+ip_src tem que ser trocado e remarcado na chegada
+#tem que criar as rotas para esse endereco ficticio, como se fosse o ip do controlador mesmo - um ip ficticio eh o ip do controlador dentro do ambiente mininet
+
+	[algoritmo]
+-> root1-c1 recebe um icmp 16 -> enviar os contratos
+enviar_contratos(src=10.10.10.1, dest=10.10.10.2)
+
+s1 (mais proximo de root1) -> match ip_src=10.10.10.1, ip_dst=10.10.10.2 trocar ip_dst 10.10.10.2 para 10.123.123.2 (para que root2 possa responder)
+s1 (mais proximo de root1) -> match ip_src=10.123.123.2, ip_dst=10.10.10.1, trocar ip_dst 10.10.10.1 para 10.123.123.1 (para que root1 possa responder)
+
+
+**** PARA 3 controladores (nao vai dar tempo de implementar e testar isso, ao menos para o AINA)
+
+host: root1-c1 root2-c2 root3-c3
+
+	root1-C1
+	##TC['10.123.123.1']='10.10.10.1' (esse nao precisa pq nao se envia para si mesmo)
+	TC['10.123.123.2']='10.10.10.4'
+	TC['10.123.123.3']='10.10.10.3'
+
+	root2-C2
+	TC['10.123.123.1']='10.10.10.1'
+	TC['10.123.123.3']='10.10.10.2'
+
+	root3-C3
+	TC['10.123.123.1']='10.10.10.5'
+	TC['10.123.123.2']='10.10.10.6'
+	
+	route table
+		dest		dev
+	10.10.10.1 		root2-eth0 (c2->c1)
+	10.10.10.2 		root2-eth0 (c2->c3)
+	10.10.10.3 		root1-eth0 (c1->c3)
+	10.10.10.4 		root1-eth0 (c1->c2)
+	10.10.10.5 		root3-eth0 (c3->c1)
+	10.10.10.6 		root3-eth0 (c3->c2)
+
+
+[[[[[TESTAR nova implementacao --- ]]]]]
+
+Ao inves de toda aquelas modificacoes - apenas criar uma tabela de pre-marcacao, onde tudo que tem destino/origem o controlador, remarca para o ip ficticio.
