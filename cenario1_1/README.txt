@@ -1,4 +1,88 @@
 ##############################################################################################################
+
+* Como executar/comandos úteis:
+
+** Rodar a topologia:
+
+$ sudo python topo5_v1.py
+
+** rodar o script que cria as filas nas portas dos switches:
+
+$ sudo sh switchQueueConf2.sh
+
+** Abrir os roots 1 e 2, e rodar os controladores:
+
+$ xterm root1 root2
+
+** no root1:
+
+$ ryu-manager c1_v2.py --ofp-tcp-listen-port 7000
+
+** no root2:
+
+$ ryu-manager c2_v2.py --ofp-tcp-listen-port 6699
+
+** para um host criar um contrato (ex. host1->host4, banda: 1000kbps, prioridade: 1, classe: 2):
+
+$ python contrato_cli_c1.py 172.16.10.1 172.16.10.4 1000 1 2
+
+** monitorar alteracoes nas tabelas de fluxo dos switches:
+
+$ watch ovs-ofctl dump-flows s1
+
+** deletar todas as regras de fluxo de um switch:
+
+$ ovs-ofctl del-flows s1
+
+** listar filas em uma porta de um switch:
+
+$ sudo ovs-ofctl list qos
+
+$ sudo ovs-ofctl queue-stats s1
+
+$ sudo ovs-appctl qos/show s1-eth1
+
+** listar configuracao qdisc de uma interface:
+
+$ tc qdisc show
+
+$ tc class show dev s1-eth1
+
+** listar meters instaladas em um switch:
+
+$ ovs-ofctl dump-meters s1
+
+** ouvir uma interface:
+
+$ tcpdump -i s1-eth1
+
+** verificar tabela route de um host ( controladores compartilham da mesma tabela ):
+
+route -n
+
+** verificar tabela arp:
+
+arp -n
+
+** deletar filas usando ovs:
+
+$ ovs-vsctl clear port s1-eth1 qos        
+
+ou
+
+$ ovs-vsctl --all destroy qos 
+
+** deletar filas usando tc:
+
+$ sudo tc qdisc del dev s1-eth1 root
+
+* Em caso de algum comando retornar algo como:
+
+- "ovs-ofctl dump-meter s1 ovs-ofctl: none of the usable flow formats (OXM-OpenFlow13,OXM-OpenFlow14,OXM-OpenFlow15) is among the allowed flow formats (OpenFlow10,NXM)"
+
+** Usar -O OpenFlow junto com o comando (ex.)  ovs-ofctl -O OpenFlow13 dump-meters s1
+
+##############################################################################################################
 [UPDATES]
 
 c1_v1: o basico esta implementado (alocarGBAM, troca de contratos, estabelcer contratos, criacao de regras ...), porém, a comunicacao entre controladores ocorre fora do mininer.
