@@ -1,98 +1,97 @@
 ##############################################################################################################
 
-* Como executar/comandos úteis:
+# Como executar/comandos úteis:
 
-** Rodar a topologia:
+* Rodar a topologia:
 
-$ sudo python topo5_v1.py
+` sudo python topo5_v1.py`
 
-** rodar o script que cria as filas nas portas dos switches:
+* Rodar o script que cria as filas nas portas dos switches:
 
-$ sudo sh switchQueueConf2.sh
+` sudo sh switchQueueConf2.sh `
 
-** Abrir os roots 1 e 2, e rodar os controladores:
+* Abrir os roots 1 e 2, e rodar os controladores:
 
-$ xterm root1 root2
+` xterm root1 root2`
 
-** no root1:
+* no root1:
 
-$ ryu-manager c1_v2.py --ofp-tcp-listen-port 7000
+` ryu-manager c1_v2.py --ofp-tcp-listen-port 7000`
 
-** no root2:
+* no root2:
 
-$ ryu-manager c2_v2.py --ofp-tcp-listen-port 6699
+` ryu-manager c2_v2.py --ofp-tcp-listen-port 6699`
 
-** para um host criar um contrato (ex. host1->host4, banda: 1000kbps, prioridade: 1, classe: 2):
+* para um host criar um contrato (ex. host1->host4: ipcontrolador, ip_src, ip_dst, banda: 1000kbps, prioridade: 1, classe: 2):
 
-$ python contrato_cli_c1.py 172.16.10.1 172.16.10.4 1000 1 2
+` python contrato_cli_v2.py 10.10.10.1 172.16.10.1 172.16.10.4 1000 1 2`
 
-** monitorar alteracoes nas tabelas de fluxo dos switches:
+## Comandos úteis:
 
-$ watch ovs-ofctl dump-flows s1
+* monitorar alteracoes nas tabelas de fluxo dos switches:
 
-** deletar todas as regras de fluxo de um switch:
+` watch ovs-ofctl dump-flows s1`
 
-$ ovs-ofctl del-flows s1
+* deletar todas as regras de fluxo de um switch:
 
-** listar filas em uma porta de um switch:
+` ovs-ofctl del-flows s1`
 
-$ sudo ovs-ofctl list qos
+* listar filas em uma porta de um switch:
 
-$ sudo ovs-ofctl queue-stats s1
+` sudo ovs-ofctl list qos`
 
-$ sudo ovs-appctl qos/show s1-eth1
+` sudo ovs-ofctl queue-stats s1`
 
-** listar configuracao qdisc de uma interface:
+` sudo ovs-appctl qos/show s1-eth1`
 
-$ tc qdisc show
+* listar configuracao qdisc de uma interface:
 
-$ tc class show dev s1-eth1
+` tc qdisc show`
 
-** listar meters instaladas em um switch:
+` tc class show dev s1-eth1`
 
-$ ovs-ofctl dump-meters s1
+* listar meters instaladas em um switch:
 
-** ouvir uma interface:
+` ovs-ofctl dump-meters s1`
 
-$ tcpdump -i s1-eth1
+* ouvir uma interface:
 
-** verificar tabela route de um host ( controladores compartilham da mesma tabela ):
+` tcpdump -i s1-eth1`
 
-route -n
+* verificar tabela route de um host ( controladores compartilham da mesma tabela ):
 
-** verificar tabela arp:
+`route -n`
 
-arp -n
+* verificar tabela arp:
 
-** deletar filas usando ovs:
+`arp -n`
 
-$ ovs-vsctl clear port s1-eth1 qos        
+* deletar filas usando ovs:
+
+` ovs-vsctl clear port s1-eth1 qos`
 
 ou
 
-$ ovs-vsctl --all destroy qos 
+` ovs-vsctl --all destroy qos `
 
-** deletar filas usando tc:
+* deletar filas usando tc:
 
-$ sudo tc qdisc del dev s1-eth1 root
+` sudo tc qdisc del dev s1-eth1 root`
 
 * Em caso de algum comando retornar algo como:
 
 - "ovs-ofctl dump-meter s1 ovs-ofctl: none of the usable flow formats (OXM-OpenFlow13,OXM-OpenFlow14,OXM-OpenFlow15) is among the allowed flow formats (OpenFlow10,NXM)"
 
-** Usar -O OpenFlow junto com o comando (ex.)  ovs-ofctl -O OpenFlow13 dump-meters s1
+- Usar -O OpenFlow junto com o comando (ex.)  ovs-ofctl -O OpenFlow13 dump-meters s1
 
 ##############################################################################################################
-[UPDATES]
+# UPDATES: IMPLEMENTACAO
 
-c1_v1: o basico esta implementado (alocarGBAM, troca de contratos, estabelcer contratos, criacao de regras ...), porém, a comunicacao entre controladores ocorre fora do mininer.
-c1_v2: modificado a forma de comunicacao entre controladores, agora ocorre dentro do mininet + os contratos so sao trocados caso o solicitante tenha um contrato com tos diferente
-
-**** TESTES INTERROMPIDOS --- eh necessario corrigir/melhorar dois comportamentos ou nao eh possivel obter confiabilidade ******
+## Versões
+* c1_v1: o basico esta implementado (alocarGBAM, troca de contratos, estabelcer contratos, criacao de regras ...), porém, a comunicacao entre controladores ocorre fora do mininer.
+* c1_v2: modificado a forma de comunicacao entre controladores, agora ocorre dentro do mininet + os contratos so sao trocados caso o solicitante tenha um contrato com tos diferente
 
 **** Refazendo todos os testes
-
-
 
 ##############################################################################################################
 OBS: as acoes no vetor actions de uma mensagem de modificacao OpenFlow, ocorrem em ordem posicional do vetor - cuidado com a ordem das acoes

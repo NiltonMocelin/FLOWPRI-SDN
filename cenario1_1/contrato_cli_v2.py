@@ -7,6 +7,12 @@ HOST="10.10.10.1"
 #HOST="127.0.1.1"
 PORT= 4444
 
+if len(sys.argv) < 6:
+    print("[erro-modo de usar->] python contrato_cli.py <ip_controlador> <ip_src> <ip_dst> <banda> <prioridade> <classe>\n")
+    exit(0)
+
+HOST = sys.argv[1]
+
 print("Enviando contrato para -> HOST:%s, PORT: %d\n" % (HOST,PORT))
 
 #with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -29,11 +35,11 @@ tcp.connect((HOST, PORT))
 #
 contrato = {
         "contrato":{
-            "ip_origem":sys.argv[1],
-            "ip_destino":sys.argv[2],
-            "banda":sys.argv[3],
-            "prioridade":sys.argv[4],
-            "classe":sys.argv[5]
+            "ip_origem":sys.argv[2],
+            "ip_destino":sys.argv[3],
+            "banda":sys.argv[4],
+            "prioridade":sys.argv[5],
+            "classe":sys.argv[6]
             }
         }
 contrato_json=json.dumps(contrato, ensure_ascii= False)
