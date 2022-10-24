@@ -1,9 +1,16 @@
+##############################################################################################################
+[UPDATES]
+
 c1_v1: o basico esta implementado (alocarGBAM, troca de contratos, estabelcer contratos, criacao de regras ...), porém, a comunicacao entre controladores ocorre fora do mininer.
-(trabalhando nessa versao) c1_v2: modificado a forma de comunicacao entre controladores, agora ocorre dentro do mininet + os contratos so sao trocados caso o solicitante tenha um contrato com tos diferente
+c1_v2: modificado a forma de comunicacao entre controladores, agora ocorre dentro do mininet + os contratos so sao trocados caso o solicitante tenha um contrato com tos diferente
+
+**** TESTES INTERROMPIDOS --- eh necessario corrigir/melhorar dois comportamentos ou nao eh possivel obter confiabilidade ******
+
+**** Refazendo todos os testes
 
 
 
-
+##############################################################################################################
 OBS: as acoes no vetor actions de uma mensagem de modificacao OpenFlow, ocorrem em ordem posicional do vetor - cuidado com a ordem das acoes
 
 -------------------------
@@ -61,21 +68,13 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
   #filtrar o ip_dst
   #colocar em enviar contrato
 
-************* [Nao tem o que fazer com isso : de boas] Quando o root que quer enviar uma mensagem - por exemplo trocar contratos ou estabelecer uma conexao tcp é preciso já criar as regras com o controlador, caso contrario é gerado um packet_in e entao é gerado as regras:
+************* [foi amenizado com identificacao no packet_in se for comunicacao com controlador vai criar regra para fila de controle] Quando o root que quer enviar uma mensagem - por exemplo trocar contratos ou estabelecer uma conexao tcp é preciso já criar as regras com o controlador, caso contrario é gerado um packet_in e entao é gerado as regras:
 - Na verdade acho que não há o que fazer, só se fosse possível prever a conexão de um host com o controlador ou se o tcp esperasse a criação das regras antes de aceitar a conexão
 - no entano é uma regra provisória que vai receber no máximo pacotes de handshake do lado root->host e então vai sumir devido ao idle_time 
 - aparentemente no mesmo momento que se aceita uma conexao ocorre o evento packet_in - melhor printar o tempo para ver se dentro do recebimento da conexao nao se pode ja criar as  regras , mas parece nao ter jeito
 - pq so depois de criar as regras que a conexao é aceita e o contrato é recebido.
 - nao tem importancia acho
 
-
-{{{{{ NISSO AGR }}}}}
-		{{
---- fazer os testes
----- depois melhorar os contratos
----- depois escrever o texto
-
-[[ hoje ainda ]]
 {
 	- implementar o novo alocarGBAM [ok]
 	- testar as filas, como se comportam cheias - com toda a banda alocada
@@ -88,23 +87,28 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 		- tempo de comunicacao entre controladores
 		- banda utilizada pela comunicacao entre controladores para o estabelecimento de um contrato e multiplos contratos
 		- efeito da priorizacao - comparar se uma fila com maior prioridade entrega com menor atraso que uma fila com menor prioridade.
-	- ver do novo mecanismo de emprestimo, mudar os campos tos para que as duas classes tenham tos equivalentes
+	- ver do novo mecanismo de emprestimo, mudar os campos tos para que as duas classes tenham tos equivalentes [ok]
 }
 
-**** TESTES INTERROMPIDOS --- eh necessario corrigir/melhorar dois comportamentos ou nao eh possivel obter confiabilidade ******
-
 [necessario para os testes]
-************** ARRUMAR - no momento de enviar os contratos para um controlador que solicitou com icmp 16, as regras criadas nao sobem ou podem nao subir a tempo de se enviar os pacotes do contrato e vao gerar um packet_in:
+************** [FEITO nao testado] - no momento de enviar os contratos para um controlador que solicitou com icmp 16, as regras criadas nao sobem ou podem nao subir a tempo de se enviar os pacotes do contrato e vao gerar um packet_in:
 - neste caso, se um packet in ocorrer, vai ser um pacote com origem um controlador e destino outro controlador, nao vai ter contrato para dar suporte ou comportamento especificado e vai ser definido como best-effort
-- [issue] modificar o comportamento para identificar quando eh um controlador, pois eh possivel saber que eh um controlador porcausa que esse ip ja gerou um icmp 16 recebido.
+- [feito] modificar o comportamento para identificar quando eh um controlador, pois eh possivel saber que eh um controlador porcausa que esse ip ja gerou um icmp 16 recebido.
 - assim, se for um ip de controlador, na origem ou destino, definir que deve ser enviado pela fila de controle
-- [issue] o mesmo ocorre quando os pacotes do contrato passam entre dominios que ficam no caminho entre controladores, vai ter de ocorrer a comunicacao tcp (ida e volta) arrumar isso para quando receber o icmp 15 criar a volta tbm
+- [feito] o mesmo ocorre quando os pacotes do contrato passam entre dominios que ficam no caminho entre controladores, vai ter de ocorrer a comunicacao tcp (ida e volta) arrumar isso para quando receber o icmp 15 criar a volta tbm
 
 [necessario para os testes]
-************** Arrumar - otimizar trocas de contratos  :
+************** [FEITO nao testado] - otimizar trocas de contratos  :
 - icmp 15 tem que ser capaz de informar os elementos identificadores do contrato (depende da versao do contrato implementada: ip_src,dst(que esta no destino do pacote, nao precisa ser nos dados),porta e tos)
 - icmp 16-reply informa o tos que o controlador possui, se nao tive tos (nao tem o contrato), responde com o campo vazio ou -1
 - quando o controlador recebe o icmp 16-reply, verifica se o tos eh o mesmo que ele possui, se for, nao envia, se nao for, entao envia
+
+************ ARRUMAR - ICMP inf. req. (15) :
+- colocar nos dados o ip_src, que junto com o destino do pacote, formam o par origem e destino do contrato anunciado
+- assim, controladores ao longo da rota podem analisar se desejam o contrato e ainda solicitar exatamente o contrato referente ao ip_src, ip_dst, informando no campo de dados
+- pq, o controlador que responde com icmp inf. reply informa o ip_dst, assim, sao enviados todos os contratos referentes. No entanto, para cada novo fluxo
+eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrato, mesmo que tenha acabado de receber o contrato junto em um processo de troca de contratos anterior
+
 
 ************** ARRUMAR melhorar o contrato - inserir protoco: tcp ou udp, e porta destino:
 - adaptar o codigo
@@ -115,13 +119,6 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 
 ************ ARRUMAR - criar mecanismo para remover contrato - um host pode querer que um fluxo passe a trafegar como best effort
 
-************ ARRUMAR - ICMP inf. req. (15) :
-- colocar nos dados o ip_src, que junto com o destino do pacote, formam o par origem e destino do contrato anunciado
-- assim, controladores ao longo da rota podem analisar se desejam o contrato e ainda solicitar exatamente o contrato referente ao ip_src, ip_dst, informando no campo de dados
-- pq, o controlador que responde com icmp inf. reply informa o ip_dst, assim, sao enviados todos os contratos referentes. No entanto, para cada novo fluxo
-eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrato, mesmo que tenha acabado de receber o contrato junto em um processo de troca de contratos anterior
-
-
 ************** ARRUMAR - envio de contratos e expiraçao de contratos:
  x- [rejeitado] quando a regra de marcacao expira, remover o contrato? [NAO - ideia rejeitada]
  x- [rejeitado] modificar a remocao do controlador com timestamp, marcar os contratos e definir uma thread para observar os timestamps e remover [NAO - ideia melhorada]
@@ -131,6 +128,10 @@ eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrat
 -> [expiracao] no momento, os contratos sao permanentes:
 [solucao] - criar um timestamp que sempre que ocorrer um packet in, os contratos que passaram o timestamp sejam removidos.
 
+*************** ARRUMAR - só aceitar contratos de controladores que ja enviaram icmps 15 para o dominio:
+- salvar os enderecos ip dos controladores conhecidos e outro vetor com os enderecos ip dos controladores que enviaram icmps.
+- quando receber o contrato, remove do vetor o controlador que enviou
+- eh um tratamento fraco de seguranca
 
    ################################################################################################################
 ######################################  FEITO/ARRUMADO/RESOLVIDO #####################################################

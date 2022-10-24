@@ -69,6 +69,9 @@ contratos_enviar = {}
 #self.ip_to_mac = {}
 switches = [] #switches administrados pelo controlador
 
+#vetor com os enderecos ip dos controladores conhecidos (enviaram icmps)
+controladores_conhecidos = []
+
 PRE_TABLE = 0 #tabela para lidar com os ips ficticios dos controladores
 CLASSIFICATION_TABLE = 1 #tabela para marcacao de pacotes
 FORWARD_TABLE = 2 #tabela para encaminhar a porta destino
@@ -271,8 +274,12 @@ def servidor_socket_hosts():
         out_port = switch_ultimo.getPortaSaida(cip_dst)
 
         print("Porta SAIDA: %d\n" % (out_port))
+        
+        #enviar os identificadores do contrato (v2: ip origem/destino sao os identificadores - origem vai em dados, destino vai no destino do icmp ) 
+        data = {"ip_src":cip_src}
+        data = json.dumps(data)
 
-        send_icmp(switch_ultimo_dp, MACC, IPC, MACC, cip_dst, out_port, 0, None, 1, 15,64)        
+        send_icmp(switch_ultimo_dp, MACC, IPC, MACC, cip_dst, out_port, 0, data, 1, 15,64)        
         #recebeu um contrato fecha a conexao, se o host quiser enviar mais, que inicie outra
         conn.close()
 
@@ -465,7 +472,7 @@ def enviar_contratos(host_ip, host_port, ip_dst_contrato):
 ############# send_icmp TORNADO GLOBAL EM 06/10 - para ser aproveitado em server socket ###################
 #https://ryu-devel.narkive.com/1CxrzoTs/create-icmp-pkt-in-the-controller
 #se o ip dest for de um controlador, tem que traduzir o ip para um ficticio para que seja encaminhado pela interface correta, caso contrario esta indo pelo loopback
-def send_icmp(datapath, srcMac, srcIp, dstMac, dstIp, outPort, seq, data, id=1, type=8, ttl=64, dst_controlador=False):
+def send_icmp(datapath, srcMac, srcIp, dstMac, dstIp, outPort, seq, data, id=1, type=8, ttl=64):
     print("[send-icmp] type:%d, src:%s, ip_src:%s, dst:%s, ip_dst:%s, psaida %d\n" % (type, srcMac, srcIp, dstMac,dstIp, outPort))
 
     e = ethernet.ethernet(dst=dstMac, src=srcMac, ethertype=ether.ETH_TYPE_IP)
@@ -500,6 +507,23 @@ def send_icmp(datapath, srcMac, srcIp, dstMac, dstIp, outPort, seq, data, id=1, 
     print("\n")
 
     datapath.send_msg(out)
+    return 0
+
+def addControladorConhecido(ipnovo):
+    print("Verificando se ja conhece o controlador: %s \n" %(ipnovo))
+    if checkControladorConhecido(ipnovo) == 1:
+        print("controlador ja conhecido\n")
+        return
+
+    controladores_conhecidos.append(ipnovo)
+    print("novo controlador conhecido\n")
+
+def checkControladorConhecido(ip):
+    for i in controladores_conhecidos:
+        if i == ip:
+            #conhecido
+            return 1
+    #desconhecido
     return 0
 
 class Regra:
@@ -1299,6 +1323,8 @@ class Dinamico(app_manager.RyuApp):
         # ex: switch s1 - conexao direta com root1
         #switch.addRegraF('0.0.0.0',IPC,None,switch.getPortaSaida(IPC),FILA_CONTROLE, None,0)
         #testando se segue as acoes em ordem vetorial [ sim eh em ordem vetorial ]
+
+        #obs: se nao fosse o ultimo switch, que conecta com o controlador, o ip teria de ser o ficticio, mas como eh o ultimo, o ip ficticio eh traduzido antes dessa regra, entao tem que ser o original - assim como esta feito
         actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(IPC))]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=IPC)
@@ -1587,7 +1613,20 @@ class Dinamico(app_manager.RyuApp):
                 #preparando o ip destino que desejo os contratos, para solicitar via icmp 16 ao controlador emissor do icmp 15
                 #enviando o ip_dst como json
                 print("[ICMP-15] Recebido\n")
-                data = {"ip_dst":ip_dst}
+                
+                addControladorConhecido(ip_src)
+
+                #verificar se ja tenho o contrato e enviar o tos que tenho, caso for o mesmo tos que ja recebi, nao vou receber resposta
+                cip_src = json.loads(pkt_icmp.data)['ip_src']
+                cip_dst = ip_dst
+                dscp = -1
+                #procurando  nos contratos o dscp
+                for i in contratos:
+                    if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_destino']==cip_dst:
+                        dscp = CPT[(i['contrato']['classe'], i['contrato']['prioridade'], i['contrato']['banda'])]
+                        break
+
+                data = {"ip_dst":ip_dst,"ip_src":cip_src,"dscp":dscp}
                 data = json.dumps(data)#.encode()
                 print("[ICMP-15] contrato desejado:%s\n" % (data))  
 
@@ -1619,9 +1658,20 @@ class Dinamico(app_manager.RyuApp):
     ### SEGUINDO O ICMP 15 inf. req. - injetar pelo ultimo switch da  rota
         #obtendo a rota entre src e destino, assim como era antes
                 switches_rota = SwitchOVS.getRota(ip_src, ip_dst)
+                
                 #obter o switch mais da borda de destino e gerar o inf req para dar sequencia e descobrir novos controladores ate o host destino
                 switch_ultimo = switches_rota[-1]
                 out_port = switch_ultimo.getPortaSaida(ip_dst)
+
+                #as regras de vinda dos pacotes de contrato ja existem, pq sao para este controlador
+                #no entanto as regras de volta (tcp-handshake) nao existem e sao do tipo controle tbm, entao criar 
+                switch_ultimo.addRegraC(ip_dst, ip_src, 61)
+                for s in switches_rota:
+                    #porta de saida
+                    out_port = s.getPortaSaida(ip_src)
+                    #ida
+                    s.alocarGBAM(out_port, ip_dst, ip_src, '1000', 2, 4)
+
                 switch_ultimo_dp = switch_ultimo.getDP()
                 print("[ICMP-15] Dando sequencia no icmp 15 criando no ultimo switch da rota \n src:%s, dst:%s, saida:%d\n", ip_src, ip_dst, out_port)
                 send_icmp(switch_ultimo_dp, src, ip_src, dst, ip_dst,out_port,0,pkt.data,1,15,64)
@@ -1636,6 +1686,8 @@ class Dinamico(app_manager.RyuApp):
             #pkt: responder o arp caso seja para o endereco do controlador-> information reply (enviar os contratos para este controlador)
             if pkt_icmp.type==16:
                 print("[ICMP-16] Recebido\n")
+                addControladorConhecido(ip_src)
+
                 #print("ICMP Information Reply -> Received\n")
                 ## somente enviar os contratos caso o controlador seja o destino do icmp, caso contrario, apenas criar as regras de marcacao e encaminhamento + injetar o icmp no switch mais da borda proxima do destino
                 switches_rota = SwitchOVS.getRota(ip_dst, ip_src)
@@ -1644,9 +1696,28 @@ class Dinamico(app_manager.RyuApp):
 
         ###### (i) sou o controlador de destino
                 if ip_dst == IPC:
+                    
+                    
                     #enviar os contratos correspondentes para o controlador que respondeu utilizando socket
                     print("[ICMP-16] Enviar os contratos para: ip_dst %s; mac_dst %s; ip_src e mac_src -> host root\n" % (ip_src,src))
-                         
+
+                    dados = json.loads(pkt_icmp.data)
+                    cip_src = dados['ip_src']
+                    cip_dst = dados['ip_dst']
+                    cdscp = dados['dscp']
+
+                    #verificar se o tos recebido no icmp 16 eh o mesmo que o tos do contrato que seria enviado, se for, ignorar esse icmp, o controlador que respondeu ja possui o contrato atualizado
+                     #procurando  nos contratos o dscp
+                    for i in contratos:
+                        if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_destino']==cip_dst:
+                            dscp = CPT[(i['contrato']['classe'], i['contrato']['prioridade'], i['contrato']['banda'])]
+
+                            if dscp == cdscp:
+                                print("contrato do controlador solicitante esta atualizado - nao reenviar\n")
+                                return
+                            #se o contrato foi encontrato e eh diferente, nao precisa testar com os outros contratos
+                            break
+
                     ### criar regras para encaminhar as respostas do ICMP 15 atraves dos switches da rota para o dominio do controlador emissor original e para o controlador enviar os contratos
     #criar regras de marcacao e encaminhamento: switch de borda (switch_ultimo)
     #criar regras de encaminhamento: switches da rota
@@ -1670,6 +1741,9 @@ class Dinamico(app_manager.RyuApp):
                         out_port = s.getPortaSaida(ip_src)
                         s.alocarGBAM(out_port, TC[ip_dst], ip_src, '1000', '2', '4') #criando as regras
 
+                    #criando a volta tbm pq precisa estabelecer a conexao
+                    
+
                     #enviar_contratos(host_ip, host_port, ip_dst_contrato)
                     # - host_ip e host_port (controlador que envia)
                     # - ip_dst_contrato #ip do host destino (deve estar nos dados do pacote icmp 16 recebido
@@ -1685,7 +1759,7 @@ class Dinamico(app_manager.RyuApp):
                     #estah construindo o json [ok]
                     #print(json.loads(pkt_icmp.data))
                     #ip_dst desejado para se buscar nos contratos
-                    cip_dst = json.loads(pkt_icmp.data)['ip_dst']
+                    cip_dst = dados['ip_dst']
                     print("[ICMP-16] enviando contratos do ip_dst desejado - ip_dst:%s\n" % (cip_dst))
                     
                 #enviar_contratos(host_ip, host_port, ip_dst_contrato):
@@ -1715,6 +1789,12 @@ class Dinamico(app_manager.RyuApp):
                 for i in switches_rota:
                     out_port = i.getPortaSaida(ip_src) # obtendo a porta que leva a enviar os contratos ao controlador requisitante
                     i.alocarGBAM(out_port,ip_dst, ip_src, '1000', '2', '4') #alocando-criando as regras de encaminhamento
+
+                #criar a volta tbm, pq eh tcp [ultimo switch] e como nao sao pacotes para o controlador desse dominio, nao ha reggras pre-definidas para o encaminhamento
+                switches_rota[-1].addRegraC(ip_src, ip_dst, 61)
+                for i in switches_rota:
+                    out_port = i.getPortaSaida(ip_dst) # obtendo a porta que leva a enviar os contratos ao controlador requisitante
+                    i.alocarGBAM(out_port, ip_src, ip_dst, '1000', '2', '4') #alocando-criando as regras de encaminhamento
 
                 #reinjetar o icmp no switch mais da borda proxima do destino
                 print("[ICMP-16] recriando icmp 16 no switch mais proximo src:%s dst:%s out:%s:%d\n" % (ip_src, ip_dst, switch_primeiro.nome, out_port))
@@ -1757,7 +1837,11 @@ class Dinamico(app_manager.RyuApp):
 
                     #teste echo request - se funcionar adaptar para o request information [ok]
                     #deve ser enviado pelo switch mais proximo do destino (da borda) - se nao cada switch vai precisar tratar esse pacote
-                    send_icmp(switch_ultimo_dp, MACC, TC[IPC], dst, ip_dst, out_port, 0, None, 1, 15,64)
+                    #enviar os identificadores do contrato (v2: ip origem/destino sao os identificadores - origem vai em dados, destino vai no destino do icmp ) 
+                    data = {"ip_src":cip_src}
+                    data = json.dumps(data)
+            
+                    send_icmp(switch_ultimo_dp, MACC, TC[IPC], dst, ip_dst, out_port, 0, data, 1, 15,64)
                           
                     print("[%s] icmp enviado enviado - ipdst=%s  portasaida=%d\n" % (switch_ultimo.nome,ip_dst,out_port))
                     print("---------------------------------\n")
@@ -1817,24 +1901,31 @@ class Dinamico(app_manager.RyuApp):
             #criar regra para a fila de best-effort (match= {tos, ip_dst} = (meter band + fila=tos) + (porta_saida=ip_dst)
             #1- Encontrar os switches da rota
             switches_rota = SwitchOVS.getRota(ip_src, ip_dst)
-        
+            dscp = 60 #best-effort
+            classe = 3 #best-effort
+
+            #se o fluxo for desconhecido (por ter expirado alguma regra) e for de controladores - a classe deve ser classe de controle
+            if checkControladorConhecido(ip_src) == 1 or checkControladorConhecido(ip_dst) == 1:
+                dscp = 61 #controle
+                classe = 4 #controle 
+
             #criar regra na tabela de classificacao do switch de borda - marcar como best-effort
             #a variavel este switch, pode ser um switch do meio do caminho que perdeu as regras de encaminhamento e gerou o packet_in
             #por isso, deve se usar o primeiro switch da rota para criar as regras, evitando que um switch do meio do caminho tenha regras de marcacao
             #assim, o switch do meio so tem as regras de encaminnhamento atualizadas
-            switches_rota[0].addRegraC(ip_src, ip_dst, 60)    
+            switches_rota[0].addRegraC(ip_src, ip_dst, dscp)    
 
             for i in range(len(switches_rota)):        
                 #criar em cada outro switch as regras de encaminhamento    
                 #porta de saida
                 out_port = switches_rota[i].getPortaSaida(ip_dst)
                 #ida
-                switches_rota[i].alocarGBAM(out_port, ip_src, ip_dst, '0', 3, 3)
+                switches_rota[i].alocarGBAM(out_port, ip_src, ip_dst, '1000', classe, classe)
 
             #pegar o switch mais proximo do destino e injetar o pacote que gerou o packet_in
             switch_ultimo = switches_rota[-1]
             out_port = switch_ultimo.getPortaSaida(ip_dst)
-            fila = CPF[(3,1)]
+            fila = CPF[(classe,1)]
             switch_ultimo.injetarPacote(switch_ultimo.datapath,fila, out_port, msg)
 
             return	 
