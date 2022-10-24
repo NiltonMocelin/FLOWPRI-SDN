@@ -1643,7 +1643,7 @@ class Dinamico(app_manager.RyuApp):
                 switch_primeiro = switches_rota[0]
 
         ###### (i) sou o controlador de destino
-                if ip_dst == TC[IPC]:
+                if ip_dst == IPC:
                     #enviar os contratos correspondentes para o controlador que respondeu utilizando socket
                     print("[ICMP-16] Enviar os contratos para: ip_dst %s; mac_dst %s; ip_src e mac_src -> host root\n" % (ip_src,src))
                          
@@ -1661,14 +1661,14 @@ class Dinamico(app_manager.RyuApp):
                     #criar a regra de encaminhamento + marcacao --- para enviar os contratos
                     #regra de marcacao - apenas no switch que esta conectado ao controlador
                     #primeiro switch == switch conectado ao controlador
-                    switch_primeiro.addRegraC(ip_dst, ip_src, 61)
+                    switch_primeiro.addRegraC(TC[ip_dst], ip_src, 61)
 
                     #out_port = switch_primeiro.getPortaSaida(ip_src)
 
                     #criar regras de encaminhamento de contratos nos switches da rota 
                     for s in switches_rota:
                         out_port = s.getPortaSaida(ip_src)
-                        s.alocarGBAM(out_port, ip_dst, ip_src, '1000', '2', '4') #criando as regras
+                        s.alocarGBAM(out_port, TC[ip_dst], ip_src, '1000', '2', '4') #criando as regras
 
                     #enviar_contratos(host_ip, host_port, ip_dst_contrato)
                     # - host_ip e host_port (controlador que envia)
