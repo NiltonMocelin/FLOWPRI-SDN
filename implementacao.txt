@@ -77,7 +77,7 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 
 [[ hoje ainda ]]
 {
-	- implementar o novo alocarGBAM
+	- implementar o novo alocarGBAM [ok]
 	- testar as filas, como se comportam cheias - com toda a banda alocada
 	- testar a parte de emprestar banda
 	- comparar um cenario com o framework e um sem:
@@ -91,32 +91,16 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 	- ver do novo mecanismo de emprestimo, mudar os campos tos para que as duas classes tenham tos equivalentes
 }
 
-************** ARRUMAR - controladores se comunicam pela interface lo entre si:
-- comunicacao controladores-host acontece pela interface correta e dentro do ambiente mininet
-- comunicacao controlador-controlador acontecendo pelo loopback? Na vida real os controladores estariam em ambientes/computadores diferentes, e isso nao ocorreria, nao seria necessario tomar a acao abaixo...
-(a troca de icmps ocorria dentro do ambiente mininet pq sao pacotes INJETADOS (criados com o openflow) - nao sao pacotes com origem no ROOT/CONTROLADOR, mas os contratos tem origem no controlador e nesse caso ocorre um problema, pq vao por fora do mininet)
-(no caso seria necessario essa traducao apenas no caso onde os pacotes tem origem no controlador -> envio de contratos)
+**** TESTES INTERROMPIDOS --- eh necessario corrigir/melhorar dois comportamentos ou nao eh possivel obter confiabilidade ******
 
-- [Verificar] tabelas route + arp (parece td certo e ainda nao encaminha corretamente (c1 ping 10.123.123.2 vai pelo lo))
-- [Verificar] ip tables e firewall (firewall nao se, mas ip tables esta limpo)
-- [outra ideia] verificar a possibilidade de criar hosts remotos, assim, os hosts root1 e root2 poderiam ser criados remotos como container, assim, cada um teria sua tabela de route
-- [IDEIA ESCOLHIDA] criar uma logica de remarcacao, com um ip que obriga a enviar pelo ambiente mininet: rotas para um ip inventado, com MAC do controlador destino, entao no switch remarca esse ip inventado pelo do controlador destino (meio que gambiarra):
-[(essa parece a mais facil e rapida de implementar)]
-	|->> como todos os controladores estao fora do ambiente mininet, eles usam as mesmas tabelas de arp e route, assim definir uma interface destino para cada endereco nao vai ser possivel.
-	|->> criar um endereco ficticio para cada controlador e em cada codigo fazer com que quando um controlador tentar mandar um pacote para um controlador, usar esse endereco ficticio e criar uma regra de fluxo para alterar esse endereco no endereco correto.
-	|->> na topologia, criar uma entrada na tabela route e na tabela arp com os enderecos ficticios + mac real
-	|->> no momento que for necessario enviar um pacote para um controlador de ip X, sera traduzido esse ip para um ficticio Y e colocado no destino do pacote e aliado a isso, no switch vai ter uma regra para retornara esse ip Y para X, assim, o mac continua o correto e sera entregue normalmente
-	* [aqui nao eh necessario pois o pacote eh criado e injetado com o openflow] aplicar a traducao de ip + regra de remacarcar campo de ip em send_icmp + acao de mudar o ip
-	* em addRegra mas se o controaldor nao for o destino = nao precisa
-	* [aqui precisa com certeza == unico lugar onde o controlador/root precisa enviar pacotes para outro controlador a partir de sua interface] enviar contrato - mudar o ip destino na hora de enviar o contrato
-	* caso a remarcacao na origem ainda resulte em problemas, trafegar em todo o percurso com ip ficticio e apenas no destino-ultimo ip antes de chegar no controlador, fazer a traducao/remarcacao
-# para remarcar actions = [parser.OFPActionSetField(ip_dscp=ip_dscp)]
+[necessario para os testes]
+************** ARRUMAR - no momento de enviar os contratos para um controlador que solicitou com icmp 16, as regras criadas nao sobem ou podem nao subir a tempo de se enviar os pacotes do contrato e vao gerar um packet_in:
+- neste caso, se um packet in ocorrer, vai ser um pacote com origem um controlador e destino outro controlador, nao vai ter contrato para dar suporte ou comportamento especificado e vai ser definido como best-effort
+- [issue] modificar o comportamento para identificar quando eh um controlador, pois eh possivel saber que eh um controlador porcausa que esse ip ja gerou um icmp 16 recebido.
+- assim, se for um ip de controlador, na origem ou destino, definir que deve ser enviado pela fila de controle
+- [issue] o mesmo ocorre quando os pacotes do contrato passam entre dominios que ficam no caminho entre controladores, vai ter de ocorrer a comunicacao tcp (ida e volta) arrumar isso para quando receber o icmp 15 criar a volta tbm
 
-*** trafego bate na interface mas o root nao responde :::::: ver o que esta ocorrendo + pensar em outras solucoes
-(caso isso nao se resolva o tempo de trafego dos contratos nao sera corretamente calculado)
-- provavelmente pq o socket tcp pega o endereco ip da origem para realizar o handshake, e no caso o endereco origem eh o endereco do controlador - e ai tem todo aquele problema - tentar mudar o endereco origem
-- mudar o endereco origem na hora de enviar os contratos...
-
+[necessario para os testes]
 ************** Arrumar - otimizar trocas de contratos  :
 - icmp 15 tem que ser capaz de informar os elementos identificadores do contrato (depende da versao do contrato implementada: ip_src,dst(que esta no destino do pacote, nao precisa ser nos dados),porta e tos)
 - icmp 16-reply informa o tos que o controlador possui, se nao tive tos (nao tem o contrato), responde com o campo vazio ou -1
@@ -150,6 +134,35 @@ eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrat
 
    ################################################################################################################
 ######################################  FEITO/ARRUMADO/RESOLVIDO #####################################################
+************** [ARRUMADO] - controladores se comunicam pela interface lo entre si:
+- comunicacao controladores-host acontece pela interface correta e dentro do ambiente mininet
+- comunicacao controlador-controlador acontecendo pelo loopback? Na vida real os controladores estariam em ambientes/computadores diferentes, e isso nao ocorreria, nao seria necessario tomar a acao abaixo...
+(a troca de icmps ocorria dentro do ambiente mininet pq sao pacotes INJETADOS (criados com o openflow) - nao sao pacotes com origem no ROOT/CONTROLADOR, mas os contratos tem origem no controlador e nesse caso ocorre um problema, pq vao por fora do mininet)
+(no caso seria necessario essa traducao apenas no caso onde os pacotes tem origem no controlador -> envio de contratos)
+
+- [Verificar] tabelas route + arp (parece td certo e ainda nao encaminha corretamente (c1 ping 10.123.123.2 vai pelo lo))
+- [Verificar] ip tables e firewall (firewall nao se, mas ip tables esta limpo)
+- [outra ideia] verificar a possibilidade de criar hosts remotos, assim, os hosts root1 e root2 poderiam ser criados remotos como container, assim, cada um teria sua tabela de route
+- [IDEIA ESCOLHIDA] criar uma logica de remarcacao, com um ip que obriga a enviar pelo ambiente mininet: rotas para um ip inventado, com MAC do controlador destino, entao no switch remarca esse ip inventado pelo do controlador destino (meio que gambiarra):
+[(essa parece a mais facil e rapida de implementar)]
+	|->> como todos os controladores estao fora do ambiente mininet, eles usam as mesmas tabelas de arp e route, assim definir uma interface destino para cada endereco nao vai ser possivel.
+	|->> criar um endereco ficticio para cada controlador e em cada codigo fazer com que quando um controlador tentar mandar um pacote para um controlador, usar esse endereco ficticio e criar uma regra de fluxo para alterar esse endereco no endereco correto.
+	|->> na topologia, criar uma entrada na tabela route e na tabela arp com os enderecos ficticios + mac real
+	|->> no momento que for necessario enviar um pacote para um controlador de ip X, sera traduzido esse ip para um ficticio Y e colocado no destino do pacote e aliado a isso, no switch vai ter uma regra para retornara esse ip Y para X, assim, o mac continua o correto e sera entregue normalmente
+	* [aqui nao eh necessario pois o pacote eh criado e injetado com o openflow] aplicar a traducao de ip + regra de remacarcar campo de ip em send_icmp + acao de mudar o ip
+	* em addRegra mas se o controaldor nao for o destino = nao precisa
+	* [aqui precisa com certeza == unico lugar onde o controlador/root precisa enviar pacotes para outro controlador a partir de sua interface] enviar contrato - mudar o ip destino na hora de enviar o contrato
+	* caso a remarcacao na origem ainda resulte em problemas, trafegar em todo o percurso com ip ficticio e apenas no destino-ultimo ip antes de chegar no controlador, fazer a traducao/remarcacao
+# para remarcar actions = [parser.OFPActionSetField(ip_dscp=ip_dscp)]
+
+*** trafego bate na interface mas o root nao responde :::::: ver o que esta ocorrendo + pensar em outras solucoes
+(caso isso nao se resolva o tempo de trafego dos contratos nao sera corretamente calculado)
+- provavelmente pq o socket tcp pega o endereco ip da origem para realizar o handshake, e no caso o endereco origem eh o endereco do controlador - e ai tem todo aquele problema - tentar mudar o endereco origem
+- mudar o endereco origem na hora de enviar os contratos...
+** solucao implementada (descrita lá embaixo): foi definido um ip ficticio para cada controlador- cada controlador possui um ip ficticio para outro controlador destino - pois todos os controladores utilizam a mesma tabela route e o ip definido na topologia eh levado como localhost
+|-> foi criada uma tabela de pre-marcacao nos switches, que altera o ip origem para o ficticio quando se envia, e altera o ip destino ficticio para o original no recebimento - para que possa responder corretamente - assim, foi so adicionado uma tabela antes das que ja existiam marcacao/encaminhamento - o comportamento padrao eh enviar para a tabela de marcacao
+
+
 
 ************** [FEITO] - no packet_in :: reinjetar o pacote fora do alocarGBAM
 
@@ -810,3 +823,4 @@ host: root1-c1 root2-c2 root3-c3
 [[[[[TESTAR nova implementacao --- ]]]]]
 
 Ao inves de toda aquelas modificacoes - apenas criar uma tabela de pre-marcacao, onde tudo que tem destino/origem o controlador, remarca para o ip ficticio.
+[agora funcionando c1_v2]: os contratos sao enviados pela rede mininet e nao por "fora" como no c1_v1 
