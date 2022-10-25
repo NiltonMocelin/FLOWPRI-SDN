@@ -244,6 +244,10 @@ eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrat
 	* em addRegra mas se o controaldor nao for o destino = nao precisa
 	* [aqui precisa com certeza == unico lugar onde o controlador/root precisa enviar pacotes para outro controlador a partir de sua interface] enviar contrato - mudar o ip destino na hora de enviar o contrato
 	* caso a remarcacao na origem ainda resulte em problemas, trafegar em todo o percurso com ip ficticio e apenas no destino-ultimo ip antes de chegar no controlador, fazer a traducao/remarcacao
+
+[feito] Ao inves de toda aquelas modificacoes - apenas criar uma tabela de pre-marcacao, onde tudo que tem destino/origem o controlador, remarca para o ip ficticio.
+[agora funcionando c1_v2]: os contratos sao enviados pela rede mininet e nao por "fora" como no c1_v1 
+
 # para remarcar actions = [parser.OFPActionSetField(ip_dscp=ip_dscp)]
 
 *** trafego bate na interface mas o root nao responde :::::: ver o que esta ocorrendo + pensar em outras solucoes
@@ -734,111 +738,51 @@ nao funcionou ainda  -- apenas o drop esta funcionando
 
 				#############################################################
 	Tabela 	dscp     --- 	dscp são 6 bits do cabeçalho IPv4, logo se pode utilizar 64 códigos	:
-	 ___________________________________________________________________________________
-	|	Aplicacoes	   			   |Tipo de tráfego(classe)  |		banda				|
-	|-----------------------------------------------------------------------------------|
-	|	Voip,streaming,mensagem	   |		Áudio(1)		 |  4,32,64,128,500			|
-	|	chamadas,streaming		   |		Vídeo(1)		 |	1,2,5,10,25				|
-	|	web,jogos,down/upload...   |		Dados(2)		 |os msms da c1 p/ emprestar|
-	|	geral		               |		Best-effort(3)	 |		     				|
-	|	comunicacao entre control  |		Controle(4)		 |		    				|
-	|___________________________________________________________________________________|
+
+| Aplicações               | Tipo de tráfego (classes) | Banda                                                         |
+|--------------------------|---------------------------|---------------------------------------------------------------|
+| Voip,streaming,mensagem  | Áudio(1)                  | 4,32,64,128,500                                               |
+| chamadas,streaming       | Vídeo(1)                  | 1,2,5,10,25                                                   |
+| web,jogos,down/upload... | Dados(2)                  | Iguais classe 1 (foram replicados para melhorar o empréstimo) |
+| geral                    | Best-effort(3)            | Não limitado                                                  |
+| comunicacao com control  | Controle(4)               | Não limitado                                                  |
 
 ####################		Outros			############################
-		_________________________________________________
-		|	classe	|	banda	|	prioridade	|	dscp  |
-		|-------------------------------------------------|
-		|	  3 	|			|		1		|	61	  |
-		|	  4 	|			|		1		|	62	  |
-		|_________________________________________________|
+
+| Classe | Banda | Prioridade | DSCP |
+|--------|-------|------------|------|
+| 3      |       | 1          | 60   |
+| 4      |       | 1          | 61   |
 
 ####################		Tabela Classe 1			############################
-		 _________________________________________________
-		|	classe	|	banda	|	prioridade	|	dscp  |
-		|-------------------------------------------------|
-		|	  1 	|	4kb		|		1		|	1	  |
-		|	  1 	|	32kb	|		1		|	2	  |
-		|	  1 	|	64kb	|		1		|	3	  |
-		|	  1 	|	128kb	|		1		|	4	  |
-		|	  1 	|	500kb	|		1		|	5	  |
-		|	  1 	|	1mb		|		1		|	6	  |
-		|	  1 	|	2mb		|		1		|	7	  |
-		|	  1 	|	5mb		|		1		|	8	  |
-		|	  1 	|	10mb	|		1		|	9	  |
-		|	  1 	|	25mb	|		1		|	1	  |
-		|_________________________________________________|
-		 _________________________________________________
-		|	classe	|	banda	|	prioridade	|	dscp  |
-		|-------------------------------------------------|
-		|	  1 	|	4kb		|		2		|	11 	  |
-		|	  1 	|	32kb	|		2		|	12	  |
-		|	  1 	|	64kb	|		2		|	13	  |
-		|	  1 	|	128kb	|		2		|	14	  |
-		|	  1 	|	500kb	|		2		|	15	  |
-		|	  1 	|	1mb		|		2		|	16	  |
-		|	  1 	|	2mb		|		2		|	17	  |
-		|	  1 	|	5mb		|		2		|	18	  |
-		|	  1 	|	10mb	|		2		|	19	  |
-		|	  1 	|	25mb	|		2		|	20	  |
-		|_________________________________________________|
-		 _________________________________________________
-		|	classe	|	banda	|	prioridade	|	dscp  |
-		|-------------------------------------------------|
-		|	  1 	|	4kb		|		3		|	21 	  |
-		|	  1 	|	32kb	|		3		|	22	  |
-		|	  1 	|	64kb	|		3		|	23	  |
-		|	  1 	|	128kb	|		3		|	24	  |
-		|	  1 	|	500kb	|		3		|	25	  |
-		|	  1 	|	1mb		|		3		|	26	  |
-		|	  1 	|	2mb		|		3		|	27	  |
-		|	  1 	|	5mb		|		3		|	28	  |
-		|	  1 	|	10mb	|		3		|	29	  |
-		|	  1 	|	25mb	|		3		|	30	  |
-		|_________________________________________________|
+		
+| Classe | Banda   | Prioridade | DSCP    |
+|--------|---------|------------|---------|
+| 1      | 4kbps   | 1/2/3      | 0/10/20 |
+| 1      | 32kbps  | 1/2/3      | 1/11/21 |
+| 1      | 64kbps  | 1/2/3      | 2/12/22 |
+| 1      | 128kbps | 1/2/3      | 3/13/23 |
+| 1      | 500kbps | 1/2/3      | 4/14/24 |
+| 1      | 1Mbps   | 1/2/3      | 5/15/25 |
+| 1      | 2Mbps   | 1/2/3      | 6/16/26 |
+| 1      | 5Mbps   | 1/2/3      | 7/17/27 |
+| 1      | 10Mbps  | 1/2/3      | 8/18/28 |
+| 1      | 25Mbps  | 1/2/3      | 9/19/29 |
 
 ####################		Tabela Classe 2			############################
-		 _________________________________________________
-		|	classe	|	banda	|	prioridade	|	dscp  |
-		|-------------------------------------------------|
-		|	  2 	|	4kb		|		1		|	31 	  |
-		|	  2 	|	32kb	|		1		|	32	  |
-		|	  2 	|	64kb	|		1		|	33	  |
-		|	  2 	|	128kb	|		1		|	34	  |
-		|	  2 	|	500kb	|		1		|	35	  |
-		|	  2 	|	1mb		|		1		|	36	  |
-		|	  2 	|	2mb		|		1		|	37	  |
-		|	  2 	|	5mb		|		1		|	38	  |
-		|	  2 	|	10mb	|		1		|	39	  |
-		|	  2 	|	25mb	|		1		|	40	  |
-		|_________________________________________________|
-		 _________________________________________________
-		|	classe	|	banda	|	prioridade	|	dscp  |
-		|-------------------------------------------------|
-		|	  2 	|	4kb		|		2		|	41 	  |
-		|	  2 	|	32kb	|		2		|	42	  |
-		|	  2 	|	64kb	|		2		|	43	  |
-		|	  2 	|	128kb	|		2		|	44	  |
-		|	  2 	|	500kb	|		2		|	45	  |
-		|	  2 	|	1mb		|		2		|	46	  |
-		|	  2 	|	2mb		|		2		|	47	  |
-		|	  2 	|	5mb		|		2		|	48	  |
-		|	  2 	|	10mb	|		2		|	49	  |
-		|	  2 	|	25mb	|		2		|	50	  |
-		|_________________________________________________|
-		 _________________________________________________
-		|	classe	|	banda	|	prioridade	|	dscp  |
-		|-------------------------------------------------|
-		|	  2 	|	4kb		|		3		|	51	  |
-		|	  2 	|	32kb	|		3		|	52	  |
-		|	  2 	|	64kb	|		3		|	53	  |
-		|	  2 	|	128kb	|		3		|	54	  |
-		|	  2 	|	500kb	|		3		|	55	  |
-		|	  2 	|	1mb		|		3		|	56	  |
-		|	  2 	|	2mb		|		3		|	57	  |
-		|	  2 	|	5mb		|		3		|	58	  |
-		|	  2 	|	10mb	|		3		|	59	  |
-		|	  2 	|	25mb	|		3		|	60	  |
-		|_________________________________________________|
+
+| Classe | Banda   | Prioridade | DSCP    |
+|--------|---------|------------|---------|
+| 2      | 4kbps   | 1/2/3      | 30/40/50 |
+| 2      | 32kbps  | 1/2/3      | 31/41/51 |
+| 2      | 64kbps  | 1/2/3      | 32/42/52 |
+| 2      | 128kbps | 1/2/3      | 33/43/53 |
+| 2      | 500kbps | 1/2/3      | 34/44/54 |
+| 2      | 1Mbps   | 1/2/3      | 35/45/55 |
+| 2      | 2Mbps   | 1/2/3      | 36/46/56 |
+| 2      | 5Mbps   | 1/2/3      | 37/47/57 |
+| 2      | 10Mbps  | 1/2/3      | 38/48/58 |
+| 2      | 25Mbps  | 1/2/3      | 39/49/59 |
 
 Por que ter duas classes se possuem as mesmas prioridades e bandas disponíveis?
 R: Porque com duas classes, sendo uma voltada para aplicacoes que envolvem streaming/video/audio (classe 1) e outra 
@@ -909,9 +853,3 @@ host: root1-c1 root2-c2 root3-c3
 	10.10.10.4 		root1-eth0 (c1->c2)
 	10.10.10.5 		root3-eth0 (c3->c1)
 	10.10.10.6 		root3-eth0 (c3->c2)
-
-
-[[[[[TESTAR nova implementacao --- ]]]]]
-
-Ao inves de toda aquelas modificacoes - apenas criar uma tabela de pre-marcacao, onde tudo que tem destino/origem o controlador, remarca para o ip ficticio.
-[agora funcionando c1_v2]: os contratos sao enviados pela rede mininet e nao por "fora" como no c1_v1 
