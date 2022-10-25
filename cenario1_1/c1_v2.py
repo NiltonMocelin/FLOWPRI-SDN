@@ -209,6 +209,13 @@ def servidor_socket_hosts():
         prioridade =  contrato['contrato']['prioridade']
         classe =  contrato['contrato']['classe']
 
+        #verificar se ja nao existe um contrato identico - nao recriar
+        # no entanto isso nao permite que contratos sejam "renovados"  - deixar quieto
+        #for cc in contratos:
+        #    if cc['contrato']['ip_origem'] == cip_src and cc['contrato']['ip_destino'] == cip_dst and cc['contrato']['banda'] == banda and cc['contrato']['prioridade'] == prioridade and cc['contrato']['classe'] == classe:
+        #        print("contrato recebido eh identico a um jah salvo - nada a fazer")
+        #        return
+
 #### OBS -- Implementar : garantir que exista apenas um contrato com match para ip_src, ip_dst - e mais campos se forem usar - que se outro contrato vier com esse match, substituir o que ja existe 
 #OBS - os contratos sao armazenados como string, entao para acessa-los como json, eh preciso carregar como json: json.loads(contrato)['contrato']['ip_origem']
         #pegar os switches da rota
@@ -229,28 +236,30 @@ def servidor_socket_hosts():
             out_port = s.getPortaSaida(cip_dst)
             acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
 
-            #se algum dos switches nao puder alocar, rejeitar o fluxo
-            #retorno None - deu algum erro em alocarGBAM - None eh o ultimo caso de retorno
-            if acoes_aux == None:
-                #rejeitar o fluxo
-                print("Fluxo rejeitado!\n")
-                break
-
             #retorno vazio = nao tem espaco para alocar o fluxo
             if len(acoes_aux)==0:
                 #rejeitar o fluxo
                 print("Fluxo rejeitado!\n")
-                return
+                break
             
             #adicionando as acoes
             for a in acoes_aux:
                 acoes.append(a)
+
+        #retorno vazio = nao tem espaco para alocar o fluxo
+        if len(acoes_aux)==0:
+            #rejeitar o fluxo
+            continue
 
         #chegou ate aqui, entao todos os switches possuem espaco para alocar o fluxo
         #executar cada acao de criar/remover regras\
         print("Executar acoes: \n")
         for a in acoes:
             a.executar()
+        
+        #verificar as regras alocadas
+        for s in switches_rota:
+            s.listarRegras()
 
         #1 criar regra de marcacao/classificacao - switch mais da borda = que disparou o packet_in
         #encontrar qual tos foi definido para a criacao da regra no switch de borda mais proximo do emissor
@@ -279,7 +288,7 @@ def servidor_socket_hosts():
         data = {"ip_src":cip_src}
         data = json.dumps(data)
 
-        send_icmp(switch_ultimo_dp, MACC, IPC, MACC, cip_dst, out_port, 0, data, 1, 15,64)        
+        send_icmp(switch_ultimo_dp, MACC, TC[IPC], MACC, cip_dst, out_port, 0, data, 1, 15,64)        
         #recebeu um contrato fecha a conexao, se o host quiser enviar mais, que inicie outra
         conn.close()
 
@@ -349,23 +358,21 @@ def servidor_socket_controladores():
                 out_port = s.getPortaSaida(cip_dst)
                 acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
 
-                #se algum dos switches nao puder alocar, rejeitar o fluxo
-                #retorno None - deu algum erro em alocarGBAM - None eh o ultimo caso de retorno
-                if acoes_aux == None:
-                    #rejeitar o fluxo
-                    print("Fluxo rejeitado!\n")
-                    break
-
                 #retorno vazio = nao tem espaco para alocar o fluxo
                 if len(acoes_aux)==0:
                     #rejeitar o fluxo
                     print("Fluxo rejeitado!\n")
-                    return
+                    break
 
                 #adicionando as acoes
                 for a in acoes_aux:
                     acoes.append(a)
 
+            #retorno vazio = nao tem espaco para alocar o fluxo
+            if len(acoes_aux)==0:
+                #rejeitar o fluxo
+                continue
+            
             #chegou ate aqui, entao todos os switches possuem espaco para alocar o fluxo
             #executar cada acao de criar/remover regras
             for a in acoes:
@@ -807,7 +814,7 @@ class SwitchOVS:
         #caso seja classe de controle ou best-effort, nao tem BAM, mas precisa criar regras da mesma forma
         #best-effort
         if classe == 3:
-            self.addRegraF(origem,destino, 60, nomePorta, 6,None,0)
+            self.addRegraF(origem,destino, 60, nomePorta, 6,None,0, hardtime=10)
             
             return acoes
 
@@ -874,11 +881,11 @@ class SwitchOVS:
                 bandaE += int(i.banda)
                 contadorE+=1
 
-                if bandaE >= int(banda):
+                if cT - cU + bandaE >= int(banda):
                     break
             
             #se as regras que estao emprestando representam largura de banda suficiente para que removendo-as, posso alocar o novo fluxo, entao:
-            if bandaE >= int(banda):
+            if cT - cU + bandaE >= int(banda):
                 for i in range(contadorE): #criando as acoes para remover as regras que estao emprestando
                     acoes.append( Acao(self.nome, nomePorta, REMOVER, Regra(emprestando[i].ip_src,emprestando[i].ip_dst,nomePorta,emprestando[i].tos,emprestando[i].banda,emprestando[i].prioridade,emprestando[i].classe,emprestando[i].emprestando)))   
                 
@@ -891,7 +898,7 @@ class SwitchOVS:
             else:       #nao: testa o nao
                 #nao: ver se na outra classe existe espaco para o fluxo
                 #remover os fluxos que foram adicionados em emprestando
-                emprestando.clear()
+                #emprestando.clear()
 
                 #banda usada e total na outra classe
                 cOU, cOT = Porta.getUT(porta, outraClasse)
@@ -901,7 +908,7 @@ class SwitchOVS:
                     tos = CPT[(str(outraClasse), str(prioridade), str(banda))] #novo tos equivalente
                     
                     #sim: alocar este fluxo - emprestando = 1 na classe em que empresta - na fila correspondente
-                    acoes.append( Acao(self.nome, nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,str(outraClasse),1)))   
+                    acoes.append( Acao(self.nome, nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,outraClasse,1)))   
                     
                     return acoes
 
@@ -918,24 +925,24 @@ class SwitchOVS:
                             bandaP += int(i.banda)
                             remover.append(i)
 
-                            if bandaP >= int(banda):
+                            if cT - cU + bandaP >= int(banda):
                                 break
                         
                     if prioridade > 2:
-                        if bandaP < int(banda):
+                        if cT - cU + bandaP < int(banda):
                             for i in Porta.getRules(porta, classe, 2):
                                 bandaP += int(i.banda)
                                 remover.append(i)
 
-                                if bandaP >= int(banda):
+                                if cT - cU + bandaP >= int(banda):
                                     break
 
-                    if bandaP >= int(banda):
+                    if cT - cU + bandaP >= int(banda):
                         for i in remover:
-                            acoes.append( Acao(self.nome, nomePorta, REMOVER, Regra(i.ip_src,i.dst,nomePorta,i.tos,i.banda,i.prioridade,i.classe,i.emprestando)))   
+                            acoes.append( Acao(self.nome, nomePorta, REMOVER, Regra(i.ip_src,i.ip_dst,nomePorta,i.tos,i.banda,i.prioridade,i.classe,i.emprestando)))   
                 
                         #adiciona na classe original
-                        tos = CPT[(classe, prioridade, banda)] #obter do vetor CPT - sei a classe a prioridade e a banda = tos
+                        tos = CPT[(str(classe), str(prioridade), str(banda))] #obter do vetor CPT - sei a classe a prioridade e a banda = tos
                         
                         acoes.append( Acao(self.nome, nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,classe,0)))   
                         
@@ -968,8 +975,8 @@ class SwitchOVS:
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
-        #match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip_src, ipv4_dst=ip_dst, ip_dscp=tos)
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=ip_dst) #, ip_dscp=20)
+        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip_src, ipv4_dst=ip_dst, ip_dscp=tos)
+        #match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=ip_dst) #, ip_dscp=20)
         #match = parser.OFPMatch()
         #mod = datapath.ofproto_parser.OFPFlowMod(datapath, table_id=tabela, command=ofproto.OFPFC_DELETE,  match=match)
         
@@ -1004,7 +1011,7 @@ class SwitchOVS:
         datapath.send_msg(out)
 
 #add regra tabela FORWARD
-    def addRegraF(self, ip_src, ip_dst, ip_dscp, out_port, fila, meter_id, flag):
+    def addRegraF(self, ip_src, ip_dst, ip_dscp, out_port, fila, meter_id, flag, hardtime=None):
         #https://ryu.readthedocs.io/en/latest/ofproto_v1_3_ref.html#flow-instruction-structures
 # hardtimeout = 5 segundos # isso eh para evitar problemas com pacotes que sao marcados como best-effort por um contrato nao ter chego a tempo. Assim vou garantir que daqui 5s o controlador possa identifica-lo. PROBLEMA: fluxos geralmente nao duram 5s, mas eh uma abordagem.
         
@@ -1016,7 +1023,8 @@ class SwitchOVS:
         parser = datapath.ofproto_parser
         
         idletime = 30 # 0 = nao limita
-        hardtime = 30 # 5s e some
+        #hardtime = None
+
         prioridade = 100
        
         #match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=in_proto.IPPROTO_TCP,ipv4_src=ip_src, ipv4_dst=ip_dst,ip_dscp=ip_dscp)
@@ -1036,11 +1044,14 @@ class SwitchOVS:
 
         #marcar para gerar o evento FlowRemoved
         if flag == 1:
-            mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, hard_timeout = hardtime, priority=prioridade, match=match, instructions=inst, table_id=FORWARD_TABLE, flags=ofproto.OFPFF_SEND_FLOW_REM)
+            mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, priority=prioridade, match=match, instructions=inst, table_id=FORWARD_TABLE, flags=ofproto.OFPFF_SEND_FLOW_REM)
             datapath.send_msg(mod)
             return
 
-        mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, hard_timeout = hardtime, priority=prioridade, match=match, instructions=inst, table_id=FORWARD_TABLE)
+        mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, priority=prioridade, match=match, instructions=inst, table_id=FORWARD_TABLE)
+
+        if hardtime != None:
+            mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, hard_timeout = hardtime, priority=prioridade, match=match, instructions=inst, table_id=FORWARD_TABLE)
 
         print("[addRegraF]:")
         print(mod)
@@ -1075,11 +1086,10 @@ class SwitchOVS:
         actions = [parser.OFPActionSetField(ip_dscp=ip_dscp)]
 
         inst = [parser.OFPInstructionGotoTable(FORWARD_TABLE), parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        idletime = 30 # 5s sem pacotes, some
-        hardtime = 30 # 5s e some
+        idletime = 30 # 30s sem pacotes, some
         prioridade = 100
 
-        mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, hard_timeout = hardtime, priority=prioridade, match=match, instructions=inst, table_id=CLASSIFICATION_TABLE)
+        mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, priority=prioridade, match=match, instructions=inst, table_id=CLASSIFICATION_TABLE)
         datapath.send_msg(mod)
 
 
@@ -1188,7 +1198,7 @@ class Acao:
             porta.delRegra(self.regra.ip_src, self.regra.ip_dst, self.regra.tos)
 
             #removendo a regra da tabela
-            self.delRegraT(self.regra.ip_src, self.regra.ip_dst, self.regra.tos ,ALL_TABLES) #remove a regra no ovswitch
+            switch.delRegraT(self.regra.ip_src, self.regra.ip_dst, self.regra.tos ,ALL_TABLES) #remove a regra no ovswitch
 
             #porta.delRegra(emprestando[i].ip_src, emprestando[i].ip_dst, emprestando[i].tos) #remove a regra da classe switch
             #self.delRegraT(emprestando[i].ip_src, emprestando.ip_dst, emprestando[i].tos,FORWARD_TABLE) #remove a regra no ovswitch
@@ -1302,13 +1312,13 @@ class Dinamico(app_manager.RyuApp):
         ### tabela 0 de pre-marcacao, para lidar com os ips ficticios dos controladores
         actions = [parser.OFPActionSetField(ipv4_src=TC[IPC])]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_src=IPC)
+        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=IPC)
         mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
         datapath.send_msg(mod)
 
         actions = [parser.OFPActionSetField(ipv4_dst=IPC)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=TC[IPC])
+        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=TC[IPC])
         mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
         datapath.send_msg(mod)
 
@@ -1636,6 +1646,15 @@ class Dinamico(app_manager.RyuApp):
                 send_icmp(dp,MACC, TC[IPC], src, ip_src, in_port,0,data,1,16,64) # se mostrou desnecessario, mas deixei a implementacao de qualquer forma, dst_controlador=True)
                 print("[ICMP-15] ICMP Information Request -> Replied\n")
 
+                #as regras de vinda dos pacotes de contrato ja existem, pq sao para este controlador
+                #no entanto as regras de volta (tcp-handshake) nao existem e sao do tipo controle tbm, entao criar 
+                switches_rota = SwitchOVS.getRota(ip_src, IPC)
+                switches_rota[-1].addRegraC(TC[IPC], ip_src, 61)
+                for s in switches_rota:
+                    #porta de saida
+                    out_port = s.getPortaSaida(ip_src)
+                    #ida
+                    s.alocarGBAM(out_port, TC[IPC], ip_src, '1000', 2, 4)
 ######### etapa 4 - suprimida - movida para o switch_feature_handler
             #     #preparar para receber os contratos                
             #     #criar as regras nos switches da rota que leva ao controlador,
@@ -1662,15 +1681,6 @@ class Dinamico(app_manager.RyuApp):
                 #obter o switch mais da borda de destino e gerar o inf req para dar sequencia e descobrir novos controladores ate o host destino
                 switch_ultimo = switches_rota[-1]
                 out_port = switch_ultimo.getPortaSaida(ip_dst)
-
-                #as regras de vinda dos pacotes de contrato ja existem, pq sao para este controlador
-                #no entanto as regras de volta (tcp-handshake) nao existem e sao do tipo controle tbm, entao criar 
-                switch_ultimo.addRegraC(ip_dst, ip_src, 61)
-                for s in switches_rota:
-                    #porta de saida
-                    out_port = s.getPortaSaida(ip_src)
-                    #ida
-                    s.alocarGBAM(out_port, ip_dst, ip_src, '1000', 2, 4)
 
                 switch_ultimo_dp = switch_ultimo.getDP()
                 print("[ICMP-15] Dando sequencia no icmp 15 criando no ultimo switch da rota \n src:%s, dst:%s, saida:%d\n", ip_src, ip_dst, out_port)

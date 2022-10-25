@@ -1,5 +1,12 @@
 ##############################################################################################################
 
+# Estado atual
+
+* Versão: v2
+
+* refazendo todos os testes - coletar os tempos
+
+
 # Como executar/comandos úteis:
 
 * Rodar a topologia:
@@ -91,8 +98,6 @@ ou
 * c1_v1: o basico esta implementado (alocarGBAM, troca de contratos, estabelcer contratos, criacao de regras ...), porém, a comunicacao entre controladores ocorre fora do mininer.
 * c1_v2: modificado a forma de comunicacao entre controladores, agora ocorre dentro do mininet + os contratos so sao trocados caso o solicitante tenha um contrato com tos diferente
 
-**** Refazendo todos os testes
-
 ##############################################################################################################
 OBS: as acoes no vetor actions de uma mensagem de modificacao OpenFlow, ocorrem em ordem posicional do vetor - cuidado com a ordem das acoes
 
@@ -160,8 +165,8 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 
 {
 	- implementar o novo alocarGBAM [ok]
-	- testar as filas, como se comportam cheias - com toda a banda alocada
-	- testar a parte de emprestar banda
+	- testar as filas, como se comportam cheias - com toda a banda alocada [parece-tudoOK]
+	- testar a parte de emprestar banda [ok]
 	- comparar um cenario com o framework e um sem:
 		- questao de tempo para o primeiro pacote chegar no destino
 		- tempo entre o primeiro pacote e o segundo
@@ -172,19 +177,6 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 		- efeito da priorizacao - comparar se uma fila com maior prioridade entrega com menor atraso que uma fila com menor prioridade.
 	- ver do novo mecanismo de emprestimo, mudar os campos tos para que as duas classes tenham tos equivalentes [ok]
 }
-
-[necessario para os testes]
-************** [FEITO nao testado] - no momento de enviar os contratos para um controlador que solicitou com icmp 16, as regras criadas nao sobem ou podem nao subir a tempo de se enviar os pacotes do contrato e vao gerar um packet_in:
-- neste caso, se um packet in ocorrer, vai ser um pacote com origem um controlador e destino outro controlador, nao vai ter contrato para dar suporte ou comportamento especificado e vai ser definido como best-effort
-- [feito] modificar o comportamento para identificar quando eh um controlador, pois eh possivel saber que eh um controlador porcausa que esse ip ja gerou um icmp 16 recebido.
-- assim, se for um ip de controlador, na origem ou destino, definir que deve ser enviado pela fila de controle
-- [feito] o mesmo ocorre quando os pacotes do contrato passam entre dominios que ficam no caminho entre controladores, vai ter de ocorrer a comunicacao tcp (ida e volta) arrumar isso para quando receber o icmp 15 criar a volta tbm
-
-[necessario para os testes]
-************** [FEITO nao testado] - otimizar trocas de contratos  :
-- icmp 15 tem que ser capaz de informar os elementos identificadores do contrato (depende da versao do contrato implementada: ip_src,dst(que esta no destino do pacote, nao precisa ser nos dados),porta e tos)
-- icmp 16-reply informa o tos que o controlador possui, se nao tive tos (nao tem o contrato), responde com o campo vazio ou -1
-- quando o controlador recebe o icmp 16-reply, verifica se o tos eh o mesmo que ele possui, se for, nao envia, se nao for, entao envia
 
 ************ ARRUMAR - ICMP inf. req. (15) :
 - colocar nos dados o ip_src, que junto com o destino do pacote, formam o par origem e destino do contrato anunciado
@@ -218,6 +210,21 @@ eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrat
 
    ################################################################################################################
 ######################################  FEITO/ARRUMADO/RESOLVIDO #####################################################
+
+
+************** [FEITO] - no momento de enviar os contratos para um controlador que solicitou com icmp 16, as regras criadas nao sobem ou podem nao subir a tempo de se enviar os pacotes do contrato e vao gerar um packet_in:
+- neste caso, se um packet in ocorrer, vai ser um pacote com origem um controlador e destino outro controlador, nao vai ter contrato para dar suporte ou comportamento especificado e vai ser definido como best-effort
+- [feito] modificar o comportamento para identificar quando eh um controlador, pois eh possivel saber que eh um controlador porcausa que esse ip ja gerou um icmp 16 recebido.
+- assim, se for um ip de controlador, na origem ou destino, definir que deve ser enviado pela fila de controle
+- [feito] o mesmo ocorre quando os pacotes do contrato passam entre dominios que ficam no caminho entre controladores, vai ter de ocorrer a comunicacao tcp (ida e volta) arrumar isso para quando receber o icmp 15 criar a volta tbm
+
+
+************** [FEITO] - otimizar trocas de contratos  :
+- icmp 15 tem que ser capaz de informar os elementos identificadores do contrato (depende da versao do contrato implementada: ip_src,dst(que esta no destino do pacote, nao precisa ser nos dados),porta e tos)
+- icmp 16-reply informa o tos que o controlador possui, se nao tive tos (nao tem o contrato), responde com o campo vazio ou -1
+- quando o controlador recebe o icmp 16-reply, verifica se o tos eh o mesmo que ele possui, se for, nao envia, se nao for, entao envia
+
+
 ************** [ARRUMADO] - controladores se comunicam pela interface lo entre si:
 - comunicacao controladores-host acontece pela interface correta e dentro do ambiente mininet
 - comunicacao controlador-controlador acontecendo pelo loopback? Na vida real os controladores estariam em ambientes/computadores diferentes, e isso nao ocorreria, nao seria necessario tomar a acao abaixo...
@@ -541,9 +548,9 @@ tratamento de pacotes em geral (toda a parte de verificar contrato, alocar banda
 ######################################################################################################
 ############################################## TESTES ################################################
 
-- [ok - nao testado completamente] testar se as regras são salvas na classe switch do controlador
-- [ok - nao testado completamente] testar se as regras adicionadas diminuem a quantidade de largura de banda disponível corretamente
-- [ok - nao testado completamente] testar se as regras são atualizadas/removidas corretamente conforme a label
+- [ok] testar se as regras são salvas na classe switch do controlador
+- [ok] testar se as regras adicionadas diminuem a quantidade de largura de banda disponível corretamente
+- [ok] testar se as regras são atualizadas/removidas corretamente conforme a label
 - [ok] testar se eh possivel colocar o endereco ip_dst do host no icmp inf. reply.
 - [ok] testar se eh possivel recuperar o endereco ip_dst do host no icmp inf. reply no controlador destino do reply
 - [ok-vm mininet] se em outra vm existente, o código das meter table não estava funcionando - observar a versão do ovs
@@ -558,7 +565,7 @@ tratamento de pacotes em geral (toda a parte de verificar contrato, alocar banda
 - [ok] testar se eh possivel enviar pacotes utilizando datapaths salvos dos switches
 
 
-- [verificar] testar se as regras de emprestimo são criadas corretamente
+- [ok] testar se as regras de emprestimo são criadas corretamente
 - [verificar] testar se eh possivel gerar tráfego com wireshark/tshark conforme as bases de dados
 
 
@@ -734,15 +741,15 @@ nao funcionou ainda  -- apenas o drop esta funcionando
 	|	chamadas,streaming		   |		Vídeo(1)		 |	1,2,5,10,25				|
 	|	web,jogos,down/upload...   |		Dados(2)		 |os msms da c1 p/ emprestar|
 	|	geral		               |		Best-effort(3)	 |		     				|
-	|	comunicacao entre control  |		Controle(4)		 |		  --				|
+	|	comunicacao entre control  |		Controle(4)		 |		    				|
 	|___________________________________________________________________________________|
 
 ####################		Outros			############################
 		_________________________________________________
 		|	classe	|	banda	|	prioridade	|	dscp  |
 		|-------------------------------------------------|
-		|	  3 	|	--		|		1		|	61	  |
-		|	  4 	|	--		|		1		|	62	  |
+		|	  3 	|			|		1		|	61	  |
+		|	  4 	|			|		1		|	62	  |
 		|_________________________________________________|
 
 ####################		Tabela Classe 1			############################
