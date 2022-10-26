@@ -102,6 +102,11 @@ ou
 
 - Usar -O OpenFlow junto com o comando (ex.)  ovs-ofctl -O OpenFlow13 dump-meters s1
 
+* em caso de ter problema com tinyrpc -> 
+ ` sudo pip uninstall tinyrpc`
+ ` sudo pip install tinyrpc==0.8`
+
+
 ##############################################################################################################
 # UPDATES: IMPLEMENTACAO
 ##############################################################################################################

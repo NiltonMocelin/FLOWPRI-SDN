@@ -30,6 +30,14 @@ from ryu.lib.ovs import vsctl #ovs-vsctl permite conversar com o protocolo OVSDB
 #lidar com bytes
 import struct
 
+#telas
+#se nao existir - instalar: sudo apt-get install pythonVersao-tk (meu caso era python2.7-tk)
+# python > 3 -> from tkinter import *
+#python <2.7 from Tkinter import *
+from Tkinter import *
+
+
+
 ############################################
 #       Tabela de traducao de enderecos de controladores (para burlar o uso da mesma tabela (route) e forcar o encaminhamento pela interface correta)
 #  CADA CONTROLADOR TEM A SUA (caso seja apenas dois controladores, nao tem problema)
@@ -1209,9 +1217,137 @@ class Acao:
             return "[Acao] Remover: " + self.regra.toString() +"\n"
         return "[Acao] Criar: " + self.regra.toString()+"\n"
 
+# ############################ TELAs ####################################
+
+class Aplicacao:
+    def __init__(self, master=None):
+        master.title("janela1")
+        self.container1 = Frame(master)
+        self.container1.pack(side=TOP)
+        self.container1["width"]=200
+        self.container1["height"]=50
+        self.msg = Label(self.container1, text="Switches")
+        self.msg.pack()
+        
+        self.container2 = Frame(master)
+        self.container2.pack(side="bottom")
+        self.container2["width"]=200
+        self.container2["height"]=200
+
+        self.texto = Text(self.container2, height=20, width=60)
+
+        self.scroll_bar= Scrollbar(self.container2, orient="vertical", command=self.texto.yview)
+        self.scroll_bar.pack(side=RIGHT)
+
+        self.texto.configure(yscrollcommand=self.scroll_bar.set)
+        self.texto.pack(side=LEFT)
+        
+        texto = """ - Inicio -"""
+        self.texto.insert(END, texto)
+        self.texto.configure(state='disable')
+
+        self.botoes = []
+        self.addButton('s1')
+
+        #self.botoes.append(Button(self.container1, text= "addTexto", command = self.testarTexto).pack())
+        self.botoes.append(Button(self.container1, text= "addTexto", command = self.addButton).pack())
+
+        self.Janela2=None
+
+    def testarTexto(self):
+        self.texto.configure(state='normal')
+        self.texto.insert(END, "aaa\n")
+        self.texto.see("end")
+        self.texto.configure(state='disable')
+
+    def addButton(self, texto='textoqq'):
+        self.botoes.append(Button(self.container1, text= texto, command = lambda m=texto:self.novaTela(m)).pack())
+
+    def addTexto(self, texto=''):
+        self.texto.configure(state='normal')
+        self.texto.insert(END, texto)
+        self.texto.see("end")
+        self.texto.configure(state='disable')
+
+    def novaTela(self, switch):
+        #esconder o root
+        #root.withdraw()
+        if switch == None:
+            print("switch = null\n")
+            return
+
+        print("[novaTela]clicou\n")
+        novaTela=Tk()
+
+        novaTela.geometry("500x500")
+
+        self.Janela2 = Janela2(master=novaTela, switch=switch)
+        novaTela.mainloop()
+
+########### SEGUNDA TELA - das regras dos switches ###################
+class Janela2:
+    def __init__(self, master=None, switch=None):
+        if switch == None:
+            self.voltar()
+
+        master.title(switch)
+        self.master=master
+        self.container1 = Frame(master)
+        self.container1.pack(side=TOP)
+        self.botao1 = Button(self.container1, text= 'Voltar', command = self.voltar).pack()
+        self.container2 = Frame(master)
+        self.container2.pack(side="bottom")
+        self.container2["width"]=200
+        self.container2["height"]=200
+
+        self.texto = Text(self.container2, height=20, width=60)
+
+        self.scroll_bar= Scrollbar(self.container2, orient="vertical", command=self.texto.yview)
+        self.scroll_bar.pack(side=RIGHT)
+
+        self.texto.configure(yscrollcommand=self.scroll_bar.set)
+        self.texto.pack(side=LEFT)
+        
+        texto = """ - Inicio - """
+        self.texto.insert(END, texto)
+
+        print("switch " +switch + "\n")
+        #pegar o list regras do switch
+        cswitch = SwitchOVS.getSwitch(switch)
+
+        for s in switches:
+            print("nome switch:" +s.nome + "\n")
+
+        if(cswitch == None):
+            print("switch - nao encontrado\n")
+            self.voltar()
+
+        for p in cswitch.portas:
+            self.texto.insert(END, "Regras " + switch + "-"+ p.nome + "\n")
+            self.texto.insert(END, Porta.getRules(p,1,1)+"\n")
+            self.texto.insert(END, Porta.getRules(p,1,2)+"\n")
+            self.texto.insert(END, Porta.getRules(p,1,3)+"\n")
+
+            self.texto.insert(END, Porta.getRules(p,2,1)+"\n")
+            self.texto.insert(END, Porta.getRules(p,2,2)+"\n")
+            self.texto.insert(END, Porta.getRules(p,2,3)+"\n")
+
+        self.texto.see("end")
+        self.texto.configure(state='disable')
+
+    def voltar(self):
+
+        print("[voltar]clicou\n")
+        #mostrar root
+        #root.deiconify()
+
+        #destruir a nova tela
+        self.master.destroy()
+
 class Dinamico(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
-    
+    print("oi")
+        
     def __init__(self, *args, **kwargs):
         print("Init Start\n")
         super(Dinamico,self).__init__(*args,**kwargs)
@@ -1235,10 +1371,6 @@ class Dinamico(app_manager.RyuApp):
         contrato = """{"contrato":{"ip_origem":"172.16.10.1","ip_destino":"172.16.10.2","banda":"1000","prioridade":"1","classe":"1"}}"""
         contratos.append(json.loads(contrato))
         #contratos.append(contrato)
-
-#    def __def__(self):
-#        print("finalizando thread\n")
-#        t1.join()
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -1374,6 +1506,9 @@ class Dinamico(app_manager.RyuApp):
     	#Regras ICMP inf. Req. e inf. reply --
         
         #as demais regras de marcacao sao feitas com base no packet_in e contratos
+
+        ############# adicionando o botao na tela ####################
+        #telaAplicacao.addButton(str(datapath.id))
 
 
     def add_flow(self, datapath, priority, match, actions, table_id, buffer_id=None):
@@ -1939,5 +2074,13 @@ class Dinamico(app_manager.RyuApp):
             switch_ultimo.injetarPacote(switch_ultimo.datapath,fila, out_port, msg)
 
             return	 
-                    
-        
+
+
+
+#########3 iniciar telas?
+###configurando telas
+root = Tk()
+root.geometry("500x500")
+telaAplicacao = Aplicacao(root)
+root.mainloop()
+
