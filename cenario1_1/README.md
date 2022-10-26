@@ -6,6 +6,17 @@
 
 * refazendo todos os testes - coletar os tempos
 
+* criar uma tela ? (tenho um modelo pronto com python tkinter, só adaptar -> uma tela para mostrar os logs de packet_in's e botoes para mostrar as regras dos switches do domínio/slice)
+
+* revisar partes do framework para deixar mais genérico: em algumas partes foquei na configuracao para o switch quando for de borda e conectado ao controlador... (acho que só no switch_features, mas melhor rever)
+
+* escrever os textos (tcc e artigo)
+
+* foram pesquisados novos trabalhos relacionados: encontrei alguns melhores, mais recentes e mais próximos do meu.
+
+## Versões
+* c1_v1: o basico esta implementado (alocarGBAM, troca de contratos, estabelcer contratos, criacao de regras ...), porém, a comunicacao entre controladores ocorre fora do mininer.
+* c1_v2: modificado a forma de comunicacao entre controladores, agora ocorre dentro do mininet + os contratos so sao trocados caso o solicitante tenha um contrato com tos diferente
 
 # Como executar/comandos úteis:
 
@@ -93,11 +104,6 @@ ou
 
 ##############################################################################################################
 # UPDATES: IMPLEMENTACAO
-
-## Versões
-* c1_v1: o basico esta implementado (alocarGBAM, troca de contratos, estabelcer contratos, criacao de regras ...), porém, a comunicacao entre controladores ocorre fora do mininer.
-* c1_v2: modificado a forma de comunicacao entre controladores, agora ocorre dentro do mininet + os contratos so sao trocados caso o solicitante tenha um contrato com tos diferente
-
 ##############################################################################################################
 OBS: as acoes no vetor actions de uma mensagem de modificacao OpenFlow, ocorrem em ordem posicional do vetor - cuidado com a ordem das acoes
 
@@ -128,6 +134,16 @@ Deste modo, o pacote inf. request vai ser reinjetado no último switch da borda 
 do destino, para que os switches do "meio" não precisem tratar este pacote. 
 Desta forma --> (recebe o inf. req.) s1 .... s4 (injetado o inf. req.)
 
+* sobre a prioridade (obs: sempre que um fluxo for direcionado para uma fila inexistente, ele é encaminhado para o padrao id0):
+- PARA o HTB: Menor valor é maior prioridade.
+- Para o framework (senso humano): Maior valor maior prioridade.
+- Ordem das filas e suas prioridades: 
+-- classe1 (tempo-real) -> id(prioridade) -> [q0(p10), q1(p5), q2(p2)]
+-- classe2 (dados) -> id(prioridade) -> [q3(p10), q4(p5), q5(p2)]
+-- classe3 (best-effort) -> id(prioridade) -> [q6(p10)]
+-- classe4 (controle) -> id(prioridade) -> [q7(p2)]
+
+
 #### Solução para multiplos encaminhamentos em ICMP 15/16 ---> escolher um switch como sendo 
 o "especial" para tratar esses tipos de solicitações, assim, garanto que apenas um faz o encaminhamento.
 
@@ -136,7 +152,7 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 ****** [mininet] Aparentemente, os hosts fazem parte do mesmo processo e assim não podem rodar cada um uma aplicação firefox por exemplo.
 ****** [mininet] no entanto, aparentemente se os hosts forem criados no espaço fora do ambiente mininet ( da mesma forma que o host root do controlador ), cada host vira um processo e assim podem cada um executar, por exemplo, um sshd.
 ****** [mininet] NAAH errei, o que está escrito acima está errado - posso subir um sshd em cada host mesmo no ambiente mininet: "/usr/sbin/sshd -D &"
-****** [funcionou]NAO SEI, NAO FUNCIONOU DIREITO ::: AGR FUNCIONOU -- settar PermitRootLogin yes em /etc/sshd/sshd_config e definir a senha do root sudo passwd root, entao pode dar ssh ip
+****** [funcionou] AGR FUNCIONOU -- settar PermitRootLogin yes em /etc/sshd/sshd_config e definir a senha do root sudo passwd root, entao pode dar ssh ip
 ****** }
 
 ************** [ir colhendo as contribuicoes]:
@@ -178,11 +194,6 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 	- ver do novo mecanismo de emprestimo, mudar os campos tos para que as duas classes tenham tos equivalentes [ok]
 }
 
-************ ARRUMAR - ICMP inf. req. (15) :
-- colocar nos dados o ip_src, que junto com o destino do pacote, formam o par origem e destino do contrato anunciado
-- assim, controladores ao longo da rota podem analisar se desejam o contrato e ainda solicitar exatamente o contrato referente ao ip_src, ip_dst, informando no campo de dados
-- pq, o controlador que responde com icmp inf. reply informa o ip_dst, assim, sao enviados todos os contratos referentes. No entanto, para cada novo fluxo
-eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrato, mesmo que tenha acabado de receber o contrato junto em um processo de troca de contratos anterior
 
 
 ************** ARRUMAR melhorar o contrato - inserir protoco: tcp ou udp, e porta destino:
@@ -210,6 +221,12 @@ eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrat
 
    ################################################################################################################
 ######################################  FEITO/ARRUMADO/RESOLVIDO #####################################################
+
+************ [ARRUMADO] - ICMP inf. req. (15) :
+- colocar nos dados o ip_src, que junto com o destino do pacote, formam o par origem e destino do contrato anunciado
+- assim, controladores ao longo da rota podem analisar se desejam o contrato e ainda solicitar exatamente o contrato referente ao ip_src, ip_dst, informando no campo de dados
+- pq, o controlador que responde com icmp inf. reply informa o ip_dst, assim, sao enviados todos os contratos referentes. No entanto, para cada novo fluxo
+eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrato, mesmo que tenha acabado de receber o contrato junto em um processo de troca de contratos anterior
 
 
 ************** [FEITO] - no momento de enviar os contratos para um controlador que solicitou com icmp 16, as regras criadas nao sobem ou podem nao subir a tempo de se enviar os pacotes do contrato e vao gerar um packet_in:

@@ -1,6 +1,3 @@
-#para medir tempo
-import time
-
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
@@ -33,10 +30,14 @@ from ryu.lib.ovs import vsctl #ovs-vsctl permite conversar com o protocolo OVSDB
 #lidar com bytes
 import struct
 
-
-#para medir tempo - int - milliseconds
-tempo_inicial=0
-tempo_final=0
+############################################
+#       Tabela de traducao de enderecos de controladores (para burlar o uso da mesma tabela (route) e forcar o encaminhamento pela interface correta)
+#  CADA CONTROLADOR TEM A SUA (caso seja apenas dois controladores, nao tem problema)
+TC = {}
+TC['10.123.123.1'] = '10.10.10.1'
+TC['10.123.123.2'] = '10.10.10.2'
+TC['10.10.10.2'] = '10.123.123.2'
+TC['10.10.10.1'] = '10.123.123.1'
 
 ############################################
 # informacoes armazenadas pelo controlador #
@@ -68,7 +69,11 @@ contratos_enviar = {}
 #self.ip_to_mac = {}
 switches = [] #switches administrados pelo controlador
 
-CLASSIFICATION_TABLE = 0 #tabela para marcacao de pacotes
+#vetor com os enderecos ip dos controladores conhecidos (enviaram icmps)
+controladores_conhecidos = []
+
+PRE_TABLE = 0 #tabela para lidar com os ips ficticios dos controladores
+CLASSIFICATION_TABLE = 1 #tabela para marcacao de pacotes
 FORWARD_TABLE = 2 #tabela para encaminhar a porta destino
 ALL_TABLES = 255 #codigo para informar que uma acao deve ser tomada em todas as tabelas
 
@@ -176,22 +181,19 @@ def servidor_socket_hosts():
 #    tcp.bind(("127.0.1.1", 4444))
 #    tcp.bind((socket.gethostbyname(socket.gethostname()),4444))
 
-#    print("host:{0} Ouvindo em {1}".format(socket.gethostname(),socket.gethostbyname(socket.gethostname())))
+    print("host:{0} Ouvindo em {1}".format(socket.gethostname(),socket.gethostbyname(socket.gethostname())))
 
     tcp.listen(5)
 
     while True:
         conn, addr = tcp.accept()
-
-        #medir tempo
-        #print("[tempo] contrato-host(conexao aceita %s) -> enviar icmp 15 - tempo: %d\n" % (addr, int(time.time()*1000)))      
-#        print("[host]Conectado: ")
-#        print(addr)
-#        print("\n")
+        print("[host]Conectado: ")
+        print(addr)
+        print("\n")
 
         #como eh so um contrato, nao importa saber exatamente a quantidade de bytes a receber
         data = conn.recv(1024)
-#        print(data)
+        print(data)
         #contrato = json.loads(data.encode('utf-8'))
         #JSON LOADS CARREGA COMO UNICODE essa porcaria
         #contrato = data.decode("utf-8")
@@ -206,7 +208,13 @@ def servidor_socket_hosts():
         banda = contrato['contrato']['banda']
         prioridade =  contrato['contrato']['prioridade']
         classe =  contrato['contrato']['classe']
-        tos = CPT[(classe, prioridade, banda)]
+
+        #verificar se ja nao existe um contrato identico - nao recriar
+        # no entanto isso nao permite que contratos sejam "renovados"  - deixar quieto
+        #for cc in contratos:
+        #    if cc['contrato']['ip_origem'] == cip_src and cc['contrato']['ip_destino'] == cip_dst and cc['contrato']['banda'] == banda and cc['contrato']['prioridade'] == prioridade and cc['contrato']['classe'] == classe:
+        #        print("contrato recebido eh identico a um jah salvo - nada a fazer")
+        #        return
 
 #### OBS -- Implementar : garantir que exista apenas um contrato com match para ip_src, ip_dst - e mais campos se forem usar - que se outro contrato vier com esse match, substituir o que ja existe 
 #OBS - os contratos sao armazenados como string, entao para acessa-los como json, eh preciso carregar como json: json.loads(contrato)['contrato']['ip_origem']
@@ -216,7 +224,7 @@ def servidor_socket_hosts():
         #deletando o contrato anterior e as regras a ele associadas
         delContratoERegras(switches_rota, cip_src, cip_dst)
 
-#        print("contrato salvo \n")
+        print("contrato salvo \n")
         contratos.append(contrato)      
 
         #pegando as acoes do alocarGBAM
@@ -228,28 +236,30 @@ def servidor_socket_hosts():
             out_port = s.getPortaSaida(cip_dst)
             acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
 
-            #se algum dos switches nao puder alocar, rejeitar o fluxo
-            #retorno None - deu algum erro em alocarGBAM - None eh o ultimo caso de retorno
-            if acoes_aux == None:
-                #rejeitar o fluxo
-#                print("Fluxo rejeitado!\n")
-                break
-
             #retorno vazio = nao tem espaco para alocar o fluxo
             if len(acoes_aux)==0:
                 #rejeitar o fluxo
-#                print("Fluxo rejeitado!\n")
-                return
+                print("Fluxo rejeitado!\n")
+                break
             
             #adicionando as acoes
             for a in acoes_aux:
                 acoes.append(a)
 
+        #retorno vazio = nao tem espaco para alocar o fluxo
+        if len(acoes_aux)==0:
+            #rejeitar o fluxo
+            continue
+
         #chegou ate aqui, entao todos os switches possuem espaco para alocar o fluxo
         #executar cada acao de criar/remover regras\
-        #print("Executar acoes: \n")
+        print("Executar acoes: \n")
         for a in acoes:
             a.executar()
+        
+        #verificar as regras alocadas
+        for s in switches_rota:
+            s.listarRegras()
 
         #1 criar regra de marcacao/classificacao - switch mais da borda = que disparou o packet_in
         #encontrar qual tos foi definido para a criacao da regra no switch de borda mais proximo do emissor
@@ -272,11 +282,13 @@ def servidor_socket_hosts():
         switch_ultimo_dp = switch_ultimo.getDP()
         out_port = switch_ultimo.getPortaSaida(cip_dst)
 
-        #print("Porta SAIDA: %d\n" % (out_port))
+        print("Porta SAIDA: %d\n" % (out_port))
+        
+        #enviar os identificadores do contrato (v2: ip origem/destino sao os identificadores - origem vai em dados, destino vai no destino do icmp ) 
+        data = {"ip_src":cip_src}
+        data = json.dumps(data)
 
-        #enviando icmp 15, mas com MAC ficticio
-        send_icmp(switch_ultimo_dp, MACC, IPC, MACC, cip_dst, out_port, 0, None, 1, 15,64)  
-    
+        send_icmp(switch_ultimo_dp, MACC, TC[IPC], MACC, cip_dst, out_port, 0, data, 1, 15,64)        
         #recebeu um contrato fecha a conexao, se o host quiser enviar mais, que inicie outra
         conn.close()
 
@@ -289,15 +301,15 @@ def servidor_socket_controladores():
 #    tcp.bind(("127.0.1.1", 4444))
 #    tcp.bind((socket.gethostbyname(socket.gethostname()),4444))
 
-    #print("Controlador:{0} Ouvindo em {1}".format(socket.gethostname(),socket.gethostbyname(socket.gethostname())))
+    print("Controlador:{0} Ouvindo em {1}".format(socket.gethostname(),socket.gethostbyname(socket.gethostname())))
 
     tcp.listen(5)
 
     while True:
         conn, addr = tcp.accept()
-        #print("[controlador]Conectado: ")
-        #print(addr)
-        #print("\n")
+        print("[controlador]Conectado: ")
+        print(addr)
+        print("\n")
 
         #primeiro: receber quantos contratos serao enviados para cah - inteiro de 4 bytes
         data = conn.recv(4)
@@ -309,7 +321,7 @@ def servidor_socket_controladores():
             qtdBytes = struct.unpack('<i',data)[0]
 
             data = conn.recv(qtdBytes)
-            #print(data)
+            print(data)
             #contrato = json.loads(data.encode('utf-8'))
             #JSON LOADS CARREGA COMO UNICODE essa porcaria
             #contrato = data.decode("utf-8")
@@ -327,7 +339,6 @@ def servidor_socket_controladores():
             banda = contrato['contrato']['banda']
             prioridade =  contrato['contrato']['prioridade']
             classe =  contrato['contrato']['classe']
-            tos = CPT[(classe, prioridade, banda)]
 
             #pegando os switches da rota
             switches_rota = SwitchOVS.getRota(cip_src, cip_dst)
@@ -335,7 +346,7 @@ def servidor_socket_controladores():
             #deletando o contrato anterior e as regras a ele associadas
             delContratoERegras(switches_rota, cip_src, cip_dst)
 
-            #print("contrato salvo \n")
+            print("contrato salvo \n")
             contratos.append(contrato)
 
             #pegando as acoes do alocarGBAM
@@ -347,23 +358,21 @@ def servidor_socket_controladores():
                 out_port = s.getPortaSaida(cip_dst)
                 acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
 
-                #se algum dos switches nao puder alocar, rejeitar o fluxo
-                #retorno None - deu algum erro em alocarGBAM - None eh o ultimo caso de retorno
-                if acoes_aux == None:
-                    #rejeitar o fluxo
-                    #print("Fluxo rejeitado!\n")
-                    break
-
                 #retorno vazio = nao tem espaco para alocar o fluxo
                 if len(acoes_aux)==0:
                     #rejeitar o fluxo
-                    #print("Fluxo rejeitado!\n")
-                    return
+                    print("Fluxo rejeitado!\n")
+                    break
 
                 #adicionando as acoes
                 for a in acoes_aux:
                     acoes.append(a)
 
+            #retorno vazio = nao tem espaco para alocar o fluxo
+            if len(acoes_aux)==0:
+                #rejeitar o fluxo
+                continue
+            
             #chegou ate aqui, entao todos os switches possuem espaco para alocar o fluxo
             #executar cada acao de criar/remover regras
             for a in acoes:
@@ -379,9 +388,7 @@ def servidor_socket_controladores():
                     #criando a regra de marcacao - switch mais da borda emissora
                     switches_rota[0].addRegraC(cip_src, cip_dst, a.regra.tos)
                     break
-            
-            #medir tempo
-            #print("[tempo] contrato-controlador (conexao finalizada: %s) -> recebido contrato - tempo: %d\n" % (addr, int(time.time()*1000)))      
+
             #Nao enviar um icmp 15, pois o protocolo atual eh que todos respondam o icmp 15 do primeiro controlador
         #fechar a conexao e aguardar nova
         conn.close()
@@ -397,7 +404,7 @@ def delContratoERegras(switches_rota, cip_src, cip_dst):
             prioridade_antiga=i['contrato']['prioridade']
             banda_antiga=i['contrato']['banda']
             tos_antigo = CPT[(classe_antiga, prioridade_antiga, banda_antiga)]
-            #print("[removendo-contrato-antigo] - ip_src:%s; ip_dst:%s; tos:%s\n" % (cip_src, cip_dst,tos_antigo))
+            print("[removendo-contrato-antigo] - ip_src:%s; ip_dst:%s; tos:%s\n" % (cip_src, cip_dst,tos_antigo))
 
             contratos.remove(i)
             for s in switches_rota:
@@ -411,7 +418,7 @@ def delContratoERegras(switches_rota, cip_src, cip_dst):
 
                 #de qual classe a regra foi removida? classe 1, classe 2, ou -1 regra nao removida
                 classe_removida = porta.delRegra(cip_src, cip_dst, tos_antigo)
-                #print("classe removida: %d\n" % (classe_removida))
+                print("classe removida: %d\n" % (classe_removida))
                 if(classe_removida>0):
                     tos_aux = CPT[(str(classe_removida), str(prioridade_antiga), str(banda_antiga))] 
                     #regra ativa
@@ -443,7 +450,7 @@ def enviar_contratos(host_ip, host_port, ip_dst_contrato):
  #teste envio [ok]
 #    tcp.connect(("10.123.123.2", host_port))
 
-    #print("[enviar-contratos] ip_dst: %s, port_dst: %s" %(host_ip, host_port))
+    print("[enviar-contratos] ip_dst: %s, port_dst: %s" %(host_ip, host_port))
     contratos_contador = 0
     #contar quantos contratos enviar
     for i in contratos:
@@ -457,7 +464,7 @@ def enviar_contratos(host_ip, host_port, ip_dst_contrato):
     #encontrar os contratos que se referem ao ip_dst informado e enviar para o host_ip:host_port
     for i in contratos:
         if i['contrato']['ip_destino'] == ip_dst_contrato:
-            #print("enviando->%s" % (json.dumps(i)))
+            print("enviando->%s" % (json.dumps(i)))
             vetorbytes = json.dumps(i).encode('utf-8')
             qtdBytes = struct.pack('<i',len(vetorbytes))
             tcp.send(qtdBytes)
@@ -466,21 +473,28 @@ def enviar_contratos(host_ip, host_port, ip_dst_contrato):
             # tcp.send(json.dumps(i).encode('utf-8'))
 
     #fechando a conexao
-    #print("\n")
+    print("\n")
     tcp.close()
 
 ############# send_icmp TORNADO GLOBAL EM 06/10 - para ser aproveitado em server socket ###################
 #https://ryu-devel.narkive.com/1CxrzoTs/create-icmp-pkt-in-the-controller
+#se o ip dest for de um controlador, tem que traduzir o ip para um ficticio para que seja encaminhado pela interface correta, caso contrario esta indo pelo loopback
 def send_icmp(datapath, srcMac, srcIp, dstMac, dstIp, outPort, seq, data, id=1, type=8, ttl=64):
-    #print("[send-icmp] type:%d, src:%s, ip_src:%s, dst:%s, ip_dst:%s, psaida %d\n" % (type, srcMac, srcIp, dstMac,dstIp, outPort))
+    print("[send-icmp] type:%d, src:%s, ip_src:%s, dst:%s, ip_dst:%s, psaida %d\n" % (type, srcMac, srcIp, dstMac,dstIp, outPort))
 
     e = ethernet.ethernet(dst=dstMac, src=srcMac, ethertype=ether.ETH_TYPE_IP)
-    iph = ipv4.ipv4(4, 5, 0, 0, 0, 2, 0, ttl, 1, 0, srcIp, dstIp)
-#        echo = icmp.echo(id, seq, data)
-#        icmph = icmp.icmp(type, 0, 0, echo)
 
-    # icmph = icmp.icmp(15, 0, 0, echo)
-    #icmph = icmp.icmp(type, 0, 0, data=None)#pode enviar os dados que quiser, mas tem que ser um vetor binario
+    iph = ipv4.ipv4(4, 5, 0, 0, 0, 2, 0, ttl, 1, 0, srcIp, dstIp)
+
+    actions = [datapath.ofproto_parser.OFPActionSetQueue(FILA_CONTROLE), datapath.ofproto_parser.OFPActionOutput(outPort)] #no fim tem que ir na fila de controle
+
+    #se o ip destino for de um controlador, fazer o pacote ser enviado para um ip ficticio e remarcado com o ip correto no switch.
+    #se mostrou desnecessario pois eh um pacote injetado, nao originado pela interface do root
+    #if dst_controlador == True:
+    #    dstIp_traduzido = TC[dstIp]
+    #    iph = ipv4.ipv4(4, 5, 0, 0, 0, 2, 0, ttl, 1, 0, srcIp, dstIp_traduzido)
+    #    actions = [datapath.ofproto_parser.OFPActionSetField(ipv4_dst=dstIp), datapath.ofproto_parser.OFPActionSetQueue(FILA_CONTROLE), datapath.ofproto_parser.OFPActionOutput(outPort)] #no fim tem que ir na fila de controle
+
     icmph = icmp.icmp(type, 0, 0, data=data)#pode enviar os dados que quiser, mas tem que ser um vetor binario
         
     p = packet.Packet()
@@ -489,18 +503,34 @@ def send_icmp(datapath, srcMac, srcIp, dstMac, dstIp, outPort, seq, data, id=1, 
     p.add_protocol(icmph)
     p.serialize()
 
-    actions = [datapath.ofproto_parser.OFPActionSetQueue(FILA_CONTROLE), datapath.ofproto_parser.OFPActionOutput(outPort)] #no fim tem que ir na fila de controle
     out = datapath.ofproto_parser.OFPPacketOut(
     datapath=datapath,
     buffer_id=datapath.ofproto.OFP_NO_BUFFER,
     in_port=100,
     actions=actions,
     data=p.data)
-    #print("[icmp-enviado]: ")
-    #print(out)
-    #print("\n")
+    print("[icmp-enviado]: ")
+    print(out)
+    print("\n")
 
     datapath.send_msg(out)
+    return 0
+
+def addControladorConhecido(ipnovo):
+    print("Verificando se ja conhece o controlador: %s \n" %(ipnovo))
+    if checkControladorConhecido(ipnovo) == 1:
+        print("controlador ja conhecido\n")
+        return
+
+    controladores_conhecidos.append(ipnovo)
+    print("novo controlador conhecido\n")
+
+def checkControladorConhecido(ip):
+    for i in controladores_conhecidos:
+        if i == ip:
+            #conhecido
+            return 1
+    #desconhecido
     return 0
 
 class Regra:
@@ -514,7 +544,7 @@ class Regra:
         self.prioridade=prioridade
         self.classe = classe
 
-        #print("[criando-regra-controlador]src:%s; dst=%s; banda:%s, porta_dst=%d, tos=%s, emprestando=%d" % (self.ip_src, self.ip_dst, self.banda, self.porta_dst, self.tos, self.emprestando)) 
+        print("[criando-regra-controlador]src:%s; dst=%s; banda:%s, porta_dst=%d, tos=%s, emprestando=%d" % (self.ip_src, self.ip_dst, self.banda, self.porta_dst, self.tos, self.emprestando)) 
 
     def toString(self):
         return "[regra]src:%s; dst=%s; banda:%s, porta_dst=%d, tos=%s, emprestando=%d" % (self.ip_src, self.ip_dst, self.banda, self.porta_dst, self.tos, self.emprestando) 
@@ -594,7 +624,7 @@ class Porta:
     #nao funcionando
     def delRegra(self, ip_src, ip_dst, tos):
         #retorna 1, caso a regra tenha sido removida na classe 1, e 2 caso tenha sido removida na classe 2
-        #print("[delRegra] porta: %s, src:%s, dst:%s, tos: %d\n" % (self.nome, ip_src, ip_dst, int(tos)))
+        print("[delRegra] porta: %s, src:%s, dst:%s, tos: %d\n" % (self.nome, ip_src, ip_dst, int(tos)))
         #tos eh inteiro no dict
         tos = int(tos)
 
@@ -656,7 +686,7 @@ class Porta:
                     self.p3c2rules.remove(i)
                     return 2
 
-        #print("[delRegra]Regra Nao encontrada no switch-controlador\n")
+        print("[delRegra]Regra Nao encontrada no switch-controlador\n")
         return -1 #regra nao encontrada
 
     @staticmethod
@@ -716,7 +746,7 @@ class SwitchOVS:
         for i in range(qtdPortas):
             self.portas.append(Porta(vetNomePortas[i], bandaC1T, bandaC2T, tamanhoFilaC1, tamanhoFilaC2))
 
-        #print("\nSwitch %s criado\n" % (name))
+        print("\nSwitch %s criado\n" % (name))
     
     @staticmethod
     def getSwitch(nome):
@@ -732,20 +762,20 @@ class SwitchOVS:
         
 #        Flow Removed Message https://ryu.readthedocs.io/en/latest/ofproto_v1_3_ref.html
 #       Quando um fluxo expira ou eh removido no switch, este informa o controlador -- se aproveitar desse evento e atualizar as regras do switch !!!!
-        #print("\n[S%s]UpdateRegras-in\n" % (str(self.nome)))
+        print("\n[S%s]UpdateRegras-in\n" % (str(self.nome)))
         #debug
-        #self.listarRegras()
+        self.listarRegras()
         #na verdade a del regra esta localizando a classe e prioridade por meio do tos, que seria uma tarefa desta funcao update...
         #obter a porta de saida do switch com a tabela de roteamento com base no ip da rede destino  -- que ainda nao foi implementada
         out_port = self.getPortaSaida(ip_dst)
         porta = self.getPorta(out_port)
-        #if(porta.delRegra(ip_src, ip_dst, tos)>0):
-            #print("[updateRegras]regra-removida ip_src:%s, ip_dst:%s, tos:%s\n" % (ip_src,ip_dst,tos))
+        if(porta.delRegra(ip_src, ip_dst, tos)>0):
+            print("[updateRegras]regra-removida ip_src:%s, ip_dst:%s, tos:%s\n" % (ip_src,ip_dst,tos))
 
-        #print("[S%s]UpdateRegras-ok-out\n" % (str(self.nome)))
+        print("[S%s]UpdateRegras-ok-out\n" % (str(self.nome)))
 
         #debug
-        #self.listarRegras()
+        self.listarRegras()
 
         return 0
 
@@ -755,7 +785,7 @@ class SwitchOVS:
             # %s x %s\n" % (i.nome, nomePorta))
             if str(i.nome) == str(nomePorta):
                 return i
-        #print("[getPorta] porta inexistente: %s\n" % (nomePorta))
+        print("[getPorta] porta inexistente: %s\n" % (nomePorta))
         return None
 
     def alocarGBAM(self, nomePorta, origem, destino, banda, prioridade, classe):
@@ -779,12 +809,12 @@ class SwitchOVS:
 
         porta = self.getPorta(str(nomePorta))
  
-        #print("[alocarGBAM-S%s] porta %s, src: %s, dst: %s, banda: %d, prioridade: %d, classe: %d \n" % (self.nome, str(nomePorta), origem, destino,banda, prioridade, classe))
+        print("[alocarGBAM-S%s] porta %s, src: %s, dst: %s, banda: %d, prioridade: %d, classe: %d \n" % (self.nome, str(nomePorta), origem, destino,banda, prioridade, classe))
 
         #caso seja classe de controle ou best-effort, nao tem BAM, mas precisa criar regras da mesma forma
         #best-effort
         if classe == 3:
-            self.addRegraF(origem,destino, 60, nomePorta, 6,None,0)
+            self.addRegraF(origem,destino, 60, nomePorta, 6,None,0, hardtime=10)
             
             return acoes
 
@@ -802,7 +832,7 @@ class SwitchOVS:
         #banda usada e total na classe original
         cU, cT = Porta.getUT(porta, classe)
 
-        # #print("[antes de alocar] banda usada: %d, banda total: %d \n" % ( cU, cT)) 
+        # print("[antes de alocar] banda usada: %d, banda total: %d \n" % ( cU, cT)) 
 
         ### antes de alocar o novo fluxo, verificar se ja nao existe uma regra para este fluxo -- caso exista remover e adicionar de novo? ou so nao alocar?
         #a principio - remover e alocar de novo
@@ -813,7 +843,7 @@ class SwitchOVS:
         if(classe_removida>0):
             tos_aux = CPT[(str(classe_removida), str(prioridade), str(banda))] 
             self.delRegraT(origem, destino, int(tos_aux), ALL_TABLES)
-            #print("[alocarGBAM]regra removida - ip_src:%s, ip_dst:%s, tos:%s\n" % (origem,destino,tos_aux))
+            print("[alocarGBAM]regra removida - ip_src:%s, ip_dst:%s, tos:%s\n" % (origem,destino,tos_aux))
         #pronto, nao vai existir regra duplicada - pode alocar
 
         #testando na classe original
@@ -851,11 +881,11 @@ class SwitchOVS:
                 bandaE += int(i.banda)
                 contadorE+=1
 
-                if bandaE >= int(banda):
+                if cT - cU + bandaE >= int(banda):
                     break
             
             #se as regras que estao emprestando representam largura de banda suficiente para que removendo-as, posso alocar o novo fluxo, entao:
-            if bandaE >= int(banda):
+            if cT - cU + bandaE >= int(banda):
                 for i in range(contadorE): #criando as acoes para remover as regras que estao emprestando
                     acoes.append( Acao(self.nome, nomePorta, REMOVER, Regra(emprestando[i].ip_src,emprestando[i].ip_dst,nomePorta,emprestando[i].tos,emprestando[i].banda,emprestando[i].prioridade,emprestando[i].classe,emprestando[i].emprestando)))   
                 
@@ -868,7 +898,7 @@ class SwitchOVS:
             else:       #nao: testa o nao
                 #nao: ver se na outra classe existe espaco para o fluxo
                 #remover os fluxos que foram adicionados em emprestando
-                emprestando.clear()
+                #emprestando.clear()
 
                 #banda usada e total na outra classe
                 cOU, cOT = Porta.getUT(porta, outraClasse)
@@ -878,7 +908,7 @@ class SwitchOVS:
                     tos = CPT[(str(outraClasse), str(prioridade), str(banda))] #novo tos equivalente
                     
                     #sim: alocar este fluxo - emprestando = 1 na classe em que empresta - na fila correspondente
-                    acoes.append( Acao(self.nome, nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,str(outraClasse),1)))   
+                    acoes.append( Acao(self.nome, nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,outraClasse,1)))   
                     
                     return acoes
 
@@ -895,24 +925,24 @@ class SwitchOVS:
                             bandaP += int(i.banda)
                             remover.append(i)
 
-                            if bandaP >= int(banda):
+                            if cT - cU + bandaP >= int(banda):
                                 break
                         
                     if prioridade > 2:
-                        if bandaP < int(banda):
+                        if cT - cU + bandaP < int(banda):
                             for i in Porta.getRules(porta, classe, 2):
                                 bandaP += int(i.banda)
                                 remover.append(i)
 
-                                if bandaP >= int(banda):
+                                if cT - cU + bandaP >= int(banda):
                                     break
 
-                    if bandaP >= int(banda):
+                    if cT - cU + bandaP >= int(banda):
                         for i in remover:
-                            acoes.append( Acao(self.nome, nomePorta, REMOVER, Regra(i.ip_src,i.dst,nomePorta,i.tos,i.banda,i.prioridade,i.classe,i.emprestando)))   
+                            acoes.append( Acao(self.nome, nomePorta, REMOVER, Regra(i.ip_src,i.ip_dst,nomePorta,i.tos,i.banda,i.prioridade,i.classe,i.emprestando)))   
                 
                         #adiciona na classe original
-                        tos = CPT[(classe, prioridade, banda)] #obter do vetor CPT - sei a classe a prioridade e a banda = tos
+                        tos = CPT[(str(classe), str(prioridade), str(banda))] #obter do vetor CPT - sei a classe a prioridade e a banda = tos
                         
                         acoes.append( Acao(self.nome, nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,classe,0)))   
                         
@@ -921,7 +951,7 @@ class SwitchOVS:
                     else:
 
                         #nao: rejeita o fluxo - criando uma regra de drop por uns 5segundos
-                        #print("[alocaGBMA]fluxo descartado\n")
+                        print("[alocaGBMA]fluxo descartado\n")
                         #FAZER NADA - se nao tiver regra, o pacote eh dropado automaticamente.
                         return acoes
 
@@ -932,7 +962,7 @@ class SwitchOVS:
     def delRegraT(self, ip_src, ip_dst, tos, tabela=ALL_TABLES):
 
         #tabela = 255 = ofproto.OFPTT_ALL = todas as tabelas
-        #print("Deletando regra - ipsrc: %s, ipdst: %s, tos: %d, tabela: %d\n" % (ip_src, ip_dst, tos, tabela))
+        print("Deletando regra - ipsrc: %s, ipdst: %s, tos: %d, tabela: %d\n" % (ip_src, ip_dst, tos, tabela))
         #tendo o datapath eh possivel criar pacotes de comando para o switch/datapath
         #caso precise simplificar, pode chamar o cmd e fazer tudo via ovs-ofctl
 
@@ -945,8 +975,8 @@ class SwitchOVS:
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
-        #match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip_src, ipv4_dst=ip_dst, ip_dscp=tos)
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=ip_dst) #, ip_dscp=20)
+        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip_src, ipv4_dst=ip_dst, ip_dscp=tos)
+        #match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=ip_dst) #, ip_dscp=20)
         #match = parser.OFPMatch()
         #mod = datapath.ofproto_parser.OFPFlowMod(datapath, table_id=tabela, command=ofproto.OFPFC_DELETE,  match=match)
         
@@ -958,9 +988,9 @@ class SwitchOVS:
         ##esse funciona - remove tudo
         #mod = datapath.ofproto_parser.OFPFlowMod(datapath, command=ofproto.OFPFC_DELETE, table_id=ofproto.OFPTT_ALL, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
         
-        ##print("deletando regra\n")
-        ##print(mod)
-        ##print("\n")
+        #print("deletando regra\n")
+        #print(mod)
+        #print("\n")
         datapath.send_msg(mod)
 
         return 0
@@ -974,14 +1004,14 @@ class SwitchOVS:
             in_port=100,
             actions=actions,
             data=package.data)
-        #print("[Pacote-Injetado]: ")
-        #print(out)
-        #print("\n")
+        print("[Pacote-Injetado]: ")
+        print(out)
+        print("\n")
 
         datapath.send_msg(out)
 
 #add regra tabela FORWARD
-    def addRegraF(self, ip_src, ip_dst, ip_dscp, out_port, fila, meter_id, flag):
+    def addRegraF(self, ip_src, ip_dst, ip_dscp, out_port, fila, meter_id, flag, hardtime=None):
         #https://ryu.readthedocs.io/en/latest/ofproto_v1_3_ref.html#flow-instruction-structures
 # hardtimeout = 5 segundos # isso eh para evitar problemas com pacotes que sao marcados como best-effort por um contrato nao ter chego a tempo. Assim vou garantir que daqui 5s o controlador possa identifica-lo. PROBLEMA: fluxos geralmente nao duram 5s, mas eh uma abordagem.
         
@@ -993,7 +1023,8 @@ class SwitchOVS:
         parser = datapath.ofproto_parser
         
         idletime = 30 # 0 = nao limita
-        hardtime = 30 # 5s e some
+        #hardtime = None
+
         prioridade = 100
        
         #match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=in_proto.IPPROTO_TCP,ipv4_src=ip_src, ipv4_dst=ip_dst,ip_dscp=ip_dscp)
@@ -1013,32 +1044,36 @@ class SwitchOVS:
 
         #marcar para gerar o evento FlowRemoved
         if flag == 1:
-            mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, hard_timeout = hardtime, priority=prioridade, match=match, instructions=inst, table_id=FORWARD_TABLE, flags=ofproto.OFPFF_SEND_FLOW_REM)
+            mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, priority=prioridade, match=match, instructions=inst, table_id=FORWARD_TABLE, flags=ofproto.OFPFF_SEND_FLOW_REM)
             datapath.send_msg(mod)
             return
 
-        mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, hard_timeout = hardtime, priority=prioridade, match=match, instructions=inst, table_id=FORWARD_TABLE)
+        mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, priority=prioridade, match=match, instructions=inst, table_id=FORWARD_TABLE)
 
-        #print("[addRegraF]:")
-        #print(mod)
-        #print("\n")
+        if hardtime != None:
+            mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, hard_timeout = hardtime, priority=prioridade, match=match, instructions=inst, table_id=FORWARD_TABLE)
+
+        print("[addRegraF]:")
+        print(mod)
+        print("\n")
 
         if(ip_dscp == None):
             ip_dscp = 0
-        ##printar a regra criada
-        #if meter_id != None:
-        #    ##print("[addRegraF-S%s]: src:%s, dst:%s, dscp:%d, porta:%s, fila: %d, meter:%d, flag:%d\n" % (self.nome, ip_src, ip_dst, ip_dscp, out_port, fila, meter_id, flag))
-        #else:
-        #    ##print("[addRegraF-S%s]: src:%s, dst:%s, dscp:%d, porta:%s, fila: %d, flag:%d\n" % (self.nome, ip_src, ip_dst, ip_dscp, out_port, fila, flag))
+        #printar a regra criada
+        if meter_id != None:
+            print("[addRegraF-S%s]: src:%s, dst:%s, dscp:%d, porta:%s, fila: %d, meter:%d, flag:%d\n" % (self.nome, ip_src, ip_dst, ip_dscp, out_port, fila, meter_id, flag))
+        else:
+            print("[addRegraF-S%s]: src:%s, dst:%s, dscp:%d, porta:%s, fila: %d, flag:%d\n" % (self.nome, ip_src, ip_dst, ip_dscp, out_port, fila, flag))
 
         datapath.send_msg(mod)
         
 #add regra tabela CLASSIFICATION
+#se o destino for um ip de controlador, 
     def addRegraC(self, ip_src, ip_dst, ip_dscp):
         #https://ryu.readthedocs.io/en/latest/ofproto_v1_3_ref.html#flow-instruction-structures
          #criar regra na tabela de marcacao - obs - utilizar idletime para que a regra suma - serve para que em switches que nao sao de borda essa regra nao exista
                          #obs: cada switch passa por um processo de enviar um packet_in para o controlador quando um fluxo novo chega,assim, com o mecanismo de GBAM, pode ser que pacotes de determinados fluxos sejam marcados com TOS diferentes da classe original, devido ao emprestimo, assim, em cada switch o pacote pode ter uma marcacao - mas com essa regra abaixo, os switches que possuem marcacao diferentes vao manter a regra de remarcacao. Caso ela expire e cheguem novos pacotes, ocorrera novo packet in e o controlador ira executar um novo GBAM - que vai criar uma nova regra de marcacao
-        #print("[criando-regra-tabela-marcacao] ipsrc: %s, ipdst: %s, tos: %d\n" % (ip_src, ip_dst, ip_dscp))
+        print("[criando-regra-tabela-marcacao] ipsrc: %s, ipdst: %s, tos: %d\n" % (ip_src, ip_dst, ip_dscp))
 
         datapath = self.datapath
         ofproto = datapath.ofproto
@@ -1049,18 +1084,18 @@ class SwitchOVS:
         
         match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip_src, ipv4_dst=ip_dst)
         actions = [parser.OFPActionSetField(ip_dscp=ip_dscp)]
+
         inst = [parser.OFPInstructionGotoTable(FORWARD_TABLE), parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        idletime = 30 # 5s sem pacotes, some
-        hardtime = 30 # 5s e some
+        idletime = 30 # 30s sem pacotes, some
         prioridade = 100
 
-        mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, hard_timeout = hardtime, priority=prioridade, match=match, instructions=inst, table_id=CLASSIFICATION_TABLE)
+        mod = parser.OFPFlowMod(datapath=datapath, idle_timeout = idletime, priority=prioridade, match=match, instructions=inst, table_id=CLASSIFICATION_TABLE)
         datapath.send_msg(mod)
 
 
 #adicionar rotas no switch - por agora fica com o nome de rede
     def addRede(self, ip_dst, porta): 
-        #print("[%s]Rede adicionada %s: %s" % (self.nome, ip_dst, porta))
+        print("[%s]Rede adicionada %s: %s" % (self.nome, ip_dst, porta))
         self.redes[ip_dst]=porta
         return
 
@@ -1073,7 +1108,7 @@ class SwitchOVS:
         return None
 
     def delRede(self, ip_dst, porta):
-        #print("[%s]Rede deletada %s: %s" % (self.nome, ip_dst, porta))
+        print("[%s]Rede deletada %s: %s" % (self.nome, ip_dst, porta))
         return
 
     def getPortas(self):
@@ -1089,7 +1124,7 @@ class SwitchOVS:
         #switches eh uma variavel global que compreende os switches do controlador
         #rota = vetor de switches
         rota = []
-        #print("[getRota] src:%s, dst:%s\n" % (ip_src, ip_dst))
+        print("[getRota] src:%s, dst:%s\n" % (ip_src, ip_dst))
 
         for s in switches:
             portaNome = s.getPortaSaida(ip_dst) 
@@ -1099,7 +1134,6 @@ class SwitchOVS:
         return rota
 
     def listarRegras(self):
-        return
         for porta1 in self.getPortas():
             print("\n[s%s-p%s] listar regras || C1T:%d, C1U:%d || C2T:%d, C2U: %d ||:\n" % (self.nome,porta1.nome, porta1.c1T, porta1.c1U, porta1.c2T, porta1.c2U))
             for rp1c1 in porta1.p1c1rules:
@@ -1137,7 +1171,7 @@ class Acao:
         return self.regra
     #regra = [ip_src, ip_dst, porta_dst, tos, banda, prioridade, classe, emprestando]
     def executar(self):
-        #print(self.toString())
+        print(self.toString())
         if(self.codigo == CRIAR):
             switch = SwitchOVS.getSwitch(self.nome_switch)
             porta = switch.getPorta(self.porta)
@@ -1164,7 +1198,7 @@ class Acao:
             porta.delRegra(self.regra.ip_src, self.regra.ip_dst, self.regra.tos)
 
             #removendo a regra da tabela
-            self.delRegraT(self.regra.ip_src, self.regra.ip_dst, self.regra.tos ,ALL_TABLES) #remove a regra no ovswitch
+            switch.delRegraT(self.regra.ip_src, self.regra.ip_dst, self.regra.tos ,ALL_TABLES) #remove a regra no ovswitch
 
             #porta.delRegra(emprestando[i].ip_src, emprestando[i].ip_dst, emprestando[i].tos) #remove a regra da classe switch
             #self.delRegraT(emprestando[i].ip_src, emprestando.ip_dst, emprestando[i].tos,FORWARD_TABLE) #remove a regra no ovswitch
@@ -1179,12 +1213,12 @@ class Dinamico(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
     
     def __init__(self, *args, **kwargs):
-        #print("Init Start\n")
+        print("Init Start\n")
         super(Dinamico,self).__init__(*args,**kwargs)
         self.mac_to_port = {}
         self.ip_to_mac = {}
 
-        #print("Init Over\n")
+        print("Init Over\n")
 
 
         #contrato = {
@@ -1203,7 +1237,7 @@ class Dinamico(app_manager.RyuApp):
         #contratos.append(contrato)
 
 #    def __def__(self):
-#        #print("finalizando thread\n")
+#        print("finalizando thread\n")
 #        t1.join()
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
@@ -1213,15 +1247,15 @@ class Dinamico(app_manager.RyuApp):
         parser = datapath.ofproto_parser
 #        switch = ev.switch.dp
 
-        #print("\n[switch_handler] ")
+        print("\n[switch_handler] ")
 
         print("Switch_id: "+ str(datapath.id) + " conectado: interfaces")
 ###################################################
 ###        #criar os switches 
 ###################################################
    
-#        #print("\nEventos possiveis?\n")
-#        #print(ofp_event.__dict__)##printar a classe como um dicionario -> identificar os possiveis eventos
+#        print("\nEventos possiveis?\n")
+#        print(ofp_event.__dict__)#printar a classe como um dicionario -> identificar os possiveis eventos
 
         #obter o numero de portas do switch ?
         qtd_portas = 5
@@ -1250,6 +1284,8 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('172.16.10.4',4)
             switch.addRede('10.123.123.1',5) #rota para controlador do S1
             switch.addRede('10.123.123.2',4) #rota para controlador do S2
+            switch.addRede('10.10.10.2',4) #rota para controlador do S2
+            switch.addRede('10.10.10.1',5) #rota para controlador do S1
 		
 		#switch S2 - dominio C2
         elif datapath.id == 2:
@@ -1259,9 +1295,11 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('172.16.10.3',4)
             switch.addRede('10.123.123.2',5) #rota para controlador do S2
             switch.addRede('10.123.123.1',4) #rota para controlador do S1
+            switch.addRede('10.10.10.2',5) #rota para controlador do S2
+            switch.addRede('10.10.10.1',4) #rota para controlador do S1
    
         switches.append(switch)
-        #print("\nSwitch criado\n")
+        print("\nSwitch criado\n")
 
 ############################################################################################
 #####    Criando as regras de rotas entre os switches e o controlador do dominio      ######
@@ -1270,17 +1308,41 @@ class Dinamico(app_manager.RyuApp):
 ##### controlador entao automaticamente a classe eh de controle                       ######
 ##### - criar regra de encaminhamento na rota para o root                             ######
 ############################################################################################
+
+        ### tabela 0 de pre-marcacao, para lidar com os ips ficticios dos controladores
+        actions = [parser.OFPActionSetField(ipv4_src=TC[IPC])]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
+        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=IPC)
+        mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
+        datapath.send_msg(mod)
+
+        actions = [parser.OFPActionSetField(ipv4_dst=IPC)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
+        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=TC[IPC])
+        mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
+        datapath.send_msg(mod)
+
+        #regra default da tabela 0 - > enviar para a tabela 1 => caso nao seja pacote com envolvimento nos controladores
+        inst = [parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
+        # parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=TC[IPC])
+        mod = parser.OFPFlowMod(datapath=datapath, priority=0, instructions=inst, table_id=PRE_TABLE)
+        datapath.send_msg(mod)
+
+        
 ## por enquanto cada dominio so tem 1 switch (c0(root1)-s1  e c1(root2)-s2)
         # ex: switch s1 - conexao direta com root1
         #switch.addRegraF('0.0.0.0',IPC,None,switch.getPortaSaida(IPC),FILA_CONTROLE, None,0)
+        #testando se segue as acoes em ordem vetorial [ sim eh em ordem vetorial ]
+
+        #obs: se nao fosse o ultimo switch, que conecta com o controlador, o ip teria de ser o ficticio, mas como eh o ultimo, o ip ficticio eh traduzido antes dessa regra, entao tem que ser o original - assim como esta feito
         actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(IPC))]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=IPC)
         mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=FORWARD_TABLE)
         datapath.send_msg(mod)
 
-#        #print(datapath.address)
-#        #print(ev.__dict__)
+#        print(datapath.address)
+#        print(ev.__dict__)
 
 ############################################################################################
 ##########        Criando as regras METER - sao identificadas pelo meter_id      ###########
@@ -1331,14 +1393,12 @@ class Dinamico(app_manager.RyuApp):
 ########### Testando ############
 
     def add_classification_table(self, datapath):
-        ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         inst = [parser.OFPInstructionGotoTable(FORWARD_TABLE)]
-        mod = parser.OFPFlowMod(datapath=datapath, table_id=0, instructions=inst, priority=0) #criando a regra default
+        mod = parser.OFPFlowMod(datapath=datapath, table_id=CLASSIFICATION_TABLE, instructions=inst, priority=0) #criando a regra default
         datapath.send_msg(mod)
 
     def add_forward_table(self, datapath, actions, prioridade):
-        ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         inst = [parser.OFPInstructionGotoTable(FORWARD_TABLE)]
         mod = None
@@ -1390,24 +1450,24 @@ class Dinamico(app_manager.RyuApp):
         else:
             reason = 'unknown'
 
-        #self.logger.debug('OFPFlowRemoved received: '
-        #                  'cookie=%d priority=%d reason=%s table_id=%d '
-        #                  'duration_sec=%d duration_nsec=%d '
-        #                  'idle_timeout=%d hard_timeout=%d '
-        #                  'packet_count=%d byte_count=%d match.fields=%s',
-        #                  msg.cookie, msg.priority, reason, msg.table_id,
-        #                  msg.duration_sec, msg.duration_nsec,
-        #                  msg.idle_timeout, msg.hard_timeout,
-        #                  msg.packet_count, msg.byte_count, msg.match)
-        #print('OFPFlowRemoved received switch=%s :: '
-        #                  'cookie=%d priority=%d reason=%s table_id=%d '
-        #                  'duration_sec=%d duration_nsec=%d '
-        #                  'idle_timeout=%d hard_timeout=%d '
-        #                  'packet_count=%d byte_count=%d match.fields=%s \n' % (str(dp.id),
-        #                  msg.cookie, msg.priority, reason, msg.table_id,
-        #                  msg.duration_sec, msg.duration_nsec,
-        #                  msg.idle_timeout, msg.hard_timeout,
-        #                  msg.packet_count, msg.byte_count, msg.match))
+        self.logger.debug('OFPFlowRemoved received: '
+                          'cookie=%d priority=%d reason=%s table_id=%d '
+                          'duration_sec=%d duration_nsec=%d '
+                          'idle_timeout=%d hard_timeout=%d '
+                          'packet_count=%d byte_count=%d match.fields=%s',
+                          msg.cookie, msg.priority, reason, msg.table_id,
+                          msg.duration_sec, msg.duration_nsec,
+                          msg.idle_timeout, msg.hard_timeout,
+                          msg.packet_count, msg.byte_count, msg.match)
+        print('OFPFlowRemoved received switch=%s :: '
+                          'cookie=%d priority=%d reason=%s table_id=%d '
+                          'duration_sec=%d duration_nsec=%d '
+                          'idle_timeout=%d hard_timeout=%d '
+                          'packet_count=%d byte_count=%d match.fields=%s \n' % (str(dp.id),
+                          msg.cookie, msg.priority, reason, msg.table_id,
+                          msg.duration_sec, msg.duration_nsec,
+                          msg.idle_timeout, msg.hard_timeout,
+                          msg.packet_count, msg.byte_count, msg.match))
        
         ip_src = None
         ip_dst = None
@@ -1420,10 +1480,10 @@ class Dinamico(app_manager.RyuApp):
             tos= msg.match['ip_dscp']
        
         if ip_src == None or ip_dst == None or tos == None:
-            #print("Algo deu errado - ip ou tos nao reconhecido\n")
+            print("Algo deu errado - ip ou tos nao reconhecido\n")
             return 1
 
-        #print("[event-flowRemove] ipv4_dst:%s, ipv4_src:%s, ip_dscp:%s\n" % (ip_dst,ip_src,tos))
+        print("[event-flowRemove] ipv4_dst:%s, ipv4_src:%s, ip_dscp:%s\n" % (ip_dst,ip_src,tos))
         
         #por agora, tanto as regras de ida quanto as de volta sao marcadas para notificar com o evento
         #atualizar no switch que gerou o evento
@@ -1469,10 +1529,10 @@ class Dinamico(app_manager.RyuApp):
         #analisar o pacote recebido usando a biblioteca packet
         pkt = packet.Packet(msg.data)
 
-        #print("[event] Packet_in -- switch: %s\n [Inspecionando pkt]\n" % (str(dpid)))
-        #print("Cabecalhos:\n")
-       # for p in pkt.protocols:
-       #     #print (p)
+        print("[event] Packet_in -- switch: %s\n [Inspecionando pkt]\n" % (str(dpid)))
+        print("Cabecalhos:\n")
+        for p in pkt.protocols:
+            print (p)
 
         #obter os cabecalhos https://osrg.github.io/ryu-book/en/html/packet_lib.html
         #obter o frame ethernet
@@ -1493,7 +1553,7 @@ class Dinamico(app_manager.RyuApp):
 
         pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
         if pkt_ipv4:
-            #print("\nPacote IPv4: ")
+            print("\nPacote IPv4: ")
             ip_src = pkt_ipv4.src
             ip_dst = pkt_ipv4.dst
 
@@ -1502,20 +1562,20 @@ class Dinamico(app_manager.RyuApp):
 
 
         ########        Aprender informacoes no controlador         ################
-        #print("\nlistar todos os mac conhecidos")
-        #print(self.mac_to_port)
+        print("\nlistar todos os mac conhecidos")
+        print(self.mac_to_port)
 
-        #print("\nlistar todos os ips conhecidos")
-        #print(self.ip_to_mac)
+        print("\nlistar todos os ips conhecidos")
+        print(self.ip_to_mac)
 
-        #print("\nlistar todos os contratos conhecidos\n")
+        print("\nlistar todos os contratos conhecidos\n")
 
-        #for i in contratos:
-        #    #print(i)
+        for i in contratos:
+            print(i)
 
-        #print("\nlistar todas as regras do switch-%s:\n" %(str(dpid)))
+        print("\nlistar todas as regras do switch-%s:\n" %(str(dpid)))
         este_switch = SwitchOVS.getSwitch(str(dpid))
-        #este_switch.listarRegras()
+        este_switch.listarRegras()
 
         #aprender endereco MAC, evitar flood proxima vez
         self.mac_to_port[dpid][src] = in_port
@@ -1535,7 +1595,7 @@ class Dinamico(app_manager.RyuApp):
         pkt_icmp = pkt.get_protocol(icmp.icmp)
 		
         if pkt_icmp:
-        #    #print("\n Recebeu Pacote ICMP: \n")
+            print("\n Recebeu Pacote ICMP: \n")
             
         ############################3
         ####  RECEBI UM INF. REQUEST:solicitando informacoes - se tem interesse em
@@ -1562,17 +1622,39 @@ class Dinamico(app_manager.RyuApp):
 
                 #preparando o ip destino que desejo os contratos, para solicitar via icmp 16 ao controlador emissor do icmp 15
                 #enviando o ip_dst como json
-                #print("[ICMP-15] Recebido\n")
-                data = {"ip_dst":ip_dst}
+                print("[ICMP-15] Recebido\n")
+                
+                addControladorConhecido(ip_src)
+
+                #verificar se ja tenho o contrato e enviar o tos que tenho, caso for o mesmo tos que ja recebi, nao vou receber resposta
+                cip_src = json.loads(pkt_icmp.data)['ip_src']
+                cip_dst = ip_dst
+                dscp = -1
+                #procurando  nos contratos o dscp
+                for i in contratos:
+                    if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_destino']==cip_dst:
+                        dscp = CPT[(i['contrato']['classe'], i['contrato']['prioridade'], i['contrato']['banda'])]
+                        break
+
+                data = {"ip_dst":ip_dst,"ip_src":cip_src,"dscp":dscp}
                 data = json.dumps(data)#.encode()
-                #print("[ICMP-15] contrato desejado:%s\n" % (data))  
+                print("[ICMP-15] contrato desejado:%s\n" % (data))  
 
 ######### etapa 3 - responder com icmp 16                  
 ### RESPONDENDO ICMP 15 inf. req com um ICMP 16 inf. reply + ip_dst que quero dos contratos - injetar pelo primeiro switch da rota entre este controlador e o emissor == switch que gerou o packet_in
                 ### o primeiro switch da rota eh o proprio que enviou o packet_in
-                send_icmp(dp,MACC, IPC, src, ip_src, in_port,0,data,1,16,64)
-                #print("[ICMP-15] ICMP Information Request -> Replied\n")
+                send_icmp(dp,MACC, TC[IPC], src, ip_src, in_port,0,data,1,16,64) # se mostrou desnecessario, mas deixei a implementacao de qualquer forma, dst_controlador=True)
+                print("[ICMP-15] ICMP Information Request -> Replied\n")
 
+                #as regras de vinda dos pacotes de contrato ja existem, pq sao para este controlador
+                #no entanto as regras de volta (tcp-handshake) nao existem e sao do tipo controle tbm, entao criar 
+                switches_rota = SwitchOVS.getRota(ip_src, IPC)
+                switches_rota[-1].addRegraC(TC[IPC], ip_src, 61)
+                for s in switches_rota:
+                    #porta de saida
+                    out_port = s.getPortaSaida(ip_src)
+                    #ida
+                    s.alocarGBAM(out_port, TC[IPC], ip_src, '1000', 2, 4)
 ######### etapa 4 - suprimida - movida para o switch_feature_handler
             #     #preparar para receber os contratos                
             #     #criar as regras nos switches da rota que leva ao controlador,
@@ -1595,11 +1677,13 @@ class Dinamico(app_manager.RyuApp):
     ### SEGUINDO O ICMP 15 inf. req. - injetar pelo ultimo switch da  rota
         #obtendo a rota entre src e destino, assim como era antes
                 switches_rota = SwitchOVS.getRota(ip_src, ip_dst)
+                
                 #obter o switch mais da borda de destino e gerar o inf req para dar sequencia e descobrir novos controladores ate o host destino
                 switch_ultimo = switches_rota[-1]
                 out_port = switch_ultimo.getPortaSaida(ip_dst)
+
                 switch_ultimo_dp = switch_ultimo.getDP()
-                #print("[ICMP-15] Dando sequencia no icmp 15 criando no ultimo switch da rota \n src:%s, dst:%s, saida:%d\n", ip_src, ip_dst, out_port)
+                print("[ICMP-15] Dando sequencia no icmp 15 criando no ultimo switch da rota \n src:%s, dst:%s, saida:%d\n", ip_src, ip_dst, out_port)
                 send_icmp(switch_ultimo_dp, src, ip_src, dst, ip_dst,out_port,0,pkt.data,1,15,64)
                 return 
                 
@@ -1611,8 +1695,10 @@ class Dinamico(app_manager.RyuApp):
     ############################
             #pkt: responder o arp caso seja para o endereco do controlador-> information reply (enviar os contratos para este controlador)
             if pkt_icmp.type==16:
-                #print("[ICMP-16] Recebido\n")
-                ##print("ICMP Information Reply -> Received\n")
+                print("[ICMP-16] Recebido\n")
+                addControladorConhecido(ip_src)
+
+                #print("ICMP Information Reply -> Received\n")
                 ## somente enviar os contratos caso o controlador seja o destino do icmp, caso contrario, apenas criar as regras de marcacao e encaminhamento + injetar o icmp no switch mais da borda proxima do destino
                 switches_rota = SwitchOVS.getRota(ip_dst, ip_src)
                 switch_ultimo = switches_rota[-1] ## pegando o ultimo switch da rota
@@ -1620,9 +1706,28 @@ class Dinamico(app_manager.RyuApp):
 
         ###### (i) sou o controlador de destino
                 if ip_dst == IPC:
+                    
+                    
                     #enviar os contratos correspondentes para o controlador que respondeu utilizando socket
-                    #print("[ICMP-16] Enviar os contratos para: ip_dst %s; mac_dst %s; ip_src e mac_src -> host root\n" % (ip_src,src))
-                         
+                    print("[ICMP-16] Enviar os contratos para: ip_dst %s; mac_dst %s; ip_src e mac_src -> host root\n" % (ip_src,src))
+
+                    dados = json.loads(pkt_icmp.data)
+                    cip_src = dados['ip_src']
+                    cip_dst = dados['ip_dst']
+                    cdscp = dados['dscp']
+
+                    #verificar se o tos recebido no icmp 16 eh o mesmo que o tos do contrato que seria enviado, se for, ignorar esse icmp, o controlador que respondeu ja possui o contrato atualizado
+                     #procurando  nos contratos o dscp
+                    for i in contratos:
+                        if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_destino']==cip_dst:
+                            dscp = CPT[(i['contrato']['classe'], i['contrato']['prioridade'], i['contrato']['banda'])]
+
+                            if dscp == cdscp:
+                                print("contrato do controlador solicitante esta atualizado - nao reenviar\n")
+                                return
+                            #se o contrato foi encontrato e eh diferente, nao precisa testar com os outros contratos
+                            break
+
                     ### criar regras para encaminhar as respostas do ICMP 15 atraves dos switches da rota para o dominio do controlador emissor original e para o controlador enviar os contratos
     #criar regras de marcacao e encaminhamento: switch de borda (switch_ultimo)
     #criar regras de encaminhamento: switches da rota
@@ -1637,14 +1742,17 @@ class Dinamico(app_manager.RyuApp):
                     #criar a regra de encaminhamento + marcacao --- para enviar os contratos
                     #regra de marcacao - apenas no switch que esta conectado ao controlador
                     #primeiro switch == switch conectado ao controlador
-                    switch_primeiro.addRegraC(ip_dst, ip_src, 61)
-    
+                    switch_primeiro.addRegraC(TC[ip_dst], ip_src, 61)
+
                     #out_port = switch_primeiro.getPortaSaida(ip_src)
 
                     #criar regras de encaminhamento de contratos nos switches da rota 
                     for s in switches_rota:
                         out_port = s.getPortaSaida(ip_src)
-                        s.alocarGBAM(out_port, ip_dst, ip_src, '1000', '2', '4') #criando as regras
+                        s.alocarGBAM(out_port, TC[ip_dst], ip_src, '1000', '2', '4') #criando as regras
+
+                    #criando a volta tbm pq precisa estabelecer a conexao
+                    
 
                     #enviar_contratos(host_ip, host_port, ip_dst_contrato)
                     # - host_ip e host_port (controlador que envia)
@@ -1654,18 +1762,29 @@ class Dinamico(app_manager.RyuApp):
                     #montar o json
                     #filtrar o ip_dst
                     #colocar em enviar contrato
-                    #print("[if=16, pkt.data]: ")
-                    #print(pkt.__dict__)
-                    #print("\n")
+                    print("[if=16, pkt.data]: ")
+                    print(pkt.__dict__)
+                    print("\n")
 
                     #estah construindo o json [ok]
-                    ##print(json.loads(pkt_icmp.data))
+                    #print(json.loads(pkt_icmp.data))
                     #ip_dst desejado para se buscar nos contratos
-                    cip_dst = json.loads(pkt_icmp.data)['ip_dst']
-                    #print("[ICMP-16] enviando contratos do ip_dst desejado - ip_dst:%s\n" % (cip_dst))
+                    cip_dst = dados['ip_dst']
+                    print("[ICMP-16] enviando contratos do ip_dst desejado - ip_dst:%s\n" % (cip_dst))
                     
                 #enviar_contratos(host_ip, host_port, ip_dst_contrato):
                     #ip_src == controlador que enviou o icmp 16
+                    #enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
+                    #enviar para um ip ficticio que sera transformado no correto, assim, a interface 
+                    #dst_traduzido = TC[ip_src]
+                    #traduzir o ip origem (deste controlador), para que se estabeleca a conexao tcp
+                    #src_traduzido = TC[ip_dst]
+                    #criar a regra de volta para traduzir o ip deste controlador
+                    #switch_primeiro.addRegraC(ip_src, dst_traduzido, 61, dst_controlador=True)
+
+                    ##criar regra para na volta remarcar o destino pelo traduzido(reverso)
+                    ## ja foi criado a regra para reverter o src na volta, para que mude para o ip deste controlador e ele possa responder
+
                     enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
                     return 0
 
@@ -1674,22 +1793,28 @@ class Dinamico(app_manager.RyuApp):
                 #switches_rota == switches da rota(destino, origem), logo precisa marcar no primeiro switch apenas
                 switch_primeiro.addRegraC(ip_dst, ip_src, 61)
                 
-                #print("[ICMP-16] criando regras de encaminhamento de contratos entre src:%s, dst:%s\n" % (ip_dst, ip_src))
+                print("[ICMP-16] criando regras de encaminhamento de contratos entre src:%s, dst:%s\n" % (ip_dst, ip_src))
 
                 #demais switches: regras de encaminhamento - ida
                 for i in switches_rota:
                     out_port = i.getPortaSaida(ip_src) # obtendo a porta que leva a enviar os contratos ao controlador requisitante
                     i.alocarGBAM(out_port,ip_dst, ip_src, '1000', '2', '4') #alocando-criando as regras de encaminhamento
 
+                #criar a volta tbm, pq eh tcp [ultimo switch] e como nao sao pacotes para o controlador desse dominio, nao ha reggras pre-definidas para o encaminhamento
+                switches_rota[-1].addRegraC(ip_src, ip_dst, 61)
+                for i in switches_rota:
+                    out_port = i.getPortaSaida(ip_dst) # obtendo a porta que leva a enviar os contratos ao controlador requisitante
+                    i.alocarGBAM(out_port, ip_src, ip_dst, '1000', '2', '4') #alocando-criando as regras de encaminhamento
+
                 #reinjetar o icmp no switch mais da borda proxima do destino
-                #print("[ICMP-16] recriando icmp 16 no switch mais proximo src:%s dst:%s out:%s:%d\n" % (ip_src, ip_dst, switch_primeiro.nome, out_port))
+                print("[ICMP-16] recriando icmp 16 no switch mais proximo src:%s dst:%s out:%s:%d\n" % (ip_src, ip_dst, switch_primeiro.nome, out_port))
                 out_port = switch_primeiro.getPortaSaida(ip_dst)
                 send_icmp(switch_primeiro.datapath, src, ip_src, dst, ip_dst, out_port, 0,pkt.data,1,16,64)
                 return
         
         #######         Buscar correspondencia Pkt-in com contratos         ############
-        #print("---------------------------------\n")
-        #print("procurando match com contratos\n")
+        print("---------------------------------\n")
+        print("procurando match com contratos\n")
         if ip_src != None and ip_dst != None:
 			
 			# (1) identificar se o pacote tem match com algum contrato
@@ -1699,7 +1824,7 @@ class Dinamico(app_manager.RyuApp):
                 cip_dst = i['contrato']['ip_destino']
                  
                 if cip_src == ip_src and cip_dst == ip_dst:
-                    #print("match encontrado\n")
+                    print("match encontrado\n")
 
                     #encontramos um match com o contrato i
                     #alocar o fluxo switch conforme seus requisitos - verificar em qual fila o fluxo deve ser posicionado
@@ -1722,12 +1847,16 @@ class Dinamico(app_manager.RyuApp):
 
                     #teste echo request - se funcionar adaptar para o request information [ok]
                     #deve ser enviado pelo switch mais proximo do destino (da borda) - se nao cada switch vai precisar tratar esse pacote
-                    send_icmp(switch_ultimo_dp, MACC, IPC, dst, ip_dst, out_port, 0, None, 1, 15,64)
+                    #enviar os identificadores do contrato (v2: ip origem/destino sao os identificadores - origem vai em dados, destino vai no destino do icmp ) 
+                    data = {"ip_src":cip_src}
+                    data = json.dumps(data)
+            
+                    send_icmp(switch_ultimo_dp, MACC, TC[IPC], dst, ip_dst, out_port, 0, data, 1, 15,64)
                           
-                    #print("[%s] icmp enviado enviado - ipdst=%s  portasaida=%d\n" % (switch_ultimo.nome,ip_dst,out_port))
-                    #print("---------------------------------\n")
+                    print("[%s] icmp enviado enviado - ipdst=%s  portasaida=%d\n" % (switch_ultimo.nome,ip_dst,out_port))
+                    print("---------------------------------\n")
                              
-                    #print("[%s] Criando regra tabela de marcacao no switch de borda (0) - toda regra vinda de outro dominio (borda) deve ser remarcada para valer nesse dominio\n" % (switches_rota[0].nome))
+                    print("[%s] Criando regra tabela de marcacao no switch de borda (0) - toda regra vinda de outro dominio (borda) deve ser remarcada para valer nesse dominio\n" % (switches_rota[0].nome))
                              
                     #adicionar a regra na classe switch
                     #adicionar a regra na tabela do ovsswitch
@@ -1745,7 +1874,7 @@ class Dinamico(app_manager.RyuApp):
                         #retorno vazio = nao tem espaco para alocar o fluxo
                         if len(acoes_aux)==0:
                             #rejeitar o fluxo
-                            #print("Fluxo rejeitado!\n")
+                            print("Fluxo rejeitado!\n")
                             return
 
                         #adicionando as acoes
@@ -1768,7 +1897,7 @@ class Dinamico(app_manager.RyuApp):
                     #1 criar regra de marcacao/classificacao - switch mais da borda = que disparou o packet_in
                     #encontrar qual tos foi definido para a criacao da regra no switch de borda mais proximo do emissor
                     for a in acoes:
-                        if(a.nome_switch == str(dpid) and a.regra.codigo == CRIAR):
+                        if(a.nome_switch == str(dpid) and a.codigo == CRIAR):
                             switches_rota[0].addRegraC(ip_src, ip_dst, a.regra.tos)
                             break
                             
@@ -1776,30 +1905,37 @@ class Dinamico(app_manager.RyuApp):
 				
 	    #todos os contratos foram checados e nao foi achado correspondencia
             #fluxo nao identificado -> fila de best-effort
-            #print("Fluxo nao identificado\n")
+            print("Fluxo nao identificado\n")
 
             #criar a regra de marcacao para este fluxo com o tos de best effort
             #criar regra para a fila de best-effort (match= {tos, ip_dst} = (meter band + fila=tos) + (porta_saida=ip_dst)
             #1- Encontrar os switches da rota
             switches_rota = SwitchOVS.getRota(ip_src, ip_dst)
-        
+            dscp = 60 #best-effort
+            classe = 3 #best-effort
+
+            #se o fluxo for desconhecido (por ter expirado alguma regra) e for de controladores - a classe deve ser classe de controle
+            if checkControladorConhecido(ip_src) == 1 or checkControladorConhecido(ip_dst) == 1:
+                dscp = 61 #controle
+                classe = 4 #controle 
+
             #criar regra na tabela de classificacao do switch de borda - marcar como best-effort
             #a variavel este switch, pode ser um switch do meio do caminho que perdeu as regras de encaminhamento e gerou o packet_in
             #por isso, deve se usar o primeiro switch da rota para criar as regras, evitando que um switch do meio do caminho tenha regras de marcacao
             #assim, o switch do meio so tem as regras de encaminnhamento atualizadas
-            switches_rota[0].addRegraC(ip_src, ip_dst, 60)    
+            switches_rota[0].addRegraC(ip_src, ip_dst, dscp)    
 
             for i in range(len(switches_rota)):        
                 #criar em cada outro switch as regras de encaminhamento    
                 #porta de saida
                 out_port = switches_rota[i].getPortaSaida(ip_dst)
                 #ida
-                switches_rota[i].alocarGBAM(out_port, ip_src, ip_dst, '0', 3, 3)
+                switches_rota[i].alocarGBAM(out_port, ip_src, ip_dst, '1000', classe, classe)
 
             #pegar o switch mais proximo do destino e injetar o pacote que gerou o packet_in
             switch_ultimo = switches_rota[-1]
             out_port = switch_ultimo.getPortaSaida(ip_dst)
-            fila = CPF[(3,1)]
+            fila = CPF[(classe,1)]
             switch_ultimo.injetarPacote(switch_ultimo.datapath,fila, out_port, msg)
 
             return	 
