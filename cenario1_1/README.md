@@ -14,6 +14,8 @@
 
 * foram pesquisados novos trabalhos relacionados: encontrei alguns melhores, mais recentes e mais próximos do meu.
 
+* alterar este arquivo -> melhorar o markdown + todos os problemas e solucoes -> adicionar o pq o problema surgiu e não apenas descição + como foi solucionado
+
 ## Versões
 * c1_v1: o basico esta implementado (alocarGBAM, troca de contratos, estabelcer contratos, criacao de regras ...), porém, a comunicacao entre controladores ocorre fora do mininer.
 * c1_v2: modificado a forma de comunicacao entre controladores, agora ocorre dentro do mininet + os contratos so sao trocados caso o solicitante tenha um contrato com tos diferente
