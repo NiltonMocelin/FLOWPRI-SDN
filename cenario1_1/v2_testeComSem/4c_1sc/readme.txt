@@ -1,60 +1,17 @@
---- syslog
-
-
-# TESTE 1 ::: tempos -> host1 criar contrato para comunicar com host2
-
-## topologia
-
-[root1-c1]
-    |
-    s1
-    / \
- h1     h2
-
-* Em cada teste fechar o controlador e remover as regras das tabelas de fluxo dos switches:
-
-` ovs-ofctl del-flows s1`
-`h1: python contrato_cli_v2.py 10.10.10.1 172.16.10.1 172.16.10.2 1000 1 >> tempo1.saida`
-`root1-c1: ryu-manager c1_v2_semPrints.py --ofp-tcp-listen-port 7000 >> tempo1.saida`
-
-
-* Tempo é obtido em 7 estados:
-
-- t0: tempo envio primeiro pacote para estabelecer conexão
-
-
-- t1: pkt bateu no controlador e o controlador respondeu, no entando o pkt de resposta resultou em pkt in:
-
-
-- t2: regras criadas- reinjetando o pkt:
-
-
-- t3: pkt reinjetado-saiu do pkt in
-
-
-- t4: conexao iniciada - para receber o contrato
-
-
-- t5: enviando icmp - 15
-
-
-- t6: icmp 15 enviado - fim do recebmento dos contratos
-
-- Apartir de t6 o host pode enviar pacotes com a banda definida
-
-SALVO EM tempo1.saida
-
-
 # TESTE 2 ::: tempos -> host1 criar contrato para comunicar com host4
 
 
 ## Topologia
+* domínio 1: root1-c1, s1
+* domínio 2: root2-c2, s2
+* domínio 3: root3-c3, s3
+* domínio 4: root4-c4, s4
 
-[root1-c1]      [root2-c2]
-    |               |
-    s1 ------------s2
-    /               \
- h1                 h4
+[root1-c1]      [root2-c2]     [root3-c3]       [root4-c4]
+    |               |              |             |
+    s1 ------------s2 ------------s3 ------------s4
+    /                                             \
+ h1                                                h4
 
 
  * Em cada teste fechar os controladores e remover as regras das tabelas de fluxo dos switches:

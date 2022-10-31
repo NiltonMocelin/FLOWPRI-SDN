@@ -6,9 +6,43 @@
 
 * refazendo todos os testes - coletar os tempos
 
-* criar uma tela ? (tenho um modelo pronto com python tkinter, só adaptar -> uma tela para mostrar os logs de packet_in's e botoes para mostrar as regras dos switches do domínio/slice)
+### TODO:
+* [Fazendo] (TOPOLOGIA) fazer as topologias de cada teste
+|-> criados os switches e controladores
+|-> falta configurar as rotas/arps e ips ficticios (desenvolvendo em draw.io)
+
+* [FAZER] (CÓDIGO) arrumar as partes não genéricas e criar as rotas e configuracoes para cada teste
+
+--------------------------------------------------------
+### OUTROS:
+
+- fazer os testes de tempo do impacto da quantidade de controladores para verificar se é possível criar uma regressão.
+- verificar como o tempo escala com o aumento da quantidade de switches
+
+- fazer os testes de quanto tempo leva para um pacote ser processado num switch controlador pelo framework vs um sem o framework
+- o tempo de overhead de um cenário sem framework é zero, então a comparação deve ser feita quanto ao tempo de processamento no switch.
+
+- comparar cenário com sobrecarga - com e sem framework
+
+- mostrar que funciona
+
+- apresentar o algoritmo - sequencia de passos
+
+- mostrar que um fluxo de maior prioridade tem menos perda de pacotes usando o framework que sem, pois pode definir seus requisitos.
+
+- e com isso acaba artigo e tcc -> so escrever
+
+- se sobrar tempo, pensar na tela como subprocesso lendo dados por arquivos...
+
+
+
+* criar uma tela ? (tenho um modelo pronto com python tkinter, só adaptar -> uma tela para mostrar os logs de packet_in's e botoes para mostrar as regras dos switches do domínio/slice) -pelo que vi, nao tem biblioteca gui que possa ser inicializada em uma thread diferente da principal em python. Duas alternativas, o controlador salva os estados dos switches e os logs em arquivos e um outro processo tela, le esses arquivos para mostrar. Outra alternativa é aprender a usar a biblioteca ReadProcessMemory, para ler a memoria do controlador e pegar o vetor de switches para obter as regras, mas seria um problema obter os logs, que poderiam ser gravados em um arquivo...- a tela seria outro processo tbm. -- parece que em python as aplicacoes precisam ser planejadas para rodar sobre telas e nao deixar elas por último.. ---- o melhor eh usar a primeira abordagem, salvar os logs e estado dos switches em arquivos - cada vez que adiciona/deleta uma regra, reescrever
 
 * revisar partes do framework para deixar mais genérico: em algumas partes foquei na configuracao para o switch quando for de borda e conectado ao controlador... (acho que só no switch_features, mas melhor rever)
+
+* foi modificado o recebimento de contratos dos clientes no controlador em v2_testeComSem e foi esquecido de puxar para o principal, nao muda nada mas eh bom arrumar
+
+* modificar: se recebe um contrato que eh igual ao que ja tem, nao fazer nada... - agora esta removendo o igual, removendo as regras, adicionando novas regras ... nd ver
 
 * escrever os textos (tcc e artigo)
 
