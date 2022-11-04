@@ -62,6 +62,10 @@ FILA_CONTROLE=7
 CRIAR=0
 REMOVER=1
 
+#dicionario para encontrar a rota, em uma situacao real, o controlador sabe quais sao os hosts conectados ao seu dominio, seja pre-configurado ou por aprendizado em packet-in
+#LISTA_HOSTS[ip]=switch_dpid
+LISTA_HOSTS = {}
+
 arpList = {}
 contratos = []
 contratos_enviar = {}
@@ -219,7 +223,7 @@ def servidor_socket_hosts():
 #### OBS -- Implementar : garantir que exista apenas um contrato com match para ip_src, ip_dst - e mais campos se forem usar - que se outro contrato vier com esse match, substituir o que ja existe 
 #OBS - os contratos sao armazenados como string, entao para acessa-los como json, eh preciso carregar como json: json.loads(contrato)['contrato']['ip_origem']
         #pegar os switches da rota
-        switches_rota = SwitchOVS.getRota(cip_src, cip_dst)
+        switches_rota = SwitchOVS.getRota(str(LISTA_HOSTS[cip_src]), cip_dst)
 
         #deletando o contrato anterior e as regras a ele associadas
         delContratoERegras(switches_rota, cip_src, cip_dst)
@@ -341,7 +345,7 @@ def servidor_socket_controladores():
             classe =  contrato['contrato']['classe']
 
             #pegando os switches da rota
-            switches_rota = SwitchOVS.getRota(cip_src, cip_dst)
+            switches_rota = SwitchOVS.getRota(str(LISTA_HOSTS[cip_src]), cip_dst)
 
             #deletando o contrato anterior e as regras a ele associadas
             delContratoERegras(switches_rota, cip_src, cip_dst)
@@ -578,6 +582,8 @@ class Porta:
         #fila alta prioridade 3, classe 2 (dados)
         self.p3c2rules = []
 
+        #id do proximo switch (conectado ao link)
+        self.next = 0
         #nao eh preciso armazenar informacoes sobre as filas de best-effort e controle de rede
 
         #O que preciso em cada regra
@@ -1119,18 +1125,31 @@ class SwitchOVS:
     
     #dado um conjunto de switches (var global) pertencentes a um dominio/controlador, recuperar o conjunto de switches que fazem parte da rota para o end destino/rede
     @staticmethod
-    def getRota(ip_src, ip_dst):
+    def getRota(switch_primeiro_dpid, ip_dst):
 		#por enquanto nao importam as rotas - rotas fixas e um switch
         #switches eh uma variavel global que compreende os switches do controlador
         #rota = vetor de switches
         rota = []
-        print("[getRota] src:%s, dst:%s\n" % (ip_src, ip_dst))
+        #print("[getRota] src:%s, dst:%s\n" % (ip_src, ip_dst))
 
-        for s in switches:
-            portaNome = s.getPortaSaida(ip_dst) 
-            if(portaNome != None):
-                rota.append(s)
+        #pegar o primeiro switch da rota, baseado no ip_Src --- ou, por meio do packet in, mas entao nao poderia criar as regras na criacao dos contratos
+        switch_primeiro = SwitchOVS.getSwitch(str(switch_primeiro_dpid))
+        rota.append(switch_primeiro)
 
+        #pegar o salto do ultimo switch inserido na rota
+        nextDpid = switch_primeiro.getPorta(switch_primeiro.getPortaSaida(ip_dst)).next #retorna inteiro
+
+        print("switch_primeiro: %s, nextDpid: %d\n" % (switch_primeiro.nome, nextDpid))
+
+        while nextDpid > 0:
+            s = SwitchOVS.getSwitch(nextDpid)
+            rota.append(s)
+            #se o .next da porta for -1, esse eh o switch de borda
+            nextDpid = s.getPorta(s.getPortaSaida(ip_dst)).next
+        
+        for r in rota:
+            print("[rota]: %s" % (r.nome))
+            
         return rota
 
     def listarRegras(self):
@@ -1262,7 +1281,7 @@ class Dinamico(app_manager.RyuApp):
         
         nome_portas = []
         for i in range(5):
-            nome_portas.append(str(i))
+            nome_portas.append(str(i+1))
         
         #para Total = 10 Mb += 10000kb
         bandaC1T=3300 #33%
@@ -1278,6 +1297,13 @@ class Dinamico(app_manager.RyuApp):
         #em breve serao redes separadas
         #switch S1 - dominio C1 --- arrumado -> porta eh agr um inteiro
         if datapath.id == 1:
+
+            LISTA_HOSTS['10.10.10.1'] = 1
+            LISTA_HOSTS['10.123.123.1'] = 1
+            LISTA_HOSTS['172.16.10.1'] = 1
+            LISTA_HOSTS['172.16.10.2'] = 1
+            LISTA_HOSTS['172.16.10.3'] = 1
+            
             switch.addRede('172.16.10.1',1) #rota para destino h1->s1-eth1
             switch.addRede('172.16.10.2',2)
             switch.addRede('172.16.10.3',3)
@@ -1286,9 +1312,25 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.123.123.2',4) #rota para controlador do S2
             switch.addRede('10.10.10.2',4) #rota para controlador do S2
             switch.addRede('10.10.10.1',5) #rota para controlador do S1
+
+            # portas ligadas a hosts ou a outros dominios: next = -1; significa que nao podemos pegar switches alem dessa conexao
+            switch.getPorta(1).next=-1
+            switch.getPorta(2).next=-1
+            switch.getPorta(3).next=-1
+            #s1:4 <-> s2:1
+            switch.getPorta(4).next=-2
+
+            #root1-c1
+            switch.getPorta(5).next=-1
+		
 		
 		#switch S2 - dominio C2
         elif datapath.id == 2:
+
+            LISTA_HOSTS['10.10.10.2'] = 2
+            LISTA_HOSTS['10.123.123.2'] = 2
+            LISTA_HOSTS['172.16.10.4'] = 2
+
             switch.addRede('172.16.10.4',1)
             switch.addRede('172.16.10.1',4)
             switch.addRede('172.16.10.2',4)
@@ -1297,6 +1339,13 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.123.123.1',4) #rota para controlador do S1
             switch.addRede('10.10.10.2',5) #rota para controlador do S2
             switch.addRede('10.10.10.1',4) #rota para controlador do S1
+
+            # portas ligadas a hosts: next = -1
+            switch.getPorta(1).next=-1
+            switch.getPorta(4).next=-2
+            
+            #root2-c2
+            switch.getPorta(5).next=-1
    
         switches.append(switch)
         print("\nSwitch criado\n")
@@ -1320,7 +1369,7 @@ class Dinamico(app_manager.RyuApp):
         datapath.send_msg(mod)
 
         #se for o switch que conecta ao controlador, configurar a tabela de pre-marcacao e 
-        if datapath.id == 2 or datapath.id == 5:
+        if datapath.id == 1 or datapath.id == 2:
 
             ### tabela 0 de pre-marcacao, para lidar com os ips ficticios dos controladores
             actions = [parser.OFPActionSetField(ipv4_src=TC[IPC])]
@@ -1661,7 +1710,7 @@ class Dinamico(app_manager.RyuApp):
 
                 #as regras de vinda dos pacotes de contrato ja existem, pq sao para este controlador
                 #no entanto as regras de volta (tcp-handshake) nao existem e sao do tipo controle tbm, entao criar 
-                switches_rota = SwitchOVS.getRota(ip_src, IPC)
+                switches_rota = SwitchOVS.getRota(str(dpid), IPC)
                 switches_rota[-1].addRegraC(TC[IPC], ip_src, 61)
                 for s in switches_rota:
                     #porta de saida
@@ -1689,7 +1738,7 @@ class Dinamico(app_manager.RyuApp):
 ####### etapa 5 - reijetar icmp 15
     ### SEGUINDO O ICMP 15 inf. req. - injetar pelo ultimo switch da  rota
         #obtendo a rota entre src e destino, assim como era antes
-                switches_rota = SwitchOVS.getRota(ip_src, ip_dst)
+                switches_rota = SwitchOVS.getRota(str(dpid), ip_dst)
                 
                 #obter o switch mais da borda de destino e gerar o inf req para dar sequencia e descobrir novos controladores ate o host destino
                 switch_ultimo = switches_rota[-1]
@@ -1713,7 +1762,7 @@ class Dinamico(app_manager.RyuApp):
 
                 #print("ICMP Information Reply -> Received\n")
                 ## somente enviar os contratos caso o controlador seja o destino do icmp, caso contrario, apenas criar as regras de marcacao e encaminhamento + injetar o icmp no switch mais da borda proxima do destino
-                switches_rota = SwitchOVS.getRota(ip_dst, ip_src)
+                switches_rota = SwitchOVS.getRota(str(dpid), ip_src)
                 switch_ultimo = switches_rota[-1] ## pegando o ultimo switch da rota
                 switch_primeiro = switches_rota[0]
 
@@ -1842,7 +1891,7 @@ class Dinamico(app_manager.RyuApp):
                     #encontramos um match com o contrato i
                     #alocar o fluxo switch conforme seus requisitos - verificar em qual fila o fluxo deve ser posicionado
                     #encontrar todos os switches da rota definida para este ip destino/rede + escolher um switch para enviar o ICMP inf. req. (que deve ser o que disparou o packet_in)
-                    switches_rota = SwitchOVS.getRota(ip_src, ip_dst) #no momento os switches nao estao sendo adicionados em ordem, mas poderiam ser
+                    switches_rota = SwitchOVS.getRota(str(dpid), ip_dst) #no momento os switches nao estao sendo adicionados em ordem, mas poderiam ser
                     #verificar em qual fila da porta posicionar o fluxo
                     banda = i['contrato']['banda']
                     prioridade =  i['contrato']['prioridade']
@@ -1851,7 +1900,7 @@ class Dinamico(app_manager.RyuApp):
                     #1- Enviar ICMP inf req. (poderia usar o ultimo switch da rota, mas por agora estamos usando o primeiro, que dispara o packet_in)
                     #ARRUMADO 
 
-                    switches_rota = SwitchOVS.getRota(ip_src,ip_dst)
+                    switches_rota = SwitchOVS.getRota(str(dpid), ip_dst)
                     switch_ultimo = switches_rota[-1]
 
                     #saber para qual porta deve ser encaminhado --- implementar isso
@@ -1923,7 +1972,7 @@ class Dinamico(app_manager.RyuApp):
             #criar a regra de marcacao para este fluxo com o tos de best effort
             #criar regra para a fila de best-effort (match= {tos, ip_dst} = (meter band + fila=tos) + (porta_saida=ip_dst)
             #1- Encontrar os switches da rota
-            switches_rota = SwitchOVS.getRota(ip_src, ip_dst)
+            switches_rota = SwitchOVS.getRota(str(dpid), ip_dst)
             dscp = 60 #best-effort
             classe = 3 #best-effort
 

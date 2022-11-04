@@ -2,7 +2,7 @@
 
 # Estado atual
 
-* Versão: v2
+* Versão: v2 - foi refeita a funcao getRotas e a switch_features ficou mais generica, para habilitar os testes com multiplos controladores
 
 * refazendo todos os testes - coletar os tempos
 
