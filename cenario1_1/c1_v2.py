@@ -191,13 +191,13 @@ def servidor_socket_hosts():
         print(addr)
         print("\n")
 
-        #como eh so um contrato, nao importa saber exatamente a quantidade de bytes a receber
-        data = conn.recv(1024)
+        data = conn.recv(4)
+        qtdBytes = struct.unpack('<i',data)[0]
+
+        data = conn.recv(qtdBytes)
         print(data)
-        #contrato = json.loads(data.encode('utf-8'))
-        #JSON LOADS CARREGA COMO UNICODE essa porcaria
-        #contrato = data.decode("utf-8")
         contrato = json.loads(data.encode('utf-8'))
+
 
         #criar as regras de marcacao e encaminhamento nos switches da entre ip_src e ip_dst
 #enviar um icmp 15 ja perguntando se existem controladores interessados em receber o contrato
@@ -1213,7 +1213,7 @@ class Dinamico(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
     
     def __init__(self, *args, **kwargs):
-        print("Init Start\n")
+        print("CONTROLADOR %s - \n Init Start\n" % (IPC))
         super(Dinamico,self).__init__(*args,**kwargs)
         self.mac_to_port = {}
         self.ip_to_mac = {}
@@ -1309,18 +1309,9 @@ class Dinamico(app_manager.RyuApp):
 ##### - criar regra de encaminhamento na rota para o root                             ######
 ############################################################################################
 
-        ### tabela 0 de pre-marcacao, para lidar com os ips ficticios dos controladores
-        actions = [parser.OFPActionSetField(ipv4_src=TC[IPC])]
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=IPC)
-        mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
-        datapath.send_msg(mod)
-
-        actions = [parser.OFPActionSetField(ipv4_dst=IPC)]
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=TC[IPC])
-        mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
-        datapath.send_msg(mod)
+        global FORWARD_TABLE
+        global CLASSIFICATION_TABLE
+        global PRE_TABLE
 
         #regra default da tabela 0 - > enviar para a tabela 1 => caso nao seja pacote com envolvimento nos controladores
         inst = [parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
@@ -1328,18 +1319,40 @@ class Dinamico(app_manager.RyuApp):
         mod = parser.OFPFlowMod(datapath=datapath, priority=0, instructions=inst, table_id=PRE_TABLE)
         datapath.send_msg(mod)
 
-        
-## por enquanto cada dominio so tem 1 switch (c0(root1)-s1  e c1(root2)-s2)
-        # ex: switch s1 - conexao direta com root1
-        #switch.addRegraF('0.0.0.0',IPC,None,switch.getPortaSaida(IPC),FILA_CONTROLE, None,0)
-        #testando se segue as acoes em ordem vetorial [ sim eh em ordem vetorial ]
+        #se for o switch que conecta ao controlador, configurar a tabela de pre-marcacao e 
+        if datapath.id == 2 or datapath.id == 5:
 
-        #obs: se nao fosse o ultimo switch, que conecta com o controlador, o ip teria de ser o ficticio, mas como eh o ultimo, o ip ficticio eh traduzido antes dessa regra, entao tem que ser o original - assim como esta feito
-        actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(IPC))]
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=IPC)
-        mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=FORWARD_TABLE)
-        datapath.send_msg(mod)
+            ### tabela 0 de pre-marcacao, para lidar com os ips ficticios dos controladores
+            actions = [parser.OFPActionSetField(ipv4_src=TC[IPC])]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
+            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=IPC)
+            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
+            datapath.send_msg(mod)
+
+            actions = [parser.OFPActionSetField(ipv4_dst=IPC)]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
+            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=TC[IPC])
+            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
+            datapath.send_msg(mod)
+
+            #criar a regra para o controlador do dominio
+            #obs: se nao fosse o ultimo switch, que conecta com o controlador, o ip teria de ser o ficticio, mas como eh o ultimo, o ip ficticio eh traduzido antes dessa regra, entao tem que ser o original - assim como esta feito
+            actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(IPC))]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=IPC)
+            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=FORWARD_TABLE)
+            datapath.send_msg(mod)
+        else:
+            #tornar a tabela de classificacao a tabela zero
+
+
+            #criar a regra para o controlador do dominio
+            #obs: se nao fosse o ultimo switch, que conecta com o controlador, o ip teria de ser o ficticio, mas como eh o ultimo, o ip ficticio eh traduzido antes dessa regra, entao tem que ser o original - assim como esta feito
+            actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(TC[IPC]))]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=TC[IPC])
+            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=FORWARD_TABLE)
+            datapath.send_msg(mod)
 
 #        print(datapath.address)
 #        print(ev.__dict__)

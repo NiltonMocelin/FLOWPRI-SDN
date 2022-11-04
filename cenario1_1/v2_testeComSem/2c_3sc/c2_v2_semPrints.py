@@ -65,6 +65,10 @@ FILA_CONTROLE=7
 CRIAR=0
 REMOVER=1
 
+#dicionario para encontrar a rota, em uma situacao real, o controlador sabe quais sao os hosts conectados ao seu dominio, seja pre-configurado ou por aprendizado em packet-in
+#LISTA_HOSTS[ip]=switch_dpid
+LISTA_HOSTS = {}
+
 arpList = {}
 contratos = []
 contratos_enviar = {}
@@ -592,6 +596,8 @@ class Porta:
         #fila alta prioridade 3, classe 2 (dados)
         self.p3c2rules = []
 
+        #id do proximo switch (conectado ao link)
+        self.next = 0
         #nao eh preciso armazenar informacoes sobre as filas de best-effort e controle de rede
 
         #O que preciso em cada regra
@@ -1140,10 +1146,18 @@ class SwitchOVS:
         rota = []
         #print("[getRota] src:%s, dst:%s\n" % (ip_src, ip_dst))
 
-        for s in switches:
-            portaNome = s.getPortaSaida(ip_dst) 
-            if(portaNome != None):
-                rota.append(s)
+        #pegar o primeiro switch da rota, baseado no ip_Src --- ou, por meio do packet in, mas entao nao poderia criar as regras na criacao dos contratos
+        switch_primeiro_dpid = LISTA_HOSTS[ip_src]
+        switch_primeiro = SwitchOVS.getSwitch(str(switch_primeiro_dpid))
+        rota.append(switch_primeiro)
+
+        #pegar o salto do ultimo switch inserido na rota
+        nextDpid = switch_primeiro.getPortaSaida(ip_dst) #retorna inteiro
+
+        while nextDpid > 0:
+            s = SwitchOVS.getSwitch(nextDpid)
+            rota.append(s)
+            nextDpid = s.getPortaSaida(ip_dst).next
 
         return rota
 
@@ -1288,11 +1302,20 @@ class Dinamico(app_manager.RyuApp):
         tamanhoFilaC2 = bandaC2T * 0.1 #35 kb
 
         switch = SwitchOVS(datapath,str(datapath.id), qtd_portas, nome_portas, bandaC1T, bandaC2T, tamanhoFilaC1, tamanhoFilaC2)
-        
+    
+        #switches dominio c1: s1,s2(c1),s3
+        #switches dominio c2: s4,s5(c2),s6
+
         #criando a tabela de roteamento - no momento existem apenas 2 switches
         #em breve serao redes separadas
-        #switch S1 - dominio C1 --- arrumado -> porta eh agr um inteiro
+        #switch S2 - dominio C1 --- arrumado -> porta eh agr um inteiro
         if datapath.id == 1:
+            #configurando onde estao os hosts
+            LISTA_HOSTS['172.16.10.1']=1
+            LISTA_HOSTS['172.16.10.2']=1
+            LISTA_HOSTS['172.16.10.3']=1
+            LISTA_HOSTS['172.16.10.4']=6
+
             switch.addRede('172.16.10.1',1) #rota para destino h1->s1-eth1
             switch.addRede('172.16.10.2',2)
             switch.addRede('172.16.10.3',3)
@@ -1300,21 +1323,97 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.123.123.1',5) #rota para controlador do S1
             switch.addRede('10.123.123.2',4) #rota para controlador do S2
             switch.addRede('10.10.10.2',4) #rota para controlador do S2
-            switch.addRede('10.10.10.1',5) #rota para controlador do S1
+            switch.addRede('10.10.10.1',4) #rota para controlador do S1
+
+            # portas ligadas a hosts: next = -1
+            switch.getPorta(1).next=-1
+            switch.getPorta(2).next=-1
+            switch.getPorta(3).next=-1
+            #s1:4 <-> s2:1
+            switch.getPorta(4).next=2
 		
 		#switch S2 - dominio C2
         elif datapath.id == 2:
+            switch.addRede('172.16.10.4',2)
+            switch.addRede('172.16.10.1',1)
+            switch.addRede('172.16.10.2',1)
+            switch.addRede('172.16.10.3',1)
+            switch.addRede('10.123.123.2',2) #rota para controlador do S2
+            switch.addRede('10.123.123.1',5) #rota para controlador do S1
+            switch.addRede('10.10.10.2',2) #rota para controlador do S2
+            switch.addRede('10.10.10.1',5) #rota para controlador do S1
+
+            #
+            switch.getPorta(1).next=1
+            switch.getPorta(2).next=3
+            #destino host-controlador
+            switch.getPorta(5).next=-1
+   
+        elif datapath.id == 3:
+            switch.addRede('172.16.10.4',2)
+            switch.addRede('172.16.10.1',1)
+            switch.addRede('172.16.10.2',1)
+            switch.addRede('172.16.10.3',1)
+            switch.addRede('10.123.123.2',2) #rota para controlador do S2
+            switch.addRede('10.123.123.1',1) #rota para controlador do S1
+            switch.addRede('10.10.10.2',2) #rota para controlador do S2
+            switch.addRede('10.10.10.1',1) #rota para controlador do S1
+            
+            #
+            switch.getPorta(1).next=2
+            switch.getPorta(2).next=4
+            
+
+        elif datapath.id == 4:
+            switch.addRede('172.16.10.4',2)
+            switch.addRede('172.16.10.1',1)
+            switch.addRede('172.16.10.2',1)
+            switch.addRede('172.16.10.3',1)
+            switch.addRede('10.123.123.2',2) #rota para controlador do S2
+            switch.addRede('10.123.123.1',1) #rota para controlador do S1
+            switch.addRede('10.10.10.2',2) #rota para controlador do S2
+            switch.addRede('10.10.10.1',1) #rota para controlador do S1
+
+            #
+            switch.getPorta(1).next=3
+            switch.getPorta(2).next=5
+   
+        elif datapath.id == 5:
+            switch.addRede('172.16.10.4',2)
+            switch.addRede('172.16.10.1',1)
+            switch.addRede('172.16.10.2',1)
+            switch.addRede('172.16.10.3',1)
+            switch.addRede('10.123.123.2',5) #rota para controlador do S2
+            switch.addRede('10.123.123.1',1) #rota para controlador do S1
+            switch.addRede('10.10.10.2',5) #rota para controlador do S2
+            switch.addRede('10.10.10.1',1) #rota para controlador do S1
+
+            #
+            switch.getPorta(1).next=4
+            switch.getPorta(2).next=6
+            #destino host-controlador
+            switch.getPorta(5).next=-1
+   
+        elif datapath.id == 6:
             switch.addRede('172.16.10.4',1)
             switch.addRede('172.16.10.1',4)
             switch.addRede('172.16.10.2',4)
             switch.addRede('172.16.10.3',4)
-            switch.addRede('10.123.123.2',5) #rota para controlador do S2
+            switch.addRede('10.123.123.2',4) #rota para controlador do S2
             switch.addRede('10.123.123.1',4) #rota para controlador do S1
-            switch.addRede('10.10.10.2',5) #rota para controlador do S2
+            switch.addRede('10.10.10.2',4) #rota para controlador do S2
             switch.addRede('10.10.10.1',4) #rota para controlador do S1
+
+            #liga com o host 4
+            switch.getPorta(1).next=-1
+            switch.getPorta(4).next=5
    
+        else:
+            print("switch desconhecido\n")
+            return
+            
         switches.append(switch)
-        #print("\nSwitch criado\n")
+        print("\nSwitch criado\n")
 
 ############################################################################################
 #####    Criando as regras de rotas entre os switches e o controlador do dominio      ######
@@ -1324,18 +1423,9 @@ class Dinamico(app_manager.RyuApp):
 ##### - criar regra de encaminhamento na rota para o root                             ######
 ############################################################################################
 
-        ### tabela 0 de pre-marcacao, para lidar com os ips ficticios dos controladores
-        actions = [parser.OFPActionSetField(ipv4_src=TC[IPC])]
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=IPC)
-        mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
-        datapath.send_msg(mod)
-
-        actions = [parser.OFPActionSetField(ipv4_dst=IPC)]
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=TC[IPC])
-        mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
-        datapath.send_msg(mod)
+        global FORWARD_TABLE
+        global CLASSIFICATION_TABLE
+        global PRE_TABLE
 
         #regra default da tabela 0 - > enviar para a tabela 1 => caso nao seja pacote com envolvimento nos controladores
         inst = [parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
@@ -1343,18 +1433,41 @@ class Dinamico(app_manager.RyuApp):
         mod = parser.OFPFlowMod(datapath=datapath, priority=0, instructions=inst, table_id=PRE_TABLE)
         datapath.send_msg(mod)
 
-        
-## por enquanto cada dominio so tem 1 switch (c0(root1)-s1  e c1(root2)-s2)
-        # ex: switch s1 - conexao direta com root1
-        #switch.addRegraF('0.0.0.0',IPC,None,switch.getPortaSaida(IPC),FILA_CONTROLE, None,0)
-        #testando se segue as acoes em ordem vetorial [ sim eh em ordem vetorial ]
+        #se for o switch que conecta ao controlador, configurar a tabela de pre-marcacao e 
+        if datapath.id == 2 or datapath.id == 5:
 
-        #obs: se nao fosse o ultimo switch, que conecta com o controlador, o ip teria de ser o ficticio, mas como eh o ultimo, o ip ficticio eh traduzido antes dessa regra, entao tem que ser o original - assim como esta feito
-        actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(IPC))]
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=IPC)
-        mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=FORWARD_TABLE)
-        datapath.send_msg(mod)
+            ### tabela 0 de pre-marcacao, para lidar com os ips ficticios dos controladores
+            actions = [parser.OFPActionSetField(ipv4_src=TC[IPC])]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
+            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=IPC)
+            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
+            datapath.send_msg(mod)
+
+            actions = [parser.OFPActionSetField(ipv4_dst=IPC)]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
+            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=TC[IPC])
+            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
+            datapath.send_msg(mod)
+
+            #criar a regra para o controlador do dominio
+            #obs: se nao fosse o ultimo switch, que conecta com o controlador, o ip teria de ser o ficticio, mas como eh o ultimo, o ip ficticio eh traduzido antes dessa regra, entao tem que ser o original - assim como esta feito
+            actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(IPC))]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=IPC)
+            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=FORWARD_TABLE)
+            datapath.send_msg(mod)
+        else:
+            #tornar a tabela de classificacao a tabela zero
+
+
+            #criar a regra para o controlador do dominio
+            #obs: se nao fosse o ultimo switch, que conecta com o controlador, o ip teria de ser o ficticio, mas como eh o ultimo, o ip ficticio eh traduzido antes dessa regra, entao tem que ser o original - assim como esta feito
+            actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(TC[IPC]))]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=TC[IPC])
+            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=FORWARD_TABLE)
+            datapath.send_msg(mod)
+
 
 #        print(datapath.address)
 #        print(ev.__dict__)
@@ -1546,7 +1659,7 @@ class Dinamico(app_manager.RyuApp):
         #analisar o pacote recebido usando a biblioteca packet
         pkt = packet.Packet(msg.data)
 
-        #print("[event] Packet_in -- switch: %s\n [Inspecionando pkt]\n" % (str(dpid)))
+        print("[event] Packet_in -- switch: %s\n [Inspecionando pkt]\n" % (str(dpid)))
         #print("Cabecalhos:\n")
         # for p in pkt.protocols:
             # print (p)
@@ -1570,9 +1683,9 @@ class Dinamico(app_manager.RyuApp):
 
         pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
         if pkt_ipv4:
-            #print("\nPacote IPv4: ")
             ip_src = pkt_ipv4.src
             ip_dst = pkt_ipv4.dst
+            print("\nPacote IPv4: src:%s; dst:%s\n" %(ip_src, ip_dst))
 
         #obter porta de entrada qual o switch recebeu o pacote
         in_port = msg.match['in_port']

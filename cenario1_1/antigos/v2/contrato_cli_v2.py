@@ -1,10 +1,6 @@
 import socket
 import sys #para usar os parametros por linha de comando
 import json
-#lidar com bytes
-import struct
-#coletar tempo
-import time
 
 #alterado para o endereco ip ficticio do controlador
 HOST="10.10.10.1"
@@ -46,13 +42,12 @@ contrato = {
             "classe":sys.argv[6]
             }
         }
-contrato_json=json.dumps(contrato).encode('utf-8')
+contrato_json=json.dumps(contrato, ensure_ascii= False)
 print(contrato_json)
+tcp.sendall(contrato_json.encode())
+#tcp.sendall(bytes(contrato_json,encoding="utf-8"))
 
-qtdBytes = struct.pack('<i',len(contrato_json))
-
-print("host: enviando contrato %d\n" %(round(time.monotonic() * 1000)))
-tcp.send(qtdBytes)
-tcp.send(contrato_json)
+#for i in range(0,100):
+#    tcp.sendall(b"Aqui FUNCIONOU")
 
 tcp.close()

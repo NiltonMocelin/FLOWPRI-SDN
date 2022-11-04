@@ -52,8 +52,8 @@ def myNet():
 
     intfh4 = net.addLink(h4, s2, port2=1, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
 
-    net.addLink(s1, s2, port1=4, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
-    net.addLink(s2, s3, port1=4, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
+    net.addLink(s1, s2, port1=4, port2=2, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
+    net.addLink(s2, s3, port1=3, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
     
 
     #Criar um host no root namespace e linkar com o switch -- sobe o controlador, mas os hosts nao enxergam

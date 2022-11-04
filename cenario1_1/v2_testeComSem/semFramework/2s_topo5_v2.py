@@ -16,11 +16,11 @@ from mininet.util import dumpNodeConnections
 # obs: na verdade, o root1 sobe o controlador sim !! esta funcionando sem ter esse encaminhamento.
 #
 #
-#   root1--c0                  root2--c1
-#      \ /                       \  / 
-#       s1 - - - - - r1 - - - - - - s2
-#     /  |  \                      |
-#   h1  h2   h3                    h4
+#    s1 ----- s2
+#   /          \
+#  h1          h2
+
+
 
 def myNet():
 
@@ -43,7 +43,6 @@ def myNet():
     # Create switches
     s1 = net.addSwitch( 's1', listenPort=6634, mac='00:00:00:00:00:01', dpid='0000000000000001',protocols="OpenFlow10,OpenFlow12,OpenFlow13")
     s2 = net.addSwitch( 's2', listenPort=6635, mac='00:00:00:00:00:02', dpid='0000000000000002',protocols="OpenFlow10,OpenFlow12,OpenFlow13")
-    r1 = net.addSwitch( 'r1', listenPort=6636, mac='00:00:00:00:00:03', dpid='0000000000000003',protocols="OpenFlow10,OpenFlow12,OpenFlow13")
 
     print ("*** Creating links")
     intfh1 = net.addLink(h1, s1, port2=1, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
@@ -52,10 +51,7 @@ def myNet():
 
     intfh4 = net.addLink(h4, s2, port2=1, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
 
-    
-    net.addLink(s1, r1, port1=4, port2=1, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
-
-    net.addLink(r1, s2, port1=2, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
+    net.addLink(s1, s2, port1=4, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
     
 
     #Criar um host no root namespace e linkar com o switch -- sobe o controlador, mas os hosts nao enxergam
@@ -69,9 +65,6 @@ def myNet():
     c0= net.addController( 'c0', controller=RemoteController, ip=CONTROLLER_IP, port=7000)
 
     c1 = net.addController( 'c1', controller=RemoteController, ip=CONTROLLER_IP, port=6699)
-
-    #controlador ficticio para nao linkar o roteador com o framework
-    c2 = net.addController( 'c2', controller=RemoteController, ip=CONTROLLER_IP, port=9999)
 
     net.build()
     net.start()
@@ -170,7 +163,6 @@ def myNet():
 # Connect each switch to a different controller
     s1.start( [c0] )
     s2.start( [c1] )
-    r1.start( [c2] )
 
     s1.cmdPrint('ovs-vsctl show')
  

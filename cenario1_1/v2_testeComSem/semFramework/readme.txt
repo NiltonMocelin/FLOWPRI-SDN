@@ -4,4 +4,20 @@
    /   \
   h1   h2
 
-- tomar o tempo 
+# 2 switches
+    s1 ----- s2
+   /          \
+  h1          h2
+
+
+
+# 3 switches
+
+    s1 ----- s2 ----- s3
+   /                    \
+  h1                    h2
+
+# 4 switches
+    s1 ----- s2 ----- s3 ----- s4
+   /                            \
+  h1                            h2

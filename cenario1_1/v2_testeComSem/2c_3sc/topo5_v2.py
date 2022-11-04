@@ -56,11 +56,11 @@ def myNet():
 
     intfh4 = net.addLink(h4, s6, port2=1, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
 
-    net.addLink(s1, s2, port1=4, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
-    net.addLink(s2, s3, port1=4, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
-    net.addLink(s3, s4, port1=4, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
-    net.addLink(s4, s5, port1=4, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
-    net.addLink(s5, s6, port1=4, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
+    net.addLink(s1, s2, port1=4, port2=1, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
+    net.addLink(s2, s3, port1=2, port2=1, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
+    net.addLink(s3, s4, port1=2, port2=1, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
+    net.addLink(s4, s5, port1=2, port2=1, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
+    net.addLink(s5, s6, port1=2, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
     
 
     #Criar um host no root namespace e linkar com o switch -- sobe o controlador, mas os hosts nao enxergam

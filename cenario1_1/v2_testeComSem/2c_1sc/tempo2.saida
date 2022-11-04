@@ -1,3 +1,10 @@
+#TOPO - h1: criado contrato + ping -c 1 172.16.10.4
+[root1-c1]      [root2-c2]
+    |               |
+    s1 ------------s2
+    /               \
+ h1                 h4
+
 Enviando contrato para -> HOST:10.10.10.1, PORT: 4444
 
 b'{"contrato": {"ip_origem": "172.16.10.1", "ip_destino": "172.16.10.4", "banda": "1000", "prioridade": "1", "classe": "1"}}'
