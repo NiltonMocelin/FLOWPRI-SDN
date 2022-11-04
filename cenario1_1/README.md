@@ -3,6 +3,7 @@
 # Estado atual
 
 * Versão: v2 - foi refeita a funcao getRotas e a switch_features ficou mais generica, para habilitar os testes com multiplos controladores
+* Pegar o c3_1sc como base e refazer as regras de pre-marcacao - estao erradas ...
 
 * refazendo todos os testes - coletar os tempos
 

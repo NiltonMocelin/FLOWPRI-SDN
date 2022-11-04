@@ -44,10 +44,13 @@ TC['10.10.10.1'] = '10.123.123.1'
 ############################################
 #CONTROLADOR C1
 #cada controlador deve ter o seu
+CONTROLADOR_ID = 1
 IPC = "10.123.123.1" #IP do root/controlador
 MACC = "00:00:00:00:00:05" #MAC do root/controlador
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
+#dictionary com os ips e as conversoes em ficticios, especifico para cada controlador
+IPS_FIC = {}
 
 FILA_C1P1=0
 FILA_C1P2=1
@@ -1237,6 +1240,20 @@ class Dinamico(app_manager.RyuApp):
         self.mac_to_port = {}
         self.ip_to_mac = {}
 
+
+        if CONTROLADOR_ID == 1:
+            IPS_FIC['10.10.10.2']='20.10.10.2'
+            IPS_FIC['10.10.10.3']='20.10.10.3'
+        elif CONTROLADOR_ID == 2:
+            IPS_FIC['10.10.10.1']='20.20.20.1'
+            IPS_FIC['10.10.10.3']='20.20.20.3'
+        elif CONTROLADOR_ID == 3:
+            IPS_FIC['10.10.10.1']='20.30.30.1'
+            IPS_FIC['10.10.10.2']='20.30.30.2'
+        else:
+            print("ERRO - ID de controlador desconhecido ou nao configurado\nVAI DAR ERRO EM ALGUM LUGAR ADIANTE (nao sera encerrado)\n")
+
+
         print("Init Over\n")
 
 
@@ -1370,14 +1387,17 @@ class Dinamico(app_manager.RyuApp):
 
         #se for o switch que conecta ao controlador, configurar a tabela de pre-marcacao e 
         if datapath.id == 1 or datapath.id == 2:
-
+            
+            ###### default
             ### tabela 0 de pre-marcacao, para lidar com os ips ficticios dos controladores
+            #ida
             actions = [parser.OFPActionSetField(ipv4_src=TC[IPC])]
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
             match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=IPC)
             mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
             datapath.send_msg(mod)
 
+            #chegada
             actions = [parser.OFPActionSetField(ipv4_dst=IPC)]
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
             match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=TC[IPC])
@@ -1436,6 +1456,16 @@ class Dinamico(app_manager.RyuApp):
     	#Regras ICMP inf. Req. e inf. reply --
         
         #as demais regras de marcacao sao feitas com base no packet_in e contratos
+
+    def addRegraPre(self, datapath, ip_src, ip_dst, novo_ip_src, novo_ip_dst):
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+
+        actions = [parser.OFPActionSetField(ipv4_src=novo_ip_dst), parser.OFPActionSetField(ipv4_src=novo_ip_src)]
+        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=ip_dst, ipv4_src=ip_src)
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
+        mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
+        datapath.send_msg(mod)
 
 
     def add_flow(self, datapath, priority, match, actions, table_id, buffer_id=None):
@@ -1746,7 +1776,7 @@ class Dinamico(app_manager.RyuApp):
 
                 switch_ultimo_dp = switch_ultimo.getDP()
                 print("[ICMP-15] Dando sequencia no icmp 15 criando no ultimo switch da rota \n src:%s, dst:%s, saida:%d\n", ip_src, ip_dst, out_port)
-                send_icmp(switch_ultimo_dp, src, ip_src, dst, ip_dst,out_port,0,pkt.data,1,15,64)
+                send_icmp(switch_ultimo_dp, src, ip_src, dst, ip_dst,out_port,0,pkt_icmp.data,1,15,64)
                 return 
                 
     ############################3
@@ -1871,7 +1901,7 @@ class Dinamico(app_manager.RyuApp):
                 #reinjetar o icmp no switch mais da borda proxima do destino
                 print("[ICMP-16] recriando icmp 16 no switch mais proximo src:%s dst:%s out:%s:%d\n" % (ip_src, ip_dst, switch_primeiro.nome, out_port))
                 out_port = switch_primeiro.getPortaSaida(ip_dst)
-                send_icmp(switch_primeiro.datapath, src, ip_src, dst, ip_dst, out_port, 0,pkt.data,1,16,64)
+                send_icmp(switch_primeiro.datapath, src, ip_src, dst, ip_dst, out_port, 0,pkt_icmp.data,1,16,64)
                 return
         
         #######         Buscar correspondencia Pkt-in com contratos         ############

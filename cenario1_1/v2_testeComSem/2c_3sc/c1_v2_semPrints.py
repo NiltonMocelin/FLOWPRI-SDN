@@ -1297,13 +1297,12 @@ class Dinamico(app_manager.RyuApp):
         #em breve serao redes separadas
         #switch S1 - dominio C1 --- arrumado -> porta eh agr um inteiro
         if datapath.id == 1:
+            #configurando onde estao os hosts
+            LISTA_HOSTS['172.16.10.1']=1
+            LISTA_HOSTS['172.16.10.2']=1
+            LISTA_HOSTS['172.16.10.3']=1
+            LISTA_HOSTS['172.16.10.4']=6
 
-            LISTA_HOSTS['10.10.10.1'] = 1
-            LISTA_HOSTS['10.123.123.1'] = 1
-            LISTA_HOSTS['172.16.10.1'] = 1
-            LISTA_HOSTS['172.16.10.2'] = 1
-            LISTA_HOSTS['172.16.10.3'] = 1
-            
             switch.addRede('172.16.10.1',1) #rota para destino h1->s1-eth1
             switch.addRede('172.16.10.2',2)
             switch.addRede('172.16.10.3',3)
@@ -1311,22 +1310,80 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.123.123.1',5) #rota para controlador do S1
             switch.addRede('10.123.123.2',4) #rota para controlador do S2
             switch.addRede('10.10.10.2',4) #rota para controlador do S2
-            switch.addRede('10.10.10.1',5) #rota para controlador do S1
+            switch.addRede('10.10.10.1',4) #rota para controlador do S1
 
-            # portas ligadas a hosts ou a outros dominios: next = -1; significa que nao podemos pegar switches alem dessa conexao
+            # portas ligadas a hosts: next = -1
             switch.getPorta(1).next=-1
             switch.getPorta(2).next=-1
             switch.getPorta(3).next=-1
             #s1:4 <-> s2:1
-            switch.getPorta(4).next=-2
-
-            #root1-c1
-            switch.getPorta(5).next=-1
-		
+            switch.getPorta(4).next=2
 		
 		#switch S2 - dominio C2
         elif datapath.id == 2:
 
+            switch.addRede('172.16.10.4',2)
+            switch.addRede('172.16.10.1',1)
+            switch.addRede('172.16.10.2',1)
+            switch.addRede('172.16.10.3',1)
+            switch.addRede('10.123.123.2',2) #rota para controlador do S2
+            switch.addRede('10.123.123.1',5) #rota para controlador do S1
+            switch.addRede('10.10.10.2',2) #rota para controlador do S2
+            switch.addRede('10.10.10.1',5) #rota para controlador do S1
+
+            #
+            switch.getPorta(1).next=1
+            switch.getPorta(2).next=3
+            #destino host-controlador
+            switch.getPorta(5).next=-1
+
+        elif datapath.id == 3:
+            switch.addRede('172.16.10.4',2)
+            switch.addRede('172.16.10.1',1)
+            switch.addRede('172.16.10.2',1)
+            switch.addRede('172.16.10.3',1)
+            switch.addRede('10.123.123.2',2) #rota para controlador do S2
+            switch.addRede('10.123.123.1',1) #rota para controlador do S1
+            switch.addRede('10.10.10.2',2) #rota para controlador do S2
+            switch.addRede('10.10.10.1',1) #rota para controlador do S1
+            
+            #
+            switch.getPorta(1).next=2
+            #porta 2 conecta com outro dominio
+            switch.getPorta(2).next=-4
+            
+
+        elif datapath.id == 4:
+            switch.addRede('172.16.10.4',2)
+            switch.addRede('172.16.10.1',1)
+            switch.addRede('172.16.10.2',1)
+            switch.addRede('172.16.10.3',1)
+            switch.addRede('10.123.123.2',2) #rota para controlador do S2
+            switch.addRede('10.123.123.1',1) #rota para controlador do S1
+            switch.addRede('10.10.10.2',2) #rota para controlador do S2
+            switch.addRede('10.10.10.1',1) #rota para controlador do S1
+
+            # porta 1 conecta com outro dominio
+            switch.getPorta(1).next=-3
+            switch.getPorta(2).next=5
+   
+        elif datapath.id == 5:
+            switch.addRede('172.16.10.4',2)
+            switch.addRede('172.16.10.1',1)
+            switch.addRede('172.16.10.2',1)
+            switch.addRede('172.16.10.3',1)
+            switch.addRede('10.123.123.2',5) #rota para controlador do S2
+            switch.addRede('10.123.123.1',1) #rota para controlador do S1
+            switch.addRede('10.10.10.2',5) #rota para controlador do S2
+            switch.addRede('10.10.10.1',1) #rota para controlador do S1
+
+            #
+            switch.getPorta(1).next=4
+            switch.getPorta(2).next=6
+            #destino host-controlador
+            switch.getPorta(5).next=-1
+   
+        elif datapath.id == 6:
             LISTA_HOSTS['10.10.10.2'] = 2
             LISTA_HOSTS['10.123.123.2'] = 2
             LISTA_HOSTS['172.16.10.4'] = 2
@@ -1335,17 +1392,18 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('172.16.10.1',4)
             switch.addRede('172.16.10.2',4)
             switch.addRede('172.16.10.3',4)
-            switch.addRede('10.123.123.2',5) #rota para controlador do S2
+            switch.addRede('10.123.123.2',4) #rota para controlador do S2
             switch.addRede('10.123.123.1',4) #rota para controlador do S1
-            switch.addRede('10.10.10.2',5) #rota para controlador do S2
+            switch.addRede('10.10.10.2',4) #rota para controlador do S2
             switch.addRede('10.10.10.1',4) #rota para controlador do S1
 
-            # portas ligadas a hosts: next = -1
+            #liga com o host 4
             switch.getPorta(1).next=-1
-            switch.getPorta(4).next=-2
-            
-            #root2-c2
-            switch.getPorta(5).next=-1
+            switch.getPorta(4).next=5
+   
+        else:
+            print("switch desconhecido\n")
+            return
    
         switches.append(switch)
         print("\nSwitch criado\n")

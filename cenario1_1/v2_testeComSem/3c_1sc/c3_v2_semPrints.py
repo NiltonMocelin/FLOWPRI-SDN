@@ -44,10 +44,10 @@ TC['10.10.10.1'] = '10.123.123.1'
 ############################################
 # informacoes armazenadas pelo controlador #
 ############################################
-#CONTROLADOR C2
+#CONTROLADOR C3
 #cada controlador deve ter o seu
-CONTROLADOR_ID = 2
-IPC = "10.123.123.2" #IP do root/controlador
+CONTROLADOR_ID = 3
+IPC = "10.123.123.3" #IP do root/controlador
 MACC = "00:00:00:00:00:06" #MAC do root/controlador
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
