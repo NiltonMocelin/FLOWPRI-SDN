@@ -3,7 +3,14 @@
 # Estado atual
 
 * Versão: v2 - foi refeita a funcao getRotas e a switch_features ficou mais generica, para habilitar os testes com multiplos controladores
-* Pegar o c3_1sc como base e refazer as regras de pre-marcacao - estao erradas ...
+* c3_1sc está correto: tinha um arp errado na topologia por isso não estava funcionando ....
+* c3_1sc - framework funcionando para 3 controladores. Infelizmente, é preciso configurar no código (não deu tempo de fazer por arquivo por exemplo).
+
+- [Funcionando+testado] Para 3 controladores e 1 switch cada 
+- [Nao-testado] Para 3 controladores e multiplos switches (teria que colocar as configuracoes de rotas nos switches)
+
+* único problema que torna meio irreal é: durante o estabelecimento do contrato já queremos criar as regras, mas nesse momento não sabemos qual o switch que recebeu o contrato primeiro. Assim, não teria como pegar as rotas baseado no switch de packet_in, conforme pensado a principio. Então é colocado em um vetor, qual seria o switch que inicia a rota para um host. Poderia ser por prefixo tbm - enfim, rotas não é o escopo do trabalho, assumimos que é sempre possível obter os switches que pertencem a uma rota entre host origem e destino.
+
 
 * refazendo todos os testes - coletar os tempos
 

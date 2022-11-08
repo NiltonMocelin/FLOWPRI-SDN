@@ -39,7 +39,13 @@ TC['10.123.123.2'] = '10.10.10.2'
 TC['10.123.123.3'] = '10.10.10.3'
 TC['10.10.10.3'] = '10.123.123.3'
 TC['10.10.10.2'] = '10.123.123.2'
-TC['10.10.10.1'] = '10.123.123.1'
+TC['10.10.10.3'] = '10.123.123.3'
+TC['20.10.10.3'] = '10.10.10.3'
+TC['20.10.10.2'] = '10.10.10.2'
+TC['20.20.20.1'] = '10.10.10.1'
+TC['20.20.20.3'] = '10.10.10.3'
+TC['20.30.30.1'] = '10.10.10.1'
+TC['20.30.30.2'] = '10.10.10.2'
 
 ############################################
 # informacoes armazenadas pelo controlador #
@@ -48,7 +54,7 @@ TC['10.10.10.1'] = '10.123.123.1'
 #cada controlador deve ter o seu
 CONTROLADOR_ID = 3
 IPC = "10.123.123.3" #IP do root/controlador
-MACC = "00:00:00:00:00:06" #MAC do root/controlador
+MACC = "00:00:00:00:00:07" #MAC do root/controlador
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
 #dictionary com os ips e as conversoes em ficticios, especifico para cada controlador
@@ -453,13 +459,13 @@ t2.start()
 #t1.join()
 
 def enviar_contratos(host_ip, host_port, ip_dst_contrato):
+    print("[enviar-contratos] p/ ip_dst: %s, port_dst: %s" %(host_ip, host_port))
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp.connect((host_ip, host_port))
  
  #teste envio [ok]
 #    tcp.connect(("10.123.123.2", host_port))
 
-    print("[enviar-contratos] ip_dst: %s, port_dst: %s" %(host_ip, host_port))
     contratos_contador = 0
     #contar quantos contratos enviar
     for i in contratos:
@@ -1318,9 +1324,12 @@ class Dinamico(app_manager.RyuApp):
 
             LISTA_HOSTS['10.10.10.1'] = 1
             LISTA_HOSTS['10.123.123.1'] = 1
+            # dizendo qual o primeiro switch da rota para os hosts determinados
             LISTA_HOSTS['172.16.10.1'] = 1
             LISTA_HOSTS['172.16.10.2'] = 1
             LISTA_HOSTS['172.16.10.3'] = 1
+            LISTA_HOSTS['172.16.10.4'] = 1
+            #
             
             switch.addRede('172.16.10.1',1) #rota para destino h1->s1-eth1
             switch.addRede('172.16.10.2',2)
@@ -1332,6 +1341,9 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.10.10.2',4) #rota para controlador do S2
             switch.addRede('10.10.10.1',5) #rota para controlador do S1
             switch.addRede('10.10.10.3',4) #rota para controlador do S1
+            switch.addRede('20.10.10.2',4) #rota para controlador do S2
+            switch.addRede('20.10.10.1',5) #rota para controlador do S1
+            switch.addRede('20.10.10.3',4) #rota para controlador do S1
 
             # portas ligadas a hosts ou a outros dominios: next = -1; significa que nao podemos pegar switches alem dessa conexao
             switch.getPorta(1).next=-1
@@ -1349,6 +1361,13 @@ class Dinamico(app_manager.RyuApp):
 
             LISTA_HOSTS['10.10.10.2'] = 2
             LISTA_HOSTS['10.123.123.2'] = 2
+            # dizendo qual o primeiro switch da rota para os hosts determinados
+            LISTA_HOSTS['172.16.10.1'] = 2
+            LISTA_HOSTS['172.16.10.2'] = 2
+            LISTA_HOSTS['172.16.10.3'] = 2
+            LISTA_HOSTS['172.16.10.4'] = 2
+            #
+            
 
             switch.addRede('172.16.10.4',3)
             switch.addRede('172.16.10.1',2)
@@ -1360,6 +1379,9 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.10.10.2',5) #rota para controlador do S2
             switch.addRede('10.10.10.1',2) #rota para controlador do S1
             switch.addRede('10.10.10.3',3) #rota para controlador do S1
+            switch.addRede('20.20.20.2',5) #rota para controlador do S2
+            switch.addRede('20.20.20.1',2) #rota para controlador do S1
+            switch.addRede('20.20.20.3',3) #rota para controlador do S1
 
             # portas ligadas a hosts: next = -1
             switch.getPorta(2).next=-1
@@ -1372,7 +1394,12 @@ class Dinamico(app_manager.RyuApp):
 
             LISTA_HOSTS['10.10.10.3'] = 3
             LISTA_HOSTS['10.123.123.3'] = 3
+            # dizendo qual o primeiro switch da rota para os hosts determinados
+            LISTA_HOSTS['172.16.10.1'] = 3
+            LISTA_HOSTS['172.16.10.2'] = 3
+            LISTA_HOSTS['172.16.10.3'] = 3
             LISTA_HOSTS['172.16.10.4'] = 3
+            #
 
             switch.addRede('172.16.10.4',1)
             switch.addRede('172.16.10.1',4)
@@ -1384,6 +1411,9 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.10.10.3',5)
             switch.addRede('10.10.10.2',4) #rota para controlador do S2
             switch.addRede('10.10.10.1',4) #rota para controlador do S1
+            switch.addRede('20.30.30.3',5)
+            switch.addRede('20.30.30.2',4) #rota para controlador do S2
+            switch.addRede('20.30.30.1',4) #rota para controlador do S1
 
             # portas ligadas a hosts: next = -1
             switch.getPorta(1).next=-1
@@ -1424,8 +1454,27 @@ class Dinamico(app_manager.RyuApp):
             #alem das conversoes do proprio controlador
 
             #nao criar regras para si mesmo -- feito da pior forma possivel mas enfim.
-            if datapath.id != 1:
+            if datapath.id == 1:
                 #comunicacao com c1
+                #10.10.10.2->20.10.10.2
+                #ida
+                #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
+                self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.2'], TC[IPC], '10.10.10.2')
+
+                #chegada
+                #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
+                self.addRegraPre(datapath, '10.10.10.2', '10.10.10.1', IPS_FIC['10.10.10.2'], IPC)
+
+                #10.10.10.3->20.10.10.3
+                self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.3'], TC[IPC], '10.10.10.3')
+
+                #chegada
+                #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
+                self.addRegraPre(datapath, '10.10.10.3', '10.10.10.1', IPS_FIC['10.10.10.3'], IPC)
+
+            if datapath.id == 2:
+                #comunicacao com c2
+                #10.10.10.1->20.20.20.1
                 #ida
                 #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
                 self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.1'], TC[IPC], '10.10.10.1')
@@ -1434,18 +1483,7 @@ class Dinamico(app_manager.RyuApp):
                 #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
                 self.addRegraPre(datapath, '10.10.10.1', TC[IPC], IPS_FIC['10.10.10.1'], IPC)
 
-            if datapath.id != 2:
-                #comunicacao com c2
-                #ida
-                #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-                self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.2'], TC[IPC], '10.10.10.2')
-
-                #chegada
-                #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-                self.addRegraPre(datapath, '10.10.10.2', TC[IPC], IPS_FIC['10.10.10.2'], IPC)
-
-            if datapath.id != 3:
-                #comunicacao com c3
+                #10.10.10.3->20.20.20.3
                 #ida
                 #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
                 self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.3'], TC[IPC], '10.10.10.3')
@@ -1453,6 +1491,26 @@ class Dinamico(app_manager.RyuApp):
                 #chegada
                 #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
                 self.addRegraPre(datapath, '10.10.10.3', TC[IPC], IPS_FIC['10.10.10.3'], IPC)
+
+            if datapath.id == 3:
+                #comunicacao com c3
+                #10.10.10.1->20.30.30.1
+                #ida
+                #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
+                self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.1'], TC[IPC], '10.10.10.1')
+
+                #chegada
+                #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
+                self.addRegraPre(datapath, '10.10.10.1', TC[IPC], IPS_FIC['10.10.10.1'], IPC)
+
+                #10.10.10.2->20.30.30.2
+                #ida
+                #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
+                self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.2'], TC[IPC], '10.10.10.2')
+
+                #chegada
+                #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
+                self.addRegraPre(datapath, '10.10.10.2', TC[IPC], IPS_FIC['10.10.10.2'], IPC)
 
             ###### default para conversar com os 
             #ida
@@ -1476,7 +1534,7 @@ class Dinamico(app_manager.RyuApp):
             actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(IPC))]
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
             match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=IPC)
-            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=FORWARD_TABLE)
+            mod = parser.OFPFlowMod(datapath=datapath, priority=105, match=match, instructions=inst, table_id=FORWARD_TABLE)
             datapath.send_msg(mod)
         else:
             #tornar a tabela de classificacao a tabela zero
@@ -1528,7 +1586,7 @@ class Dinamico(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
-        actions = [parser.OFPActionSetField(ipv4_src=novo_ip_dst), parser.OFPActionSetField(ipv4_dst=novo_ip_dst)]
+        actions = [parser.OFPActionSetField(ipv4_src=novo_ip_src), parser.OFPActionSetField(ipv4_dst=novo_ip_dst)]
         match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=ip_dst, ipv4_src=ip_src)
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
         mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
@@ -1854,6 +1912,8 @@ class Dinamico(app_manager.RyuApp):
     ############################
             #pkt: responder o arp caso seja para o endereco do controlador-> information reply (enviar os contratos para este controlador)
             if pkt_icmp.type==16:
+
+
                 print("[ICMP-16] Recebido\n")
                 addControladorConhecido(ip_src)
 
@@ -1900,15 +1960,15 @@ class Dinamico(app_manager.RyuApp):
 
                     #criar a regra de encaminhamento + marcacao --- para enviar os contratos
                     #regra de marcacao - apenas no switch que esta conectado ao controlador
-                    #primeiro switch == switch conectado ao controlador
-                    switch_primeiro.addRegraC(TC[ip_dst], ip_src, 61)
+                    #primeiro switch == switch conectado ao controlador - alterado para TC[ip_src]
+                    switch_primeiro.addRegraC(TC[ip_dst], TC[ip_src], 61)
 
                     #out_port = switch_primeiro.getPortaSaida(ip_src)
 
                     #criar regras de encaminhamento de contratos nos switches da rota 
                     for s in switches_rota:
                         out_port = s.getPortaSaida(ip_src)
-                        s.alocarGBAM(out_port, TC[ip_dst], ip_src, '1000', '2', '4') #criando as regras
+                        s.alocarGBAM(out_port, TC[ip_dst], TC[ip_src], '1000', '2', '4') #criando as regras - alterado para tc[ip_src]
 
                     #criando a volta tbm pq precisa estabelecer a conexao
                     

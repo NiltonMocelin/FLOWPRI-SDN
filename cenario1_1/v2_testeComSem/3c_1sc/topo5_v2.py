@@ -125,9 +125,9 @@ def myNet():
     #root2.cmd( 'route add -host 10.123.123.1 dev root2-eth0')
     #root2.cmd( 'arp -s 10.123.123.1 00:00:00:00:00:05' )
     root2.cmd( 'route add -host 20.20.20.1 dev root2-eth0')
-    root2.cmd( 'arp -s 20.10.10.1 00:00:00:00:00:05' )
+    root2.cmd( 'arp -s 20.20.20.1 00:00:00:00:00:05' )
     root2.cmd( 'route add -host 20.20.20.3 dev root2-eth0')
-    root2.cmd( 'arp -s 20.10.10.3 00:00:00:00:00:07' )
+    root2.cmd( 'arp -s 20.20.20.3 00:00:00:00:00:07' )
 
     root3.cmd( 'route add -host 172.16.10.4 dev root3-eth0')
     root3.cmd( 'arp -s 172.16.10.4 b2:2c:c7:c1:72:a4' )
@@ -135,7 +135,7 @@ def myNet():
     #ips ficticios
     root3.cmd( 'arp -s 20.30.30.1 00:00:00:00:00:05' )
     root3.cmd( 'route add -host 20.30.30.2 dev root3-eth0')
-    root3.cmd( 'arp -s 20.30.30.1 00:00:00:00:00:06' )
+    root3.cmd( 'arp -s 20.30.30.2 00:00:00:00:00:06' )
 
     h1.cmd('route add -host 172.16.10.2 dev h1-eth0')
     h1.cmd('route add -host 172.16.10.3 dev h1-eth0')
