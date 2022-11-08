@@ -94,8 +94,15 @@ def myNet():
     #endereco ipv4 ficticio de root1 para root2 (10.123.123.2) - para forcar encaminhar pela interface root2-eth0
     #root1.cmd( 'route add -host 10.123.123.2 dev root1-eth0')
     #root1.cmd( 'arp -s 10.123.123.2 00:00:00:00:00:06' )
-    root1.cmd( 'route add -host 10.10.10.2 dev root1-eth0')
-    root1.cmd( 'arp -s 10.10.10.2 00:00:00:00:00:06' )
+    #controlador c2
+    root1.cmd( 'route add -host 20.10.10.2 dev root1-eth0')
+    root1.cmd( 'arp -s 20.10.10.2 00:00:00:00:00:06' )
+    #controlador c3
+    root1.cmd( 'route add -host 20.10.10.3 dev root1-eth0')
+    root1.cmd( 'arp -s 20.10.10.3 00:00:00:00:00:07' )
+    #controlador c4
+    root1.cmd( 'route add -host 20.10.10.4 dev root1-eth0')
+    root1.cmd( 'arp -s 20.10.10.3 00:00:00:00:00:08' )
 
     #os controladores conhecem apenas os hosts do seu dominio
     root2.cmd( 'route add -host 172.16.10.4 dev root2-eth0')
@@ -104,8 +111,28 @@ def myNet():
     #endereco ipv4 ficticio de root2 para root1 (10.123.123.1) - para forcar encaminhar pela interface root2-eth0
     #root2.cmd( 'route add -host 10.123.123.1 dev root2-eth0')
     #root2.cmd( 'arp -s 10.123.123.1 00:00:00:00:00:05' )
-    root2.cmd( 'route add -host 10.10.10.1 dev root2-eth0')
-    root2.cmd( 'arp -s 10.10.10.1 00:00:00:00:00:05' )
+    root2.cmd( 'route add -host 20.20.20.1 dev root2-eth0')
+    root2.cmd( 'arp -s 20.20.20.1 00:00:00:00:00:05' )
+    root2.cmd( 'route add -host 20.20.20.3 dev root2-eth0')
+    root2.cmd( 'arp -s 20.20.20.3 00:00:00:00:00:07' )
+    root2.cmd( 'route add -host 20.20.20.4 dev root2-eth0')
+    root2.cmd( 'arp -s 20.20.20.4 00:00:00:00:00:08' )
+
+    #ips ficticios
+    root3.cmd( 'route add -host 20.30.30.1 dev root3-eth0')
+    root3.cmd( 'arp -s 20.30.30.1 00:00:00:00:00:05' )
+    root3.cmd( 'route add -host 20.30.30.2 dev root3-eth0')
+    root3.cmd( 'arp -s 20.30.30.2 00:00:00:00:00:06' )
+    root3.cmd( 'route add -host 20.30.30.4 dev root3-eth0')
+    root3.cmd( 'arp -s 20.30.30.4 00:00:00:00:00:08' )
+
+    #ips ficticios  
+    root4.cmd( 'route add -host 20.40.40.1 dev root4-eth0')
+    root4.cmd( 'arp -s 20.40.40.1 00:00:00:00:00:05' )
+    root4.cmd( 'route add -host 20.40.40.2 dev root4-eth0')
+    root4.cmd( 'arp -s 20.40.40.2 00:00:00:00:00:06' )
+    root4.cmd( 'route add -host 20.30.30.3 dev root4-eth0')
+    root4.cmd( 'arp -s 20.40.40.4 00:00:00:00:00:07' )
 
     h1.cmd('route add -host 172.16.10.2 dev h1-eth0')
     h1.cmd('route add -host 172.16.10.3 dev h1-eth0')
@@ -114,6 +141,8 @@ def myNet():
     h1.cmd('route add -host 10.123.123.2 dev h1-eth0')
     h1.cmd('route add -host 10.10.10.1 dev h1-eth0')
     h1.cmd('route add -host 10.10.10.2 dev h1-eth0')
+    h1.cmd('route add -host 10.10.10.3 dev h1-eth0')
+    h1.cmd('route add -host 10.10.10.4 dev h1-eth0')
     #h1.cmd( 'route add -net 10.123.123.0/32 dev ' + str( intfh1 ) )
     h1.cmd('arp -s 172.16.10.2 0e:7b:ac:84:a3:69')
     h1.cmd('arp -s 172.16.10.3 ae:f4:cf:ab:4c:15')
@@ -122,6 +151,8 @@ def myNet():
     h1.cmd('arp -s 10.123.123.2 00:00:00:00:00:06')
     h1.cmd('arp -s 10.10.10.1 00:00:00:00:00:05')
     h1.cmd('arp -s 10.10.10.2 00:00:00:00:00:06')
+    h1.cmd('arp -s 10.10.10.3 00:00:00:00:00:07')
+    h1.cmd('arp -s 10.10.10.4 00:00:00:00:00:08')
 
     h2.cmd('route add -host 172.16.10.1 dev h2-eth0')
     h2.cmd('route add -host 172.16.10.3 dev h2-eth0')
@@ -130,6 +161,8 @@ def myNet():
     h2.cmd('route add -host 10.123.123.2 dev h2-eth0')
     h2.cmd('route add -host 10.10.10.1 dev h2-eth0')
     h2.cmd('route add -host 10.10.10.2 dev h2-eth0')
+    h2.cmd('route add -host 10.10.10.3 dev h2-eth0')
+    h2.cmd('route add -host 10.10.10.4 dev h2-eth0')
     #h2.cmd( 'route add -net 10.123.123.0/32 dev '+ str( intfh2 ) )
     h2.cmd('arp -s 172.16.10.1 8e:49:d6:d3:1e:df')
     h2.cmd('arp -s 172.16.10.3 ae:f4:cf:ab:4c:15')
@@ -138,6 +171,8 @@ def myNet():
     h2.cmd('arp -s 10.123.123.2 00:00:00:00:00:06')
     h2.cmd('arp -s 10.10.10.1 00:00:00:00:00:05')
     h2.cmd('arp -s 10.10.10.2 00:00:00:00:00:06')
+    h2.cmd('arp -s 10.10.10.3 00:00:00:00:00:07')
+    h2.cmd('arp -s 10.10.10.4 00:00:00:00:00:08')
 
 
     h3.cmd('route add -host 172.16.10.2 dev h3-eth0')
@@ -147,6 +182,8 @@ def myNet():
     h3.cmd('route add -host 10.123.123.2 dev h3-eth0')
     h3.cmd('route add -host 10.10.10.1 dev h3-eth0')
     h3.cmd('route add -host 10.10.10.2 dev h3-eth0')
+    h3.cmd('route add -host 10.10.10.3 dev h3-eth0')
+    h3.cmd('route add -host 10.10.10.4 dev h3-eth0')
     #h3.cmd( 'route add -net 10.123.123.0/32 dev ' + str( intfh3 ))
     h3.cmd('arp -s 172.16.10.2 0e:7b:ac:84:a3:69')
     h3.cmd('arp -s 172.16.10.1 8e:49:d6:d3:1e:df')
@@ -155,6 +192,8 @@ def myNet():
     h3.cmd('arp -s 10.123.123.2 00:00:00:00:00:06')
     h3.cmd('arp -s 10.10.10.1 00:00:00:00:00:05')
     h3.cmd('arp -s 10.10.10.2 00:00:00:00:00:06')
+    h3.cmd('arp -s 10.10.10.3 00:00:00:00:00:07')
+    h3.cmd('arp -s 10.10.10.4 00:00:00:00:00:08')
 
 
     h4.cmd('route add -host 172.16.10.2 dev h4-eth0')
@@ -164,6 +203,8 @@ def myNet():
     h4.cmd('route add -host 10.123.123.2 dev h4-eth0')
     h4.cmd('route add -host 10.10.10.1 dev h4-eth0')
     h4.cmd('route add -host 10.10.10.2 dev h4-eth0')
+    h4.cmd('route add -host 10.10.10.3 dev h4-eth0')
+    h4.cmd('route add -host 10.10.10.4 dev h4-eth0')
     #h4.cmd( 'route add -net 10.123.123.0/32 dev ' + str( intfh4 ) )
     h4.cmd('arp -s 172.16.10.2 0e:7b:ac:84:a3:69')
     h4.cmd('arp -s 172.16.10.3 ae:f4:cf:ab:4c:15')
@@ -172,6 +213,8 @@ def myNet():
     h4.cmd('arp -s 10.123.123.2 00:00:00:00:00:06')
     h4.cmd('arp -s 10.10.10.1 00:00:00:00:00:05')
     h4.cmd('arp -s 10.10.10.2 00:00:00:00:00:06')
+    h4.cmd('arp -s 10.10.10.3 00:00:00:00:00:07')
+    h4.cmd('arp -s 10.10.10.4 00:00:00:00:00:08')
 
 
 # Connect each switch to a different controller

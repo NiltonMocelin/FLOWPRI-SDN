@@ -131,8 +131,9 @@ def myNet():
 
     root3.cmd( 'route add -host 172.16.10.4 dev root3-eth0')
     root3.cmd( 'arp -s 172.16.10.4 b2:2c:c7:c1:72:a4' )
-    root3.cmd( 'route add -host 20.30.30.1 dev root3-eth0')
+    
     #ips ficticios
+    root3.cmd( 'route add -host 20.30.30.1 dev root3-eth0')
     root3.cmd( 'arp -s 20.30.30.1 00:00:00:00:00:05' )
     root3.cmd( 'route add -host 20.30.30.2 dev root3-eth0')
     root3.cmd( 'arp -s 20.30.30.2 00:00:00:00:00:06' )
