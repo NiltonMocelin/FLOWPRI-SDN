@@ -30,6 +30,11 @@ from ryu.lib.ovs import vsctl #ovs-vsctl permite conversar com o protocolo OVSDB
 #lidar com bytes
 import struct
 
+#tratar tempo - monotonic clock -> round(time.monotonic()*1000)
+import time
+#prints logging - logging.info('tempo atual %d\n' % (round(time.monotonic()*1000)))
+import logging
+
 ############################################
 #       Tabela de traducao de enderecos de controladores (para burlar o uso da mesma tabela (route) e forcar o encaminhamento pela interface correta)
 #  CADA CONTROLADOR TEM A SUA (caso seja apenas dois controladores, nao tem problema)
@@ -191,6 +196,8 @@ def servidor_socket_hosts():
 
     while True:
         conn, addr = tcp.accept()
+        logging.info('[server-host] conn aceita - tempo: %d\n' % (round(time.monotonic()*1000)))
+
         print("[host]Conectado: ")
         print(addr)
         print("\n")
@@ -201,7 +208,6 @@ def servidor_socket_hosts():
         data = conn.recv(qtdBytes)
         print(data)
         contrato = json.loads(data.encode('utf-8'))
-
 
         #criar as regras de marcacao e encaminhamento nos switches da entre ip_src e ip_dst
 #enviar um icmp 15 ja perguntando se existem controladores interessados em receber o contrato
@@ -234,6 +240,7 @@ def servidor_socket_hosts():
         #pegando as acoes do alocarGBAM
         acoes = []
 
+        logging.info('[server-host] inicio alocarGBAM - tempo: %d\n' % (round(time.monotonic()*1000)))
         #em todos os switches da rota - criar regras de encaminhamento
         #nao precisa injetar o pacote,pois era um contrato para este controlador
         for s in switches_rota:
@@ -257,10 +264,13 @@ def servidor_socket_hosts():
 
         #chegou ate aqui, entao todos os switches possuem espaco para alocar o fluxo
         #executar cada acao de criar/remover regras\
+        logging.info('[server-host] inicio criar regras switches - tempo: %d\n' % (round(time.monotonic()*1000)))
         print("Executar acoes: \n")
         for a in acoes:
             a.executar()
         
+        logging.info('[server-host] fim alocarGBAM - tempo: %d\n' % (round(time.monotonic()*1000)))
+
         #verificar as regras alocadas
         for s in switches_rota:
             s.listarRegras()
@@ -275,6 +285,8 @@ def servidor_socket_hosts():
                 #criando a regra de marcacao - switch mais da borda emissora
                 switches_rota[0].addRegraC(cip_src, cip_dst, a.regra.tos)
                 break
+        
+        logging.info('[server-host] fim criar regras switches - tempo: %d\n' % (round(time.monotonic()*1000)))
 
         #enviando o icmp 15 ---- obs nao posso enviar o icmp 15, pois o controlador nao  conhece o end MAC do destino
         # o melhor jeito seria inserir isso no contrato PENSAR
@@ -292,7 +304,9 @@ def servidor_socket_hosts():
         data = {"ip_src":cip_src}
         data = json.dumps(data)
 
-        send_icmp(switch_ultimo_dp, MACC, TC[IPC], MACC, cip_dst, out_port, 0, data, 1, 15,64)        
+        send_icmp(switch_ultimo_dp, MACC, TC[IPC], MACC, cip_dst, out_port, 0, data, 1, 15,64)
+
+        logging.info('[server-host] fim - tempo: %d\n' % (round(time.monotonic()*1000)))        
         #recebeu um contrato fecha a conexao, se o host quiser enviar mais, que inicie outra
         conn.close()
 
@@ -311,6 +325,8 @@ def servidor_socket_controladores():
 
     while True:
         conn, addr = tcp.accept()
+
+        logging.info('[server-control] inicio - tempo: %d\n' % (round(time.monotonic()*1000)))
         print("[controlador]Conectado: ")
         print(addr)
         print("\n")
@@ -356,6 +372,7 @@ def servidor_socket_controladores():
             #pegando as acoes do alocarGBAM
             acoes = []
 
+            logging.info('[server-control] inicio alocarGBAM - tempo: %d\n' % (round(time.monotonic()*1000)))
             #em todos os switches da rota - criar regras de encaminhamento
             #nao precisa injetar o pacote,pois era um contrato para este controlador
             for s in switches_rota:
@@ -376,7 +393,8 @@ def servidor_socket_controladores():
             if len(acoes_aux)==0:
                 #rejeitar o fluxo
                 continue
-            
+        
+            logging.info('[server-control] inicio criar regras nos switches - tempo: %d\n' % (round(time.monotonic()*1000)))
             #chegou ate aqui, entao todos os switches possuem espaco para alocar o fluxo
             #executar cada acao de criar/remover regras
             for a in acoes:
@@ -393,6 +411,7 @@ def servidor_socket_controladores():
                     switches_rota[0].addRegraC(cip_src, cip_dst, a.regra.tos)
                     break
 
+            logging.info('[server-control] fim alocarGBAM - tempo: %d\n' % (round(time.monotonic()*1000)))
             #Nao enviar um icmp 15, pois o protocolo atual eh que todos respondam o icmp 15 do primeiro controlador
         #fechar a conexao e aguardar nova
         conn.close()
@@ -1578,6 +1597,8 @@ class Dinamico(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def packet_in_handler(self, ev):
 
+        logging.info('[Packet_In] inicio - tempo: %d\n' % (round(time.monotonic()*1000)))
+
         #####           obter todas as informacoes uteis do pacote          #######
         msg = ev.msg #representa a mensagem packet_in
         dp = msg.datapath #representa o switch
@@ -1674,6 +1695,8 @@ class Dinamico(app_manager.RyuApp):
         ############################
 
             if pkt_icmp.type == 15: #request information -> enviar um information reply
+                logging.info('[Packet_In] inicio icmp 15 - tempo: %d\n' % (round(time.monotonic()*1000)))
+
                 #aqui se for possivel colocar o endereco destino ao qual o fluxo quer alcancar, nos dados do icmp, sera excelente para identificar os contratos que devem ser enviados. para este controlador
                 #enviar um information reply:
                 #ip-destino: ip_src -> origem pkt-in
@@ -1688,10 +1711,12 @@ class Dinamico(app_manager.RyuApp):
                 
                 addControladorConhecido(ip_src)
 
+                logging.info('[Packet_In] icmp 15 inicio envio do icmp 16 - tempo: %d\n' % (round(time.monotonic()*1000)))
                 #verificar se ja tenho o contrato e enviar o tos que tenho, caso for o mesmo tos que ja recebi, nao vou receber resposta
                 cip_src = json.loads(pkt_icmp.data)['ip_src']
                 cip_dst = ip_dst
                 dscp = -1
+
                 #procurando  nos contratos o dscp
                 for i in contratos:
                     if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_destino']==cip_dst:
@@ -1702,21 +1727,28 @@ class Dinamico(app_manager.RyuApp):
                 data = json.dumps(data)#.encode()
                 print("[ICMP-15] contrato desejado:%s\n" % (data))  
 
+                logging.info('[Packet_In] icmp 15 fim procurar contrato determinado - tempo: %d\n' % (round(time.monotonic()*1000)))
+
 ######### etapa 3 - responder com icmp 16                  
 ### RESPONDENDO ICMP 15 inf. req com um ICMP 16 inf. reply + ip_dst que quero dos contratos - injetar pelo primeiro switch da rota entre este controlador e o emissor == switch que gerou o packet_in
                 ### o primeiro switch da rota eh o proprio que enviou o packet_in
                 send_icmp(dp,MACC, TC[IPC], src, ip_src, in_port,0,data,1,16,64) # se mostrou desnecessario, mas deixei a implementacao de qualquer forma, dst_controlador=True)
                 print("[ICMP-15] ICMP Information Request -> Replied\n")
+                logging.info('[Packet_In] icmp 15 fim envio icmp 16 - tempo: %d\n' % (round(time.monotonic()*1000)))
 
                 #as regras de vinda dos pacotes de contrato ja existem, pq sao para este controlador
                 #no entanto as regras de volta (tcp-handshake) nao existem e sao do tipo controle tbm, entao criar 
                 switches_rota = SwitchOVS.getRota(str(dpid), IPC)
                 switches_rota[-1].addRegraC(TC[IPC], ip_src, 61)
+                logging.info('[Packet_In] icmp 15 inicio alocarGBAM - tempo: %d\n' % (round(time.monotonic()*1000)))
                 for s in switches_rota:
                     #porta de saida
                     out_port = s.getPortaSaida(ip_src)
                     #ida
                     s.alocarGBAM(out_port, TC[IPC], ip_src, '1000', 2, 4)
+                
+                logging.info('[Packet_In] icmp 15 fim alocarGBAM - tempo: %d\n' % (round(time.monotonic()*1000)))
+
 ######### etapa 4 - suprimida - movida para o switch_feature_handler
             #     #preparar para receber os contratos                
             #     #criar as regras nos switches da rota que leva ao controlador,
@@ -1738,6 +1770,8 @@ class Dinamico(app_manager.RyuApp):
 ####### etapa 5 - reijetar icmp 15
     ### SEGUINDO O ICMP 15 inf. req. - injetar pelo ultimo switch da  rota
         #obtendo a rota entre src e destino, assim como era antes
+
+                logging.info('[Packet_In] icmp 15 inicio dar sequencia no icmp 15 - tempo: %d\n' % (round(time.monotonic()*1000)))
                 switches_rota = SwitchOVS.getRota(str(dpid), ip_dst)
                 
                 #obter o switch mais da borda de destino e gerar o inf req para dar sequencia e descobrir novos controladores ate o host destino
@@ -1747,6 +1781,8 @@ class Dinamico(app_manager.RyuApp):
                 switch_ultimo_dp = switch_ultimo.getDP()
                 print("[ICMP-15] Dando sequencia no icmp 15 criando no ultimo switch da rota \n src:%s, dst:%s, saida:%d\n", ip_src, ip_dst, out_port)
                 send_icmp(switch_ultimo_dp, src, ip_src, dst, ip_dst,out_port,0,pkt.data,1,15,64)
+
+                logging.info('[Packet_In] fim icmp 15  - tempo: %d\n' % (round(time.monotonic()*1000)))
                 return 
                 
     ############################3
@@ -1757,6 +1793,8 @@ class Dinamico(app_manager.RyuApp):
     ############################
             #pkt: responder o arp caso seja para o endereco do controlador-> information reply (enviar os contratos para este controlador)
             if pkt_icmp.type==16:
+
+                logging.info('[Packet_In] icmp 16 inicio  - tempo: %d\n' % (round(time.monotonic()*1000)))
                 print("[ICMP-16] Recebido\n")
                 addControladorConhecido(ip_src)
 
@@ -1768,7 +1806,7 @@ class Dinamico(app_manager.RyuApp):
 
         ###### (i) sou o controlador de destino
                 if ip_dst == IPC:
-                    
+                    logging.info('[Packet_In] icmp 16 - controlador destino - inicio procurar contrato determinado - tempo: %d\n' % (round(time.monotonic()*1000)))
                     
                     #enviar os contratos correspondentes para o controlador que respondeu utilizando socket
                     print("[ICMP-16] Enviar os contratos para: ip_dst %s; mac_dst %s; ip_src e mac_src -> host root\n" % (ip_src,src))
@@ -1790,6 +1828,8 @@ class Dinamico(app_manager.RyuApp):
                             #se o contrato foi encontrato e eh diferente, nao precisa testar com os outros contratos
                             break
 
+                    logging.info('[Packet_In] icmp 16 - controlador destino - fim procurar contrato determinado - tempo: %d\n' % (round(time.monotonic()*1000)))
+
                     ### criar regras para encaminhar as respostas do ICMP 15 atraves dos switches da rota para o dominio do controlador emissor original e para o controlador enviar os contratos
     #criar regras de marcacao e encaminhamento: switch de borda (switch_ultimo)
     #criar regras de encaminhamento: switches da rota
@@ -1800,7 +1840,7 @@ class Dinamico(app_manager.RyuApp):
 
                     #o ip do host destino final, deve estar nos dados do pacote ICMP = nao implementado ainda
                     #ip_host_destino = msg.data
-
+                    logging.info('[Packet_In] icmp 16 - controlador destino - inicio criar regras para enviar o contrato - tempo: %d\n' % (round(time.monotonic()*1000)))
                     #criar a regra de encaminhamento + marcacao --- para enviar os contratos
                     #regra de marcacao - apenas no switch que esta conectado ao controlador
                     #primeiro switch == switch conectado ao controlador
@@ -1813,6 +1853,7 @@ class Dinamico(app_manager.RyuApp):
                         out_port = s.getPortaSaida(ip_src)
                         s.alocarGBAM(out_port, TC[ip_dst], ip_src, '1000', '2', '4') #criando as regras
 
+                    logging.info('[Packet_In] icmp 16 - controlador destino - fim criar regras para enviar o contrato - tempo: %d\n' % (round(time.monotonic()*1000)))
                     #criando a volta tbm pq precisa estabelecer a conexao
                     
 
@@ -1828,6 +1869,7 @@ class Dinamico(app_manager.RyuApp):
                     print(pkt.__dict__)
                     print("\n")
 
+                    logging.info('[Packet_In] icmp 16 - controlador destino - inicio enviando o contrato - tempo: %d\n' % (round(time.monotonic()*1000)))
                     #estah construindo o json [ok]
                     #print(json.loads(pkt_icmp.data))
                     #ip_dst desejado para se buscar nos contratos
@@ -1848,15 +1890,18 @@ class Dinamico(app_manager.RyuApp):
                     ## ja foi criado a regra para reverter o src na volta, para que mude para o ip deste controlador e ele possa responder
 
                     enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
+                    logging.info('[Packet_In] icmp 16 - controlador destino - fim - tempo: %d\n' % (round(time.monotonic()*1000)))
                     return 0
 
           ###### (ii) esse controlador nao eh o controlador destino - logo criar as regras de marcacao e encaminhamento para passar os contratos
                 #os contratos virao do controlador destino -> controlador origem de icmp 16
                 #switches_rota == switches da rota(destino, origem), logo precisa marcar no primeiro switch apenas
+                logging.info('[Packet_In] icmp 16 - nao destino - inicio - tempo: %d\n' % (round(time.monotonic()*1000)))
                 switch_primeiro.addRegraC(ip_dst, ip_src, 61)
                 
                 print("[ICMP-16] criando regras de encaminhamento de contratos entre src:%s, dst:%s\n" % (ip_dst, ip_src))
 
+                logging.info('[Packet_In] icmp 16 - nao destino - inicio criar regras para que os contratos atravessem o dominio - tempo: %d\n' % (round(time.monotonic()*1000)))
                 #demais switches: regras de encaminhamento - ida
                 for i in switches_rota:
                     out_port = i.getPortaSaida(ip_src) # obtendo a porta que leva a enviar os contratos ao controlador requisitante
@@ -1871,7 +1916,12 @@ class Dinamico(app_manager.RyuApp):
                 #reinjetar o icmp no switch mais da borda proxima do destino
                 print("[ICMP-16] recriando icmp 16 no switch mais proximo src:%s dst:%s out:%s:%d\n" % (ip_src, ip_dst, switch_primeiro.nome, out_port))
                 out_port = switch_primeiro.getPortaSaida(ip_dst)
+                logging.info('[Packet_In] icmp 16 - nao destino - fim criar regras para que os contratos atravessem o dominio - tempo: %d\n' % (round(time.monotonic()*1000)))
+                
+                logging.info('[Packet_In] icmp 16 - nao destino - dando sequencia no icmp 16 - tempo: %d\n' % (round(time.monotonic()*1000)))
                 send_icmp(switch_primeiro.datapath, src, ip_src, dst, ip_dst, out_port, 0,pkt.data,1,16,64)
+                logging.info('[Packet_In] icmp 16 - nao destino - fim - tempo: %d\n' % (round(time.monotonic()*1000)))
+
                 return
         
         #######         Buscar correspondencia Pkt-in com contratos         ############
@@ -1886,8 +1936,10 @@ class Dinamico(app_manager.RyuApp):
                 cip_dst = i['contrato']['ip_destino']
                  
                 if cip_src == ip_src and cip_dst == ip_dst:
+                    logging.info('[Packet_In] pacote com match - inicio - tempo: %d\n' % (round(time.monotonic()*1000)))
                     print("match encontrado\n")
 
+                    logging.info('[Packet_In] pacote com match - inicio enviar icmp 15 - tempo: %d\n' % (round(time.monotonic()*1000)))
                     #encontramos um match com o contrato i
                     #alocar o fluxo switch conforme seus requisitos - verificar em qual fila o fluxo deve ser posicionado
                     #encontrar todos os switches da rota definida para este ip destino/rede + escolher um switch para enviar o ICMP inf. req. (que deve ser o que disparou o packet_in)
@@ -1914,7 +1966,9 @@ class Dinamico(app_manager.RyuApp):
                     data = json.dumps(data)
             
                     send_icmp(switch_ultimo_dp, MACC, TC[IPC], dst, ip_dst, out_port, 0, data, 1, 15,64)
-                          
+                    
+                    logging.info('[Packet_In] pacote com match - fim enviar icmp 15 - tempo: %d\n' % (round(time.monotonic()*1000)))
+
                     print("[%s] icmp enviado enviado - ipdst=%s  portasaida=%d\n" % (switch_ultimo.nome,ip_dst,out_port))
                     print("---------------------------------\n")
                              
@@ -1923,7 +1977,8 @@ class Dinamico(app_manager.RyuApp):
                     #adicionar a regra na classe switch
                     #adicionar a regra na tabela do ovsswitch
                     acoes = []
-
+                    
+                    logging.info('[Packet_In] pacote com match - inicio alocarGBAM - tempo: %d\n' % (round(time.monotonic()*1000)))
                     #ANTES VERIFICAR SE A PORTA POSSUI FILA, se nao, nao adianta utilizar GBAM ## no caso todas as portas possuem filas, eu pensava que somente a porta 4 possuia, mas nao eh verdade
                     #### criar as regras em cada switch da rota entre ip_src -> ip_dest
                      #IDA -- em todos os switches da rota
@@ -1948,6 +2003,9 @@ class Dinamico(app_manager.RyuApp):
                     for a in acoes:
                         a.executar()
 
+                    logging.info('[Packet_In] pacote com match - fim alocarGBAM - tempo: %d\n' % (round(time.monotonic()*1000)))
+
+                    logging.info('[Packet_In] pacote com match - inicio injetar pacote do packet_in - tempo: %d\n' % (round(time.monotonic()*1000)))
                     #pegar o switch mais proximo do destino e injetar o pacote que gerou o packet_in
                     out_port = switch_ultimo.getPortaSaida(ip_dst)
                     #a ultima acao deve ser de criar a regra no ultimo switch da rota
@@ -1956,19 +2014,26 @@ class Dinamico(app_manager.RyuApp):
                     fila = CPF[(ultima_acao.regra.classe, ultima_acao.regra.prioridade)]
                     switch_ultimo.injetarPacote(switch_ultimo.datapath,fila, out_port, msg)
 
+                    logging.info('[Packet_In] pacote com match - fim injetar pacote do packet_in - tempo: %d\n' % (round(time.monotonic()*1000)))
+
+                    logging.info('[Packet_In] pacote com match - (somar no tempo do alocarGBAM) inicio criar regra de marcacao - tempo: %d\n' % (round(time.monotonic()*1000)))
                     #1 criar regra de marcacao/classificacao - switch mais da borda = que disparou o packet_in
                     #encontrar qual tos foi definido para a criacao da regra no switch de borda mais proximo do emissor
                     for a in acoes:
                         if(a.nome_switch == str(dpid) and a.codigo == CRIAR):
                             switches_rota[0].addRegraC(ip_src, ip_dst, a.regra.tos)
                             break
-                            
+                    
+                    logging.info('[Packet_In] pacote com match - (somar no tempo do alocarGBAM) fim criar regra de marcacao - tempo: %d\n' % (round(time.monotonic()*1000)))
                     return
 				
 	    #todos os contratos foram checados e nao foi achado correspondencia
             #fluxo nao identificado -> fila de best-effort
             print("Fluxo nao identificado\n")
 
+            logging.info('[Packet_In] pacote sem match - inicio - tempo: %d\n' % (round(time.monotonic()*1000)))
+            
+            logging.info('[Packet_In] pacote sem match - inicio criar regras de marcacao best-effort - tempo: %d\n' % (round(time.monotonic()*1000)))
             #criar a regra de marcacao para este fluxo com o tos de best effort
             #criar regra para a fila de best-effort (match= {tos, ip_dst} = (meter band + fila=tos) + (porta_saida=ip_dst)
             #1- Encontrar os switches da rota
@@ -1994,11 +2059,15 @@ class Dinamico(app_manager.RyuApp):
                 #ida
                 switches_rota[i].alocarGBAM(out_port, ip_src, ip_dst, '1000', classe, classe)
 
+            logging.info('[Packet_In] pacote sem match - fim criar regras de marcacao best-effort - tempo: %d\n' % (round(time.monotonic()*1000)))
+
+            logging.info('[Packet_In] pacote sem match - inicio reinjetar pacote - tempo: %d\n' % (round(time.monotonic()*1000)))
             #pegar o switch mais proximo do destino e injetar o pacote que gerou o packet_in
             switch_ultimo = switches_rota[-1]
             out_port = switch_ultimo.getPortaSaida(ip_dst)
             fila = CPF[(classe,1)]
             switch_ultimo.injetarPacote(switch_ultimo.datapath,fila, out_port, msg)
+            logging.info('[Packet_In] pacote sem match - fim - tempo: %d\n' % (round(time.monotonic()*1000)))
 
             return	 
                     

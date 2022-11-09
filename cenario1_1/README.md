@@ -2,6 +2,8 @@
 
 # Estado atual
 
+* Versão mais atual c4_1sc/c1_v2_semPrints.py
+
 * verificar onde colocar os prints de tempo e fazer os testes.
 * hoje: vazer os gráficos e comecar o artigo.
 
