@@ -51,7 +51,7 @@ def myNet():
     intfh2 = net.addLink(h2, s1, port2=2, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
     intfh3 = net.addLink(h3, s1, port2=3, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
 
-    intfh4 = net.addLink(h4, s2, port2=1, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
+    intfh4 = net.addLink(h4, s4, port2=1, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
 
     net.addLink(s1, s2, port1=4, port2=2, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
     net.addLink(s2, s3, port1=3, port2=1, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
@@ -102,7 +102,7 @@ def myNet():
     root1.cmd( 'arp -s 20.10.10.3 00:00:00:00:00:07' )
     #controlador c4
     root1.cmd( 'route add -host 20.10.10.4 dev root1-eth0')
-    root1.cmd( 'arp -s 20.10.10.3 00:00:00:00:00:08' )
+    root1.cmd( 'arp -s 20.10.10.4 00:00:00:00:00:08' )
 
     #os controladores conhecem apenas os hosts do seu dominio
     root2.cmd( 'route add -host 172.16.10.4 dev root2-eth0')
@@ -131,8 +131,8 @@ def myNet():
     root4.cmd( 'arp -s 20.40.40.1 00:00:00:00:00:05' )
     root4.cmd( 'route add -host 20.40.40.2 dev root4-eth0')
     root4.cmd( 'arp -s 20.40.40.2 00:00:00:00:00:06' )
-    root4.cmd( 'route add -host 20.30.30.3 dev root4-eth0')
-    root4.cmd( 'arp -s 20.40.40.4 00:00:00:00:00:07' )
+    root4.cmd( 'route add -host 20.40.40.3 dev root4-eth0')
+    root4.cmd( 'arp -s 20.40.40.3 00:00:00:00:00:07' )
 
     h1.cmd('route add -host 172.16.10.2 dev h1-eth0')
     h1.cmd('route add -host 172.16.10.3 dev h1-eth0')

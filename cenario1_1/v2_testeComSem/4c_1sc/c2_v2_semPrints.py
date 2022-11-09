@@ -1256,21 +1256,25 @@ class Dinamico(app_manager.RyuApp):
         self.ip_to_mac = {}
 
         if CONTROLADOR_ID == 1:
+            IPS_FIC['10.10.10.1']='20.10.10.1'
             IPS_FIC['10.10.10.2']='20.10.10.2'
             IPS_FIC['10.10.10.3']='20.10.10.3'
             IPS_FIC['10.10.10.4']='20.10.10.4'
         elif CONTROLADOR_ID == 2:
             IPS_FIC['10.10.10.1']='20.20.20.1'
+            IPS_FIC['10.10.10.2']='20.20.20.2'
             IPS_FIC['10.10.10.3']='20.20.20.3'
             IPS_FIC['10.10.10.4']='20.20.20.4'
         elif CONTROLADOR_ID == 3:
             IPS_FIC['10.10.10.1']='20.30.30.1'
             IPS_FIC['10.10.10.2']='20.30.30.2'
+            IPS_FIC['10.10.10.3']='20.30.30.3'
             IPS_FIC['10.10.10.4']='20.30.30.4'
         elif CONTROLADOR_ID == 4:
             IPS_FIC['10.10.10.1']='20.40.40.1'
             IPS_FIC['10.10.10.2']='20.40.40.2'
             IPS_FIC['10.10.10.3']='20.40.40.3'
+            IPS_FIC['10.10.10.4']='20.40.40.4'
         else:
             print("ERRO - ID de controlador desconhecido ou nao configurado\nVAI DAR ERRO EM ALGUM LUGAR ADIANTE (nao sera encerrado)\n")
 
@@ -1536,11 +1540,11 @@ class Dinamico(app_manager.RyuApp):
 
             #ida
             #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.2'], TC[IPC], '10.10.10.2')
+            self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.1'], TC[IPC], '10.10.10.1')
 
             #chegada
             #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, '10.10.10.2', '10.10.10.1', IPS_FIC['10.10.10.2'], IPC)
+            self.addRegraPre(datapath, '10.10.10.1', TC[IPC], IPS_FIC['10.10.10.1'], IPC)
 
             #ida
             #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
@@ -1548,20 +1552,20 @@ class Dinamico(app_manager.RyuApp):
 
             #chegada
             #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, '10.10.10.2', '10.10.10.1', IPS_FIC['10.10.10.2'], IPC)
+            self.addRegraPre(datapath, '10.10.10.2', TC[IPC], IPS_FIC['10.10.10.2'], IPC)
 
             #10.10.10.3->20.10.10.3
             self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.3'], TC[IPC], '10.10.10.3')
             #chegada
             #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, '10.10.10.3', '10.10.10.1', IPS_FIC['10.10.10.3'], IPC)
+            self.addRegraPre(datapath, '10.10.10.3', TC[IPC], IPS_FIC['10.10.10.3'], IPC)
 
             #10.10.10.4->20.10.10.4
             self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.4'], TC[IPC], '10.10.10.4')
 
             #chegada
             #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, '10.10.10.4', '10.10.10.1', IPS_FIC['10.10.10.4'], IPC)
+            self.addRegraPre(datapath, '10.10.10.4', TC[IPC], IPS_FIC['10.10.10.4'], IPC)
 
             ###### default para conversar com os 
             #ida

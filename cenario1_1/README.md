@@ -2,11 +2,14 @@
 
 # Estado atual
 
+* verificar onde colocar os prints de tempo e fazer os testes.
+* hoje: vazer os gráficos e comecar o artigo.
+
 * Versão: v2 - foi refeita a funcao getRotas e a switch_features ficou mais generica, para habilitar os testes com multiplos controladores
 * c3_1sc - framework funcionando para 3 controladores. Infelizmente, é preciso configurar no código (não deu tempo de fazer por arquivo por exemplo).
 * c4_1sc - configurado - testar e obter os valores de tempo
 
-* com os testes de c4 - já é possível realizar todos os testes necessários
+* pelo que vi, c3 e c4_1sc estão criando as regras de forma correta - mas por vezes, não cria rápido o suficiente e os pacotes geram packet_in, mesmo com as regras já tendo a criação ordenadas. Nesse caso, são criadas regras best-effort e o pacote é injetado. O "segundo" pacote, vai ser encaminhado pela regra correta e a best-effort vai expirar.
 
 - [Funcionando+testado] Para 3 controladores e 1 switch cada 
 - [Nao-testado] Para 3 controladores e multiplos switches (teria que colocar as configuracoes de rotas nos switches)
