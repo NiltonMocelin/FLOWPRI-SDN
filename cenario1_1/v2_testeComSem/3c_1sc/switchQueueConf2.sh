@@ -24,21 +24,12 @@
 #Bem 20 Mbps -> rate = 20000000
 
 
-#	      Root/Controlador		 Root/Controlador
-#		 |			  |
-#		 S1 --------------------- S2
-#	      /	 |  \			  |
-#	     h1  h2  h3			  h4
+#   [root1-c1]            [root2-c2]         [root3-c3]
+#       |(eth5)               |(eth5)            |(eth5)
+#       s1(eth4)--------(eth2)s2(eth3)------(eth4)s3
+#       /(eth1)                                    \(eth1)
+#    h1                                              h4
 #
-# s1-eth1 = h1
-# s1-eth2 = h2
-# s1-eth3 = h3
-# s1-eth4 = s2-eth4
-# s1-eth5 = root
-#
-# s2-eth1 = h4
-# s2-eth4 = s1-eth4
-# s2-eth5 = root
 
 # Q: Faz sentido ter fila em todas as portas ou somente na porta que conecta com o outro switch
 
@@ -101,16 +92,27 @@ sudo ovs-vsctl -- set port s1-eth3 qos=@newqos -- --id=@newqos create qos type=l
 
 
 
-sudo ovs-vsctl clear port s2-eth4 qos
-sudo tc qdisc del dev s2-eth4 root
+sudo ovs-vsctl clear port s2-eth2 qos
+sudo tc qdisc del dev s2-eth2 root
 
 
-sudo ovs-vsctl -- set port s2-eth4 qos=@newqos -- --id=@newqos create qos type=linux-htb other-config:max-rate=$BANDA queues=0=@q0,1=@q1,2=@q2,3=@q3,4=@q4,5=@q5,6=@q6,7=@q7 -- --id=@q0 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=10 -- --id=@q1 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=5 -- --id=@q2 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=2 -- --id=@q3 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=10 -- --id=@q4 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=5 -- --id=@q5 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=2 -- --id=@q6 create queue other-config:min-rate=$CLASS3 other-config:max-rate=$CLASS3 other-config:priority=10 -- --id=@q7 create queue other-config:min-rate=$CLASS4 other-config:max-rate=$CLASS4 other-config:priority=2
+sudo ovs-vsctl -- set port s2-eth2 qos=@newqos -- --id=@newqos create qos type=linux-htb other-config:max-rate=$BANDA queues=0=@q0,1=@q1,2=@q2,3=@q3,4=@q4,5=@q5,6=@q6,7=@q7 -- --id=@q0 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=10 -- --id=@q1 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=5 -- --id=@q2 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=2 -- --id=@q3 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=10 -- --id=@q4 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=5 -- --id=@q5 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=2 -- --id=@q6 create queue other-config:min-rate=$CLASS3 other-config:max-rate=$CLASS3 other-config:priority=10 -- --id=@q7 create queue other-config:min-rate=$CLASS4 other-config:max-rate=$CLASS4 other-config:priority=2
 
 
-sudo ovs-vsctl clear port s2-eth1 qos
-sudo tc qdisc del dev s2-eth1 root
+sudo ovs-vsctl clear port s2-eth3 qos
+sudo tc qdisc del dev s2-eth3 root
 
 
-sudo ovs-vsctl -- set port s2-eth1 qos=@newqos -- --id=@newqos create qos type=linux-htb other-config:max-rate=$BANDA queues=0=@q0,1=@q1,2=@q2,3=@q3,4=@q4,5=@q5,6=@q6,7=@q7 -- --id=@q0 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=10 -- --id=@q1 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=5 -- --id=@q2 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=2 -- --id=@q3 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=10 -- --id=@q4 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=5 -- --id=@q5 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=2 -- --id=@q6 create queue other-config:min-rate=$CLASS3 other-config:max-rate=$CLASS3 other-config:priority=10 -- --id=@q7 create queue other-config:min-rate=$CLASS4 other-config:max-rate=$CLASS4 other-config:priority=2
+sudo ovs-vsctl -- set port s2-eth3 qos=@newqos -- --id=@newqos create qos type=linux-htb other-config:max-rate=$BANDA queues=0=@q0,1=@q1,2=@q2,3=@q3,4=@q4,5=@q5,6=@q6,7=@q7 -- --id=@q0 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=10 -- --id=@q1 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=5 -- --id=@q2 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=2 -- --id=@q3 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=10 -- --id=@q4 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=5 -- --id=@q5 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=2 -- --id=@q6 create queue other-config:min-rate=$CLASS3 other-config:max-rate=$CLASS3 other-config:priority=10 -- --id=@q7 create queue other-config:min-rate=$CLASS4 other-config:max-rate=$CLASS4 other-config:priority=2
 
+sudo ovs-vsctl clear port s3-eth1 qos
+sudo tc qdisc del dev s3-eth1 root
+
+
+sudo ovs-vsctl -- set port s3-eth1 qos=@newqos -- --id=@newqos create qos type=linux-htb other-config:max-rate=$BANDA queues=0=@q0,1=@q1,2=@q2,3=@q3,4=@q4,5=@q5,6=@q6,7=@q7 -- --id=@q0 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=10 -- --id=@q1 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=5 -- --id=@q2 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=2 -- --id=@q3 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=10 -- --id=@q4 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=5 -- --id=@q5 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=2 -- --id=@q6 create queue other-config:min-rate=$CLASS3 other-config:max-rate=$CLASS3 other-config:priority=10 -- --id=@q7 create queue other-config:min-rate=$CLASS4 other-config:max-rate=$CLASS4 other-config:priority=2
+
+sudo ovs-vsctl clear port s3-eth4 qos
+sudo tc qdisc del dev s3-eth4 root
+
+
+sudo ovs-vsctl -- set port s3-eth4 qos=@newqos -- --id=@newqos create qos type=linux-htb other-config:max-rate=$BANDA queues=0=@q0,1=@q1,2=@q2,3=@q3,4=@q4,5=@q5,6=@q6,7=@q7 -- --id=@q0 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=10 -- --id=@q1 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=5 -- --id=@q2 create queue other-config:min-rate=$CLASS1 other-config:max-rate=$CLASS1 other-config:priority=2 -- --id=@q3 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=10 -- --id=@q4 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=5 -- --id=@q5 create queue other-config:min-rate=$CLASS2 other-config:max-rate=$CLASS2 other-config:priority=2 -- --id=@q6 create queue other-config:min-rate=$CLASS3 other-config:max-rate=$CLASS3 other-config:priority=10 -- --id=@q7 create queue other-config:min-rate=$CLASS4 other-config:max-rate=$CLASS4 other-config:priority=2
