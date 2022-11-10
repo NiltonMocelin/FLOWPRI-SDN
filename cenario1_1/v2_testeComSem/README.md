@@ -7,13 +7,33 @@
 * Para entender o enderecamento proposto, importar a configuracaoEndFict.drawio em https://app.diagrams.net/
 * As mensagens OpenFlow entre controladores e switches continuam ocorrendo de forma direta, sem passar pela rede mininet.
 
+## TESTES
+
+* Obs tempo total = tempo do primeiro pacote que sai do primeiro host + comunicação + processamento + tempo chegada no destino.
+* Os testes são do tipo: 
+- com Framework: H1 envia um contrato para c1. Após isso, envia um pacote ping para H4.
+- sem Framework: H1 envia um pacote ping para H4.
+
+* Tempo médio de pacotes atravessarem um switch (3 tabelas de match) quando não geram packet_in.
+
+* (i) Tempo total com Framework - incluindo criação de contrato
+* (ii) Tempo total com o Framework - sem incluir o tempo da criacao de contrato e regras já ativas.
+* (iii) Tempo total com Framework - sem incluir o tempo da criação de contrato, mas as regras expiraram (exige a ocorrencia de packet_in)
+
+* Tempo total de processamento de (i) sem incluir o tempo de comunicação.
+* Tempo total de processamento de (ii) sem incluir o tempo de comunicação.
+* Tempo total de processamento de (iii) sem incluir o tempo de comunicação.
+
+* Tempo total sem o Framework.
+
+* Demonstração com vlc - Framework vs sem Framework.
+
 ## Medida de tempo de execução:
 * A passagem de tempo pelo Framework pode ser percebida de duas formas: tempo de processamento e tempo de comunicação. O tempo de processamento é o tempo do processamento do Framework propriamente dito, já o tempo de comunicação envolve a velocidade da interface de rede e dos mecanismos do protocolo OpenFlow juntamente com ovs e seus similares.
 
 * O Tempo de processamento total é obtido pelo somatório do tempo dos seguintes processos:
 
 i) Tempo de processamento de settar um switch (switch_features)
-
 
 
 ii) Tempo de processamento do server-hosts (servidor ouvindo hosts)

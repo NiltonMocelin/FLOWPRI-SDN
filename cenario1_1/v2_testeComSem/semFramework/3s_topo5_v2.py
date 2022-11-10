@@ -49,10 +49,10 @@ def myNet():
     intfh2 = net.addLink(h2, s1, port2=2, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
     intfh3 = net.addLink(h3, s1, port2=3, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
 
-    intfh4 = net.addLink(h4, s2, port2=1, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
+    intfh4 = net.addLink(h4, s3, port2=1, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
 
-    net.addLink(s1, s3, port1=4, port2=1, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
-    net.addLink(s3, s2, port1=2, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
+    net.addLink(s1, s2, port1=4, port2=1, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
+    net.addLink(s2, s3, port1=2, port2=4, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
     
 
     #Criar um host no root namespace e linkar com o switch -- sobe o controlador, mas os hosts nao enxergam
@@ -164,6 +164,7 @@ def myNet():
 # Connect each switch to a different controller
     s1.start( [c0] )
     s2.start( [c1] )
+    s3.start( [c1] )
 
     s1.cmdPrint('ovs-vsctl show')
  
