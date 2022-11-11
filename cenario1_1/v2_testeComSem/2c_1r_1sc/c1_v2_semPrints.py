@@ -454,6 +454,8 @@ t2.start()
 #t1.join()
 
 def enviar_contratos(host_ip, host_port, ip_dst_contrato):
+    tempo_i = round(time.monotonic()*1000)
+
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp.connect((host_ip, host_port))
  
@@ -485,6 +487,7 @@ def enviar_contratos(host_ip, host_port, ip_dst_contrato):
     #fechando a conexao
     ##print("\n")
     tcp.close()
+    logging.info('[Packet_In] icmp 16 - contrato enviado - fim - tempo: %d\n' % ( round(time.monotonic()*1000) - tempo_i))
 
 ############# send_icmp TORNADO GLOBAL EM 06/10 - para ser aproveitado em server socket ###################
 #https://ryu-devel.narkive.com/1CxrzoTs/create-icmp-pkt-in-the-controller
@@ -1856,7 +1859,9 @@ class Dinamico(app_manager.RyuApp):
                     ##criar regra para na volta remarcar o destino pelo traduzido(reverso)
                     ## ja foi criado a regra para reverter o src na volta, para que mude para o ip deste controlador e ele possa responder
 
-                    enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
+                    #enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
+                    Thread(target=enviar_contratos, args=(ip_src, PORTAC_C, cip_dst,)).start()
+
                     logging.info('[Packet_In] icmp 16 - controlador destino - fim - tempo: %d\n' % (round(time.monotonic()*1000)))
                     return 0
 

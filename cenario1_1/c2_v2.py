@@ -1877,7 +1877,8 @@ class Dinamico(app_manager.RyuApp):
                     ##criar regra para na volta remarcar o destino pelo traduzido(reverso)
                     ## ja foi criado a regra para reverter o src na volta, para que mude para o ip deste controlador e ele possa responder
 
-                    enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
+                    #enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
+                    Thread(target=enviar_contratos, args=(ip_src, PORTAC_C, cip_dst,)).start()
                     return 0
 
           ###### (ii) esse controlador nao eh o controlador destino - logo criar as regras de marcacao e encaminhamento para passar os contratos

@@ -1880,8 +1880,8 @@ class Dinamico(app_manager.RyuApp):
                     ## ja foi criado a regra para reverter o src na volta, para que mude para o ip deste controlador e ele possa responder
 
                     ## EM TESTES::: -- sem a thread vai gerar um packet in, mas eh um problema do openflow, observar com ovs-ofctl monitor s1 - no packet in vai estar entrando a regra criada no icmp 16 e no packet in ao mesmo tempo...
-                    enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
-                    #Thread(target=enviar_contratos, args=(ip_src, PORTAC_C, cip_dst,))
+                    #enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
+                    Thread(target=enviar_contratos, args=(ip_src, PORTAC_C, cip_dst,)).start()
                                        
                     logging.info('[Packet_In] icmp 16 - controlador destino (%s->%s) - fim - tempo: %d\n' % (ip_src, ip_dst, round(time.monotonic()*1000) - tempo_i))
                     return 0

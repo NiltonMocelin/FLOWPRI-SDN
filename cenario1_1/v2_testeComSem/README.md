@@ -5,6 +5,8 @@
 * Para entender o enderecamento proposto, importar a configuracaoEndFict.drawio em https://app.diagrams.net/
 * As mensagens OpenFlow entre controladores e switches continuam ocorrendo de forma direta, sem passar pela rede mininet.
 
+* v2: Alterado o enviar_contratos para uma thread - assim não trava o controlador caso um packet_in seja necessário no meio tempo de estabelecer conexão. Assim, separo o que é a parte de tratamento de pacotes e a parte de servidor. - refazendo os testes novamente -
+
 ## TESTES
 
 * Obs tempo total = tempo do primeiro pacote que sai do primeiro host + comunicação + processamento + tempo chegada no destino.
