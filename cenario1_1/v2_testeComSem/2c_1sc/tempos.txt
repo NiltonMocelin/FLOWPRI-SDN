@@ -1,155 +1,83 @@
-Rodada 1:
+# Para realizar as medições:
+* Executar a topologia correspondente
+* Executar o script de configuração das filas (switchQueueConf2.sh)
+* Um tcpdump na interface de h1
+* Um tcpdump na interface de h4
+* Um tcpdump na interface do controlador mais distante (último a processar)
+* Executar os controladores semPrints e coletar os valores obtidos
+
+# Rodada 1:
 * Tempo settar switches:
-c1: 21184903-21184883=20
-c2: 20
+c1: 9ms
+c2: 17ms
 
 # Tempo para estabelecer um contrato entre h1-h4
 * Tempo processamento c1:
-server-host (receber contrato de h1+criar regras+icmp15): 21221141 - 21221139=2
+server-host (receber contrato de h1+criar regras+icmp15):
+- T1 = tempo consumido no tratamento do packet_in (para a volta da comunicacao controlador->host)
+- T2 = tempo de processamento ouvindo a conexão e recebendo o contrato.
+- TT = T1 + T2
+- TT = 2+2 = 4ms 
 
-pkt_in_icmp16 (envia contrato para c2): 21222188-21221154=1034 (devo ter pego os tempos errados)
-
+(tempo alto pq ele gera um packet in)
+pkt_in_icmp16 (envia contrato para c2): 1006
+- TT = 1014ms
 
 * Tempo processamento c2:
-pkt_in_icmp15 (receb e respondido icmp16): 21221149-21221147=2
+pkt_in_icmp15 (receb icmp15 e respondido icmp16):
+TT = 2ms
 
-server-controlador (receber contrato de c1): 21222193-21222191=2
+server-controlador (receber contrato de c1):
+TT = 1ms
 
-
-* Tempo Total: [tempo de setup de contratos]
+* Tempo total para setup de contratos:
 T1 = primeiro pacote saindo de h1
-TT =  tempo que o primeiro pacote de c1 chega em c2 - T1 + processamento de c2
+T2 =  tempo que o primeiro pacote de c1 chega em c2 + processamento para receber o contrato e criar as regras em c2 (server-control)/ 1000 (milliseconds to seconds)
+TT = T2 - T1 
+
+T1 = 6.150695 
+T2 = 7.209793 + 1/1000
+TT = 7.209793 + 1/1000 - 6.150695 = 1.06s = 1060ms
 
 * Tempo Total de processamento:
-
+(soma dos processamentos de c1 e c2)
+TP = tproc_c1 + tproc_c2
+TP = 4ms + 1014ms + 2ms + 1ms = 1021ms
 
 # Tempo para enviar um pacote icmp entre h1-h4 com regras ativas
 * Não tem processamento, pois não ocorre packet_in
 (tempo do icmp chegar em h4 - tempo do icmp sair de h1)
-* Tempo Total: 08:40:24.454100-08:40:24.453793
+T1 = tempo do icmp sair de h1
+T2 = tempo do icmp chegar em h4
+TT = T2 - T1
+TT=   1.439213 - 1.438917
+* Tempo Total: 0.0002s = 0.2ms 
 
 # Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
 
 * Tempo processamento c1:
-21277777-21277775
+T1 = tempo consumido no tratamento do packet_in (para a volta da comunicacao controlador->host)
+T2 = tempo de processamento ouvindo a conexão e recebendo o contrato.
+TT = T1 + T2
+server-host (receber contrato de h1+criar regras+icmp15): 4
+
+(tempo alto pq ele gera um packet in)
+pkt_in_icmp16 (envia contrato para c2): 1006
 
 * Tempo processamento c2:
-21277802-21277787
+pkt_in_icmp15 (receb e respondido icmp16): 1
+
+server-controlador (receber contrato de c1): 2
 
 * Tempo Total:
-08:41:00.703041-08:41:00.670609
+T1 = tempo quando o icmp sai de h1
+T2 = tempo quando o icmp chega em h4
+TT = T2 - T1
+TT =  17:07:14.583258 - 17:07:14.552855
 
+Tempo Total de processamento:
+TT = tproc_c1 + tproc_c2
+TT = 0.0304s = 30.4ms
 
 --------------------------------------------------------
 
-Rodada 2:
-* Tempo settar switches:
-c1:19737114-19737105
-c2:19689528-19689508
-
-# Tempo para estabelecer um contrato entre h1-h4
-* Tempo processamento c1:
-
-* Tempo processamento c2:
-
-* Tempo Total:
-
-* Processamento em ordem:
-
-# Tempo para enviar um pacote icmp entre h1-h4 com regras ativas
-* Não tem processamento, pois não ocorre packet_in
-* Tempo Total:
-
-# Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
-* Tempo processamento c1:
-* Tempo processamento c2:
-* Tempo Total:
-
-* Processamento em ordem:
-
-
---------------------------------------------------------
-
-Rodada 3:
-* Tempo settar switches:
-c1:19737114-19737105
-c2:19689528-19689508
-
-# Tempo para estabelecer um contrato entre h1-h4
-* Tempo processamento c1:
-
-* Tempo processamento c2:
-
-* Tempo Total:
-
-* Processamento em ordem:
-
-# Tempo para enviar um pacote icmp entre h1-h4 com regras ativas
-* Não tem processamento, pois não ocorre packet_in
-* Tempo Total:
-
-# Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
-* Tempo processamento c1:
-* Tempo processamento c2:
-* Tempo Total:
-
-* Processamento em ordem:
-
-
---------------------------------------------------------
-
-Rodada 4:
-* Tempo settar switches:
-c1:19737114-19737105
-c2:19689528-19689508
-
-# Tempo para estabelecer um contrato entre h1-h4
-* Tempo processamento c1:
-
-* Tempo processamento c2:
-
-* Tempo Total:
-
-* Processamento em ordem:
-
-# Tempo para enviar um pacote icmp entre h1-h4 com regras ativas
-* Não tem processamento, pois não ocorre packet_in
-* Tempo Total:
-
-# Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
-* Tempo processamento c1:
-* Tempo processamento c2:
-* Tempo Total:
-
-* Processamento em ordem:
-
-
---------------------------------------------------------
-
-Rodada 5:
-* Tempo settar switches:
-c1:19737114-19737105
-c2:19689528-19689508
-
-# Tempo para estabelecer um contrato entre h1-h4
-* Tempo processamento c1:
-
-* Tempo processamento c2:
-
-* Tempo Total:
-
-* Processamento em ordem:
-
-# Tempo para enviar um pacote icmp entre h1-h4 com regras ativas
-* Não tem processamento, pois não ocorre packet_in
-* Tempo Total:
-
-# Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
-* Tempo processamento c1:
-* Tempo processamento c2:
-* Tempo Total:
-
-* Processamento em ordem:
-
-
---------------------------------------------------------

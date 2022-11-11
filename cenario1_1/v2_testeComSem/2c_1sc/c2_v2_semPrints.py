@@ -1875,7 +1875,11 @@ class Dinamico(app_manager.RyuApp):
                     ##criar regra para na volta remarcar o destino pelo traduzido(reverso)
                     ## ja foi criado a regra para reverter o src na volta, para que mude para o ip deste controlador e ele possa responder
 
+                    ## EM TESTES:::
                     enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
+                    #Thread(target=enviar_contratos, args=(ip_src, PORTAC_C, cip_dst,)).start()
+
+                    
                     logging.info('[Packet_In] icmp 16 - controlador destino (%s->%s) - fim - tempo: %d\n' % (ip_src, ip_dst, round(time.monotonic()*1000) - tempo_i))
                     return 0
 
@@ -2032,7 +2036,7 @@ class Dinamico(app_manager.RyuApp):
             out_port = switch_ultimo.getPortaSaida(ip_dst)
             fila = CPF[(classe,1)]
             switch_ultimo.injetarPacote(switch_ultimo.datapath,fila, out_port, msg)
-            logging.info('[Packet_In] pacote sem match - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
+            logging.info('[Packet_In] pacote sem match (%s->%s) - fim - tempo: %d\n' % (ip_src, ip_dst, round(time.monotonic()*1000) - tempo_i))
 
             return	 
                     
