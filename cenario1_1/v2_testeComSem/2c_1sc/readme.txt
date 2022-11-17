@@ -75,7 +75,7 @@ TT = 6.343645 + 1/1000 - 6.319490 = 0.02515s = 25.15ms
 T1 = tempo do icmp sair de h1
 T2 = tempo do icmp chegar em h4
 TT = T2 - T1
-TT=  0.618259 - 0.618098 = 1ms
+TT=  0.618259 - 0.618098 = 0.16ms
 
 
 # Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
@@ -696,7 +696,7 @@ TT = 8.861659 + 1/1000 - 8.828583 = 34ms
 T1 = tempo do icmp sair de h1
 T2 = tempo do icmp chegar em h4
 TT = T2 - T1
-TT=  5.062727 - 5.062572 = 1.5ms
+TT=  5.062727 - 5.062572 = 0.15ms
 
 
 # Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
