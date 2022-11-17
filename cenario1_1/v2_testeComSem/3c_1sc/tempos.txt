@@ -448,9 +448,9 @@ TT = 5.989353 - 5.963291 =
 
 # Rodada 6:
 * Tempo settar switches:
-c1: 
-c2: 
-c3: 
+c1: 7ms
+c2: 6ms
+c3: 6ms
 
 # Tempo para estabelecer um contrato entre h1-h4
 * Tempo processamento c1:
@@ -458,44 +458,44 @@ server-host (receber contrato de h1+criar regras+icmp15):
 - T1 = tempo consumido no tratamento do packet_in (para a volta da comunicacao controlador->host)
 - T2 = tempo de processamento ouvindo a conexão e recebendo o contrato.
 - TT = T1 + T2
-- TT = 
+- TT = 1ms + 1ms
 
 
 pkt_in_icmp16 (envia contrato para c2 e para c3): 
-- TT = 
+- TT = 1ms + 4ms + 2ms + 4ms = 11ms
  
 
 * Tempo processamento c2:
 pkt_in_icmp15 (receb icmp15 e respondido icmp16):
-TT = 
+TT = 1ms
 
 pkt_in_icmp16 (rec de c3 para encaminhar para c1):
-TT= 
+TT= 1ms
 
 server-controlador (receber contrato de c1):
-TT = 
+TT = 0ms
 
 * Tempo processamento c3:
 pkt_in_icmp15 (receb icmp15 e respondido icmp16):
-TT = 
+TT = 0ms
 
 server-controlador (receber contrato de c1):
-TT = 
+TT = 1ms
 
 
 * Tempo Total de processamento:
 (soma dos processamentos de c1, c2 e c3)
 TP = tproc_c1 + tproc_c2 + tproc_c3
-TP = 
+TP = 11ms + 1ms + 1ms + 1ms = 14ms
 
 * Tempo total para setup de contratos:
 T1 = primeiro pacote saindo de h1
 T2 =  tempo que o primeiro pacote de c1 chega em c3 + processamento para receber o contrato e criar as regras (server-control)/ 1000 (milliseconds to seconds)
 TT = T2 - T1 
 
-T1 = 
-T2 = 
-TT = 
+T1 = 6.828264
+T2 = 6.851976 + 1/1000
+TT = 6.851976 + 1/1000 - 6.828264 =
 
 # Tempo para enviar um pacote icmp entre h1-h4 com regras ativas
 * Não tem processamento, pois não ocorre packet_in
@@ -503,42 +503,42 @@ TT =
 T1 = tempo do icmp sair de h1
 T2 = tempo do icmp chegar em h4
 TT = T2 - T1
-TT= 
+TT= 2.322775 - 2.322550 = 
 
 
 # Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
 * Tempo processamento c1:
 T1 = packet_in: tempo consumido no tratamento do packet_in, encontrando match, criando regras e enviando icmp 15:
-TT = 
+TT = 1ms
 
 * Tempo processamento c2:
 T1 = pkt_in_icmp15:
 T2 = tempo consumido no tratamento do packet_in, encontrando match e criando regras:
 T3 = pkt_in_icmp16:
-TT (soma) = 
+TT (soma) = 1ms + 1ms + 1ms = 3ms
 
 * Tempo processamento c3:
 T1 = pkt_in_icmp15:
 T2 = tempo consumido no tratamento do packet_in, encontrando match e criando regras:
-TT = 
+TT = 1ms + 1ms + 1ms = 3ms
 
 Tempo Total de processamento:
 TT = tproc_c1 + tproc_c2 + tproc_c3
-TT = 
+TT = 1ms + 3ms + 3ms = 7ms
 
 * Tempo Total:
 T1 = tempo quando o icmp sai de h1
 T2 = tempo quando o icmp chega em h4
 TT = T2 - T1
-TT = 
+TT =  6.885074 - 6.866987 = 
 
 --------------------------------------------------------
 
 # Rodada 7:
 * Tempo settar switches:
-c1: 
-c2: 
-c3: 
+c1: 2ms
+c2: 3ms
+c3: 5ms
 
 # Tempo para estabelecer um contrato entre h1-h4
 * Tempo processamento c1:
@@ -546,44 +546,44 @@ server-host (receber contrato de h1+criar regras+icmp15):
 - T1 = tempo consumido no tratamento do packet_in (para a volta da comunicacao controlador->host)
 - T2 = tempo de processamento ouvindo a conexão e recebendo o contrato.
 - TT = T1 + T2
-- TT = 
+- TT = 1ms + 3ms = 4ms
 
 
 pkt_in_icmp16 (envia contrato para c2 e para c3): 
-- TT = 
+- TT = 7ms + 1ms + 9ms + 5ms + 10ms = 32ms
  
 
 * Tempo processamento c2:
 pkt_in_icmp15 (receb icmp15 e respondido icmp16):
-TT = 
+TT = 1ms
 
 pkt_in_icmp16 (rec de c3 para encaminhar para c1):
-TT= 
+TT= 1ms
 
 server-controlador (receber contrato de c1):
-TT = 
+TT = 1ms
 
 * Tempo processamento c3:
 pkt_in_icmp15 (receb icmp15 e respondido icmp16):
-TT = 
+TT = 1ms
 
 server-controlador (receber contrato de c1):
-TT = 
+TT = 1ms
 
 
 * Tempo Total de processamento:
 (soma dos processamentos de c1, c2 e c3)
 TP = tproc_c1 + tproc_c2 + tproc_c3
-TP = 
+TP = 41ms
 
 * Tempo total para setup de contratos:
 T1 = primeiro pacote saindo de h1
 T2 =  tempo que o primeiro pacote de c1 chega em c3 + processamento para receber o contrato e criar as regras (server-control)/ 1000 (milliseconds to seconds)
 TT = T2 - T1 
 
-T1 = 
-T2 = 
-TT = 
+T1 = 18:23:50.030003
+T2 = 18:23:50.073896 + 1/1000
+TT = 0.073896 + 1/1000 - 0.030003 = 
 
 # Tempo para enviar um pacote icmp entre h1-h4 com regras ativas
 * Não tem processamento, pois não ocorre packet_in
@@ -591,42 +591,42 @@ TT =
 T1 = tempo do icmp sair de h1
 T2 = tempo do icmp chegar em h4
 TT = T2 - T1
-TT= 
+TT=  3.701615 - 3.701370 = 
 
 
 # Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
 * Tempo processamento c1:
 T1 = packet_in: tempo consumido no tratamento do packet_in, encontrando match, criando regras e enviando icmp 15:
-TT = 
+TT = 2ms
 
 * Tempo processamento c2:
 T1 = pkt_in_icmp15:
 T2 = tempo consumido no tratamento do packet_in, encontrando match e criando regras:
 T3 = pkt_in_icmp16:
-TT (soma) = 
+TT (soma) = 1ms + 1ms + 1ms = 3ms
 
 * Tempo processamento c3:
 T1 = pkt_in_icmp15:
 T2 = tempo consumido no tratamento do packet_in, encontrando match e criando regras:
-TT = 
+TT = 1ms + 1ms + 1ms = 3ms
 
 Tempo Total de processamento:
 TT = tproc_c1 + tproc_c2 + tproc_c3
-TT = 
+TT = 2ms + 3ms + 3ms = 8ms
 
 * Tempo Total:
 T1 = tempo quando o icmp sai de h1
 T2 = tempo quando o icmp chega em h4
 TT = T2 - T1
-TT = 
+TT =  5.589609 - 5.566183 = 
 
 --------------------------------------------------------
 
 # Rodada 8:
 * Tempo settar switches:
-c1: 
-c2: 
-c3: 
+c1: 4ms
+c2: 4ms
+c3: 7ms
 
 # Tempo para estabelecer um contrato entre h1-h4
 * Tempo processamento c1:
@@ -634,44 +634,44 @@ server-host (receber contrato de h1+criar regras+icmp15):
 - T1 = tempo consumido no tratamento do packet_in (para a volta da comunicacao controlador->host)
 - T2 = tempo de processamento ouvindo a conexão e recebendo o contrato.
 - TT = T1 + T2
-- TT = 
+- TT = 1ms + 4ms = 5ms
 
 
 pkt_in_icmp16 (envia contrato para c2 e para c3): 
-- TT = 
+- TT = 8ms + 1ms + 11ms + 5ms + 12ms = 37ms
  
 
 * Tempo processamento c2:
 pkt_in_icmp15 (receb icmp15 e respondido icmp16):
-TT = 
+TT = 1ms
 
 pkt_in_icmp16 (rec de c3 para encaminhar para c1):
-TT= 
+TT= 3ms
 
 server-controlador (receber contrato de c1):
-TT = 
+TT = 1ms
 
 * Tempo processamento c3:
 pkt_in_icmp15 (receb icmp15 e respondido icmp16):
-TT = 
+TT = 2ms
 
 server-controlador (receber contrato de c1):
-TT = 
+TT = 2ms
 
 
 * Tempo Total de processamento:
 (soma dos processamentos de c1, c2 e c3)
 TP = tproc_c1 + tproc_c2 + tproc_c3
-TP = 
+TP = 5ms + 37ms + 1ms + 3ms + 1ms + 2ms + 2ms = 51ms
 
 * Tempo total para setup de contratos:
 T1 = primeiro pacote saindo de h1
 T2 =  tempo que o primeiro pacote de c1 chega em c3 + processamento para receber o contrato e criar as regras (server-control)/ 1000 (milliseconds to seconds)
 TT = T2 - T1 
 
-T1 = 
-T2 = 
-TT = 
+T1 = 18:32:00.229294
+T2 = 18:32:00.275290 + 2/1000 
+TT = 0.275290 + 2/1000 - 0.229294 = 
 
 # Tempo para enviar um pacote icmp entre h1-h4 com regras ativas
 * Não tem processamento, pois não ocorre packet_in
@@ -679,42 +679,42 @@ TT =
 T1 = tempo do icmp sair de h1
 T2 = tempo do icmp chegar em h4
 TT = T2 - T1
-TT= 
+TT= 4.991709 - 4.991466 =
 
 
 # Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
 * Tempo processamento c1:
 T1 = packet_in: tempo consumido no tratamento do packet_in, encontrando match, criando regras e enviando icmp 15:
-TT = 
+TT = 1ms
 
 * Tempo processamento c2:
 T1 = pkt_in_icmp15:
 T2 = tempo consumido no tratamento do packet_in, encontrando match e criando regras:
 T3 = pkt_in_icmp16:
-TT (soma) = 
+TT (soma) = 2ms + 1ms +2ms = 5ms
 
 * Tempo processamento c3:
 T1 = pkt_in_icmp15:
 T2 = tempo consumido no tratamento do packet_in, encontrando match e criando regras:
-TT = 
+TT = 1ms + 1ms + 1ms = 3ms
 
 Tempo Total de processamento:
 TT = tproc_c1 + tproc_c2 + tproc_c3
-TT = 
+TT = 1ms + 5ms + 3ms = 9ms
 
 * Tempo Total:
 T1 = tempo quando o icmp sai de h1
 T2 = tempo quando o icmp chega em h4
 TT = T2 - T1
-TT = 
+TT =  7.744494 - 7.719941 = 
 
 --------------------------------------------------------
 
 # Rodada 9:
 * Tempo settar switches:
-c1: 
-c2: 
-c3: 
+c1: 7ms
+c2: 9ms
+c3: 10ms
 
 # Tempo para estabelecer um contrato entre h1-h4
 * Tempo processamento c1:
@@ -722,44 +722,44 @@ server-host (receber contrato de h1+criar regras+icmp15):
 - T1 = tempo consumido no tratamento do packet_in (para a volta da comunicacao controlador->host)
 - T2 = tempo de processamento ouvindo a conexão e recebendo o contrato.
 - TT = T1 + T2
-- TT = 
+- TT = 1ms + 6ms = 7ms
 
 
 pkt_in_icmp16 (envia contrato para c2 e para c3): 
-- TT = 
+- TT = 9ms + 1ms + 10ms + 2ms + 1ms + 7ms + 1ms + 1ms = 32ms
  
 
 * Tempo processamento c2:
 pkt_in_icmp15 (receb icmp15 e respondido icmp16):
-TT = 
+TT = 1ms
 
 pkt_in_icmp16 (rec de c3 para encaminhar para c1):
-TT= 
+TT= 2ms
 
 server-controlador (receber contrato de c1):
-TT = 
+TT = 1ms
 
 * Tempo processamento c3:
 pkt_in_icmp15 (receb icmp15 e respondido icmp16):
-TT = 
+TT = 1ms
 
 server-controlador (receber contrato de c1):
-TT = 
+TT = 3ms
 
 
 * Tempo Total de processamento:
 (soma dos processamentos de c1, c2 e c3)
 TP = tproc_c1 + tproc_c2 + tproc_c3
-TP = 
+TP = 7ms + 32ms + 1ms + 2ms + 1ms + 1ms + 3ms = 47ms
 
 * Tempo total para setup de contratos:
 T1 = primeiro pacote saindo de h1
 T2 =  tempo que o primeiro pacote de c1 chega em c3 + processamento para receber o contrato e criar as regras (server-control)/ 1000 (milliseconds to seconds)
 TT = T2 - T1 
-
-T1 = 
-T2 = 
-TT = 
+18:41:22.231899
+T1 = 18:41:22.231899
+T2 = 18:41:22.287980 + 3/1000
+TT = 2.287980 + 3/1000 - 2.231899 = 
 
 # Tempo para enviar um pacote icmp entre h1-h4 com regras ativas
 * Não tem processamento, pois não ocorre packet_in
@@ -767,43 +767,43 @@ TT =
 T1 = tempo do icmp sair de h1
 T2 = tempo do icmp chegar em h4
 TT = T2 - T1
-TT= 
+TT=  7.649834 - 7.649685 = 
 
 
 # Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
 * Tempo processamento c1:
 T1 = packet_in: tempo consumido no tratamento do packet_in, encontrando match, criando regras e enviando icmp 15:
-TT = 
+TT = 1ms
 
 * Tempo processamento c2:
 T1 = pkt_in_icmp15:
 T2 = tempo consumido no tratamento do packet_in, encontrando match e criando regras:
 T3 = pkt_in_icmp16:
-TT (soma) = 
+TT (soma) = 1ms + 2ms + 1ms = 4ms
 
 * Tempo processamento c3:
 T1 = pkt_in_icmp15:
 T2 = tempo consumido no tratamento do packet_in, encontrando match e criando regras:
-TT = 
+TT = 1ms + 1ms + 1ms = 3ms
 
 Tempo Total de processamento:
 TT = tproc_c1 + tproc_c2 + tproc_c3
-TT = 
+TT = 1ms + 4ms + 3ms = 8ms
 
 * Tempo Total:
 T1 = tempo quando o icmp sai de h1
 T2 = tempo quando o icmp chega em h4
 TT = T2 - T1
-TT = 
+TT = 4.053740 - 4.027329 = 
 
 --------------------------------------------------------
 
 
 # Rodada 10:
 * Tempo settar switches:
-c1: 
-c2: 
-c3: 
+c1: 5ms
+c2: 6ms
+c3: 8ms
 
 # Tempo para estabelecer um contrato entre h1-h4
 * Tempo processamento c1:
@@ -811,44 +811,44 @@ server-host (receber contrato de h1+criar regras+icmp15):
 - T1 = tempo consumido no tratamento do packet_in (para a volta da comunicacao controlador->host)
 - T2 = tempo de processamento ouvindo a conexão e recebendo o contrato.
 - TT = T1 + T2
-- TT = 
+- TT = 0ms + 3ms = 3ms
 
 
 pkt_in_icmp16 (envia contrato para c2 e para c3): 
-- TT = 
+- TT = 6ms + 1ms + 11ms + 5ms + 2ms + 11ms = 36ms
  
 
 * Tempo processamento c2:
 pkt_in_icmp15 (receb icmp15 e respondido icmp16):
-TT = 
+TT = 1ms
 
 pkt_in_icmp16 (rec de c3 para encaminhar para c1):
-TT= 
+TT= 2ms
 
 server-controlador (receber contrato de c1):
-TT = 
+TT = 2ms
 
 * Tempo processamento c3:
 pkt_in_icmp15 (receb icmp15 e respondido icmp16):
-TT = 
+TT = 1ms
 
 server-controlador (receber contrato de c1):
-TT = 
+TT = 2ms
 
 
 * Tempo Total de processamento:
 (soma dos processamentos de c1, c2 e c3)
 TP = tproc_c1 + tproc_c2 + tproc_c3
-TP = 
+TP = 47ms
 
 * Tempo total para setup de contratos:
 T1 = primeiro pacote saindo de h1
 T2 =  tempo que o primeiro pacote de c1 chega em c3 + processamento para receber o contrato e criar as regras (server-control)/ 1000 (milliseconds to seconds)
 TT = T2 - T1 
 
-T1 = 
-T2 = 
-TT = 
+T1 = 18:49:54.329490
+T2 = 18:49:54.373210 + 2/1000 
+TT = 4.373210 + 2/1000 - 4.329490 = 
 
 # Tempo para enviar um pacote icmp entre h1-h4 com regras ativas
 * Não tem processamento, pois não ocorre packet_in
@@ -856,33 +856,33 @@ TT =
 T1 = tempo do icmp sair de h1
 T2 = tempo do icmp chegar em h4
 TT = T2 - T1
-TT= 
+TT=  6.213196 - 6.212968 =
 
 
 # Tempo para enviar um pacote icmp entre h1-h4 sem regras ativas (packet_in)
 * Tempo processamento c1:
 T1 = packet_in: tempo consumido no tratamento do packet_in, encontrando match, criando regras e enviando icmp 15:
-TT = 
+TT = 1ms
 
 * Tempo processamento c2:
 T1 = pkt_in_icmp15:
 T2 = tempo consumido no tratamento do packet_in, encontrando match e criando regras:
 T3 = pkt_in_icmp16:
-TT (soma) = 
+TT (soma) = 2ms + 2ms + 1ms = 5ms
 
 * Tempo processamento c3:
 T1 = pkt_in_icmp15:
 T2 = tempo consumido no tratamento do packet_in, encontrando match e criando regras:
-TT = 
+TT = 1ms + 1ms + 1ms = 3ms
 
 Tempo Total de processamento:
 TT = tproc_c1 + tproc_c2 + tproc_c3
-TT = 
+TT = 1ms + 5ms + 3ms = 9ms
 
 * Tempo Total:
 T1 = tempo quando o icmp sai de h1
 T2 = tempo quando o icmp chega em h4
 TT = T2 - T1
-TT = 
+TT = 7.287280 - 7.261968 = 
 
 --------------------------------------------------------
