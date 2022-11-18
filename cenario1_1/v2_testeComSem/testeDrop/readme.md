@@ -95,3 +95,16 @@ cvlc -vvv video.mp4 --sout '#rtp{proto=udp, mux=ts,dst=10.0.0.2,port=8080,sdp=sa
 
 * solucao para "X Error of failed request:  BadValue" - reiniciar a maquina:
 `sudo apt install nvidia-340`
+
+
+
+######### testes: 
+[rtp:udp]
+
+cvlc -vvv video2.mp4 :norm=ntsc :v4l2-width=320 :v4l2-height=240 :v4l2-
+standard=45056 :channel=1 --no-sout-audio --sout '#transcode{vb="1600",vcodec=m
+pgv,acodec=mpga,venc=ffmpeg}:rtp{proto=udp,mux=ts,dst=172.16.10.4,port=9000}' -
+-loop --ttl 1
+
+ffmpeg -re -i video2.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -f rtp 
+rtp://172.16.10.4:10000
