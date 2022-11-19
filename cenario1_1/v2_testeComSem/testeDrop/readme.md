@@ -46,6 +46,7 @@
 ``
 
 * Script stream ( video2.mp4 é mudo, não precisa do -ab 128000) em h1:
+
 `ffmpeg -re -i video.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -ab 128000 -f flv rtmp://172.16.10.1:10000/live`
 
 - RTMP usa tcp para conexão, por isso, também é preciso reservar largura de banda para volta...
@@ -53,7 +54,26 @@
 - RTP usar udp para conexão, nesse caso, não é necessário configurar tráfego de volta...
 
 * Abrir a conexão no vlc ou com ffplay - no vlc procurar estatísticas:
+
 `ffplay -stats rtmp://127.0.0.1:10000/live`
+
+* Para streaming por protocolos UDP é necessário um arquivo .sdp, que geralmente em aplicacoes de video é transferido por outro canal. Para gerar o .sdp, depois do comando do emissor adicionar o comando abaixo e usar isso para rodar com ffplay -i <file.sdp>:
+
+` -sdp_file foo.sdp`
+
+`ffplay -protocol_whitelist file,http,https,tcp,tls -i foo.sdp`
+
+
+### COM UDP:
+
+* Emissor
+
+`ffmpeg -re -i video2.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -f mpegts udp://192.168.1.71:10000`
+
+* Receptor
+
+`ffplay udp://192.168.1.71:10000`
+
 
 
 ### Configuração VLC
@@ -93,9 +113,16 @@ cvlc -vvv video.mp4 --sout '#rtp{proto=udp, mux=ts,dst=10.0.0.2,port=8080,sdp=sa
 * solucao para "X Error of failed request:  BadRequest" ou similar:
 `sudo apt-get install -y libgl1-mesa-glx:i386`
 
-* solucao para "X Error of failed request:  BadValue" - reiniciar a maquina:
-`sudo apt install nvidia-340`
+* solucao para "X Error of failed request:  BadValue"  - depois reboot (fiz tanta coisa, pode ser que esses passos nao sejam o suficiente, mas depois deles funcionou):
+`Ativar a aceleração 3D na maquina virtual`
 
+`sudo apt-get install dkms build-essential`
+
+`sudo dpkg -P $(dpkg -l | grep nvidia-driver | awk '{print $2}')`
+
+`sudo apt autoremove`
+
+`sudo apt install xserver-xorg-video-nouveau`
 
 
 ######### testes: 
