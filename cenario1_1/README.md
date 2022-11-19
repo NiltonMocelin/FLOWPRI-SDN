@@ -2,6 +2,10 @@
 
 # Estado atual
 
+****** por algum motivo o contrato estabelecido com h1-c1 5000 1 1 não está sendo distribuido, verificar o pq - se for 1000 1 1 funciona... (só precisa funcionar o 5000 para o teste de drop)
+
+
+
 * Versão mais atual c4_1sc/c1_v2_semPrints.py
 
 * verificar onde colocar os prints de tempo e fazer os testes.
@@ -18,8 +22,12 @@
 
 * único problema que torna meio irreal é: durante o estabelecimento do contrato já queremos criar as regras, mas nesse momento não sabemos qual o switch que recebeu o contrato primeiro. Assim, não teria como pegar as rotas baseado no switch de packet_in, conforme pensado a principio. Então é colocado em um vetor, qual seria o switch que inicia a rota para um host. Poderia ser por prefixo tbm - enfim, rotas não é o escopo do trabalho, assumimos que é sempre possível obter os switches que pertencem a uma rota entre host origem e destino.
 
+* OBS: dump-flows é melhor com --stats junto:
+`ovs-ofctl -O OpenFlow13 --stats dump-flows s1`
 
-* refazendo todos os testes - coletar os tempos
+
+****** [FEITO] OBSS >>> ALTERAR TODOS OS switchQueueConf.sh -> atual: a taxa limite para cada fila é igual a minima - nesse caso, fluxos best-effort são limitados a banda reservada para best-effort -> alterar: classe best-effort "other-configs:max-rate:$BANDA". Isso permite que o HTB distribua banda excedente para essa classe. Infelizmente, não adianta distribuir a banda best-effort ou de outras classes para classes prioritarias, pq não tem como saber quanto de banda os fluxos best-effort usam e então não é possível garantir que os recursos emprestados sejam reservados para os fluxos prioritários.
+
 
 ### TODO:
 * [Fazendo] (TOPOLOGIA) fazer as topologias de cada teste
@@ -97,9 +105,23 @@
 
 ## Comandos úteis:
 
-* monitorar alteracoes nas tabelas de fluxo dos switches:
+* sempre rodar mininet clear antes de um teste:
+`sudo mn -c`
+
+* mostrar as regras meters, meter bands e status:
+`ovs-ofctl -O OpenFlow13 meter-features s1`
+`ovs-ofctl -O OpenFlow13 dump-meters s1`
+`ovs-ofctl -O OpenFlow13 meter-stats s1`
+
+
+* mostrar a largura de banda dos links dos switches:
+`sh ovs-ofctl -O openflow13 dump-ports-desc s1`
+
+* monitorar alteracoes nas tabelas de fluxo dos switches (com --stats mostra mais informações):
 
 ` watch ovs-ofctl dump-flows s1`
+
+`watch ovs-ofctl -O OpenFlow13 --stats dump-flows s1`
 
 * deletar todas as regras de fluxo de um switch:
 

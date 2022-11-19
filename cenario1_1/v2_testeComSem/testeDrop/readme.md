@@ -12,9 +12,18 @@
 ### Configuração do teste
 
 * Qualidade do vídeo - video2.mp4:
-
 - Resolução: 1920x1080
 - Requisito de banda: +- 5Mbps
+- Usando rtmp - tráfego de volta +- 32kbps
+
+* Medir banda de um fluxo com iftop, ou com netstat(acho que não funciona com netstat):
+`iftop -i <interface>`
+
+`sudo netstat -tpn | grep 12345`
+
+ - OBS: iftop mostra 3 valores de largura de banda, em ordem: media dos ultimos 2s, 10s e 40s --- fonte: https://manpages.ubuntu.com/manpages/kinetic/en/man8/iftop.8.html
+
+ - OBS2: mplayer é melhor que ffplay
 
 
 #### Cenário (topologia) - Framework:5c_1sc Vs semFramework:5switch
@@ -39,6 +48,49 @@
 
 `ryu-manager c5_v2_semPrints.py --ofp-tcp-listen-port 6666`
 
+
+#### UM TESTE COM RTP (UDP) E UM COM RTMP(TCP):
+* video_stream/video2.mp4
+
+* h4 abrir servidor iperf:
+`iper -s`
+
+* h2 iperf h4
+`iperf -b 10M -c 172.16.10.4`
+
+* h3 iperf h4
+`iperf -b 10M -c 172.16.10.4`
+
+* Observar que a largura de banda do streaming cai para 1Mb . NOTE QUE: o video degrada um pouco no cliente, enquanto que o servidor de streaming não perde desempenho no tratamento do video, apenas a rede é afetada - o que valida o teste.
+`iftop -i h4-eth0`
+
+##### COM RTMP
+* Obs: RTMP usa tcp, ou seja, necessita de tráfego de "volta" +- 32kb, ida +- 5Mb (testado com video2.mp4).
+Logo, é preciso um contrato para este tráfego tbm - no caso do framework.
+
+* h1 video streaming to h4:
+`ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a copy -listen 1 -ar 44100 -preset ultrafast -f flv rtmp://172.16.10.1:10000/live`
+
+* h4 executar mplayer:
+`mplayer rtmp://172.16.10.1:10000/live`
+
+##### COM RTP - CANCELADO POR BAIXA QUALIDADE (não achei um modo de streamar com qualidade, rtmp tem qualidade muito superior e usa menos banda - só que é tráfego bilateral tcp)
+* h1 video streaming to h4 - usando rtp:
+` ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a copy -listen 1 -ar 44100 -preset ultrafast -f rtp rtp://172.16.10.4:10000 -sdp_file foo.sdp`
+
+* h1 video streamin para h4 - usando udp puro:
+`ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a copy -listen 1 -ar 44100 -preset ultrafast -f mpegts udp://172.16.10.4:10000`
+
+* h4 executar mplayer - rtp:
+`mplayer foo.sdp` 
+
+* h4 executar mplayer - udp:
+`mplayer udp://172.16.10.4:10000` 
+
+
+
+#####  TESTES ANTERIORES E PROCESSO DE APRENDIZAGEM
+
 * Iperf entre h2-h4 para simular tráfego background:
 ``
 
@@ -53,15 +105,22 @@
 
 - RTP usar udp para conexão, nesse caso, não é necessário configurar tráfego de volta...
 
-* Abrir a conexão no vlc ou com ffplay - no vlc procurar estatísticas:
+* Abrir a conexão no vlc, ffplay ou mplayer - no vlc procurar estatísticas:
 
 `ffplay -stats rtmp://127.0.0.1:10000/live`
+
+`mplayer rtmp://127.0.0.1:10000/live`
 
 * Para streaming por protocolos UDP é necessário um arquivo .sdp, que geralmente em aplicacoes de video é transferido por outro canal. Para gerar o .sdp, depois do comando do emissor adicionar o comando abaixo e usar isso para rodar com ffplay -i <file.sdp>:
 
 ` -sdp_file foo.sdp`
 
-`ffplay -protocol_whitelist file,http,https,tcp,tls -i foo.sdp`
+`ffplay -protocol_whitelist file,http,https,tcp,tls,rtp,udp -i foo.sdp`
+
+`mplayer foo.sdp`
+
+* Para limitar a largura de banda do ffmpeg em 2M, adicionar:
+`-maxrate 2M`
 
 
 ### COM UDP:
@@ -135,3 +194,10 @@ pgv,acodec=mpga,venc=ffmpeg}:rtp{proto=udp,mux=ts,dst=172.16.10.4,port=9000}' -
 
 ffmpeg -re -i video2.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -f rtp 
 rtp://172.16.10.4:10000
+
+
+[rtmp:tcp]
+
+* Se especificar o codec é possível mexer no bitrate, se não (usando copy), não consegue:
+ffmpeg -re -i ../video_stream/video2.mp4 -preset ultrafast -vcodec libx 264 -b:v 5M -c:a aac -listen 1 -ar 44100 -maxrate 8M -minrate 8M -f flv rtmp://172.16.10.1:10000/live
+
