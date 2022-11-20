@@ -14,7 +14,6 @@
 
 #PROBLEMA: So ha uma camada de hieraquia possivel, como fazer tudo funcionar gerenciando com o controlador, vai ser um pouco complicado
 # Real = 33% -> vou ter que alocar 33% em cada fila da classe Real e pelo controlador fazer com que as 3 filas nao usem mais que 33% + permitido de enfileiramento -> RealPrio10 = 33%, RealPrio5 = 33%, RealPrio2 = 33%
-# 
 # O mesmo deve valer para dados 35%
 # BestEffort = 25%%
 # Controle = 7%
@@ -59,11 +58,11 @@ declare -i CLASS2
 declare -i CLASS3
 declare -i CLASS4
 
-BANDA=10000000
-CLASS1=3300000
-CLASS2=3500000
-CLASS3=2500000
-CLASS4=700000
+BANDA=15000000
+CLASS1=4950000
+CLASS2=5250000
+CLASS3=3750000
+CLASS4=1050000
 
 echo "Banda Total=$BANDA, Classe1=$CLASS1, Classe2=$CLASS2, Classe3=$CLASS3, Classe4 $CLASS4"
 

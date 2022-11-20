@@ -2,10 +2,6 @@
 
 # Estado atual
 
-****** por algum motivo o contrato estabelecido com h1-c1 5000 1 1 não está sendo distribuido, verificar o pq - se for 1000 1 1 funciona... (só precisa funcionar o 5000 para o teste de drop)
-
-
-
 * Versão mais atual c4_1sc/c1_v2_semPrints.py
 
 * verificar onde colocar os prints de tempo e fazer os testes.
@@ -27,6 +23,7 @@
 
 
 ****** [FEITO] OBSS >>> ALTERAR TODOS OS switchQueueConf.sh -> atual: a taxa limite para cada fila é igual a minima - nesse caso, fluxos best-effort são limitados a banda reservada para best-effort -> alterar: classe best-effort "other-configs:max-rate:$BANDA". Isso permite que o HTB distribua banda excedente para essa classe. Infelizmente, não adianta distribuir a banda best-effort ou de outras classes para classes prioritarias, pq não tem como saber quanto de banda os fluxos best-effort usam e então não é possível garantir que os recursos emprestados sejam reservados para os fluxos prioritários.
+
 
 
 ### TODO:
@@ -299,6 +296,12 @@ o "especial" para tratar esses tipos de solicitações, assim, garanto que apena
 
    ################################################################################################################
 ######################################  FEITO/ARRUMADO/RESOLVIDO #####################################################
+
+
+************ [RESOLVIDO] - contrato sendo ignorado [NAO ERA ERRO] :  por algum motivo o contrato estabelecido com h1-c1 5000 1 1 não está sendo distribuido, verificar o pq - se for 1000 1 1 funciona... (só precisa funcionar o 5000 para o teste de drop) 
+--- SOLUCAO: Na verdade a banda total é 10Mb, mas dividido para a classe que sobra 3.5Mb para classe 1 e 3.3Mb para classe 2, logo elas podem emprestar banda mas não podem "quebrar banda" nessa versão, não pode ter 2Mb em uma classe e 1Mb em outra... Por isso, o fluxo é descartado e o contrato não é enviado :) -- aumentar a banda do link para "caber" o fluxo resolveria a situação.
+
+
 
 ************ [ARRUMADO] - ICMP inf. req. (15) :
 - colocar nos dados o ip_src, que junto com o destino do pacote, formam o par origem e destino do contrato anunciado

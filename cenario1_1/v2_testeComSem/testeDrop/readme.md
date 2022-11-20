@@ -11,6 +11,12 @@
 
 ### Configuração do teste
 
+* A máquina mininet foi alterada para (se não, não aguenta o streaming):
+- RAM: 1Gb -> 2Gb
+- CPUs: 1 -> 4
+
+* A topologia 5c_1sc foi alterada para links de 15Mb banda
+
 * Qualidade do vídeo - video2.mp4:
 - Resolução: 1920x1080
 - Requisito de banda: +- 5Mbps
@@ -26,43 +32,73 @@
  - OBS2: mplayer é melhor que ffplay
 
 
-#### Cenário (topologia) - Framework:5c_1sc Vs semFramework:5switch
+## Cenário (topologia) - Framework:5c_1sc Vs semFramework:5switch
 
+#### Com Framework: 5c_1sc
 * Iniciar a topologia:
-`sudo python topo5_v2.py`
+`mininet: sudo python topo5_v2.py`
 
 * Executar o script de configuração de filas:
-`sh switchQueueConf2.sh`
+`mininet: sh switchQueueConf2.sh`
+
+* Observar as filas e configurações de links de cada switch, para ver se estão com 15Mb corretamente:
+`mininet: sh ovs-ofctl -O openflow13 dump-ports-desc s1`
 
 * Iniciar os hosts e controladores:
-`xterm h1 h2 root1 root2 root3 root4 root5`
+`mininet: xterm h1 h2 h1 h4 h4 root1 root2 root3 root4 root5`
 
 * Iniciar os controladores em cada root correspondente (root1..root5):
-`ryu-manager c1_v2_semPrints.py --ofp-tcp-listen-port 7000`
+`root1: ryu-manager c1_v2_semPrints.py --ofp-tcp-listen-port 7000`
 
-`ryu-manager c2_v2_semPrints.py --ofp-tcp-listen-port 66`
+`root2: ryu-manager c2_v2_semPrints.py --ofp-tcp-listen-port 6699`
 
-`ryu-manager c3_v2_semPrints.py --ofp-tcp-listen-port 66`
+`root3: ryu-manager c3_v2_semPrints.py --ofp-tcp-listen-port 6677`
 
-`ryu-manager c4_v2_semPrints.py --ofp-tcp-listen-port 66`
+`root4: ryu-manager c4_v2_semPrints.py --ofp-tcp-listen-port 6688`
 
-`ryu-manager c5_v2_semPrints.py --ofp-tcp-listen-port 6666`
+`root5: ryu-manager c5_v2_semPrints.py --ofp-tcp-listen-port 6666`
+
+* Criar o contrato entre h1-h4 (ida e volta pois o streaming rtmp usa tcp) - obs: será usado a classe 2 pois com 15Mb é a que acolhe 5Mb de banda, só para não alterar novamente a configuração:
+`h1: python contrato_cli_v2.py 10.10.10.1 172.16.10.1 172.16.10.4 5000 1 2`
+`h4: python contrato_cli_v2.py 10.10.10.5 172.16.10.4 172.16.10.1 32 1 2`
+
+* Iniciar o iperf servidor e cliente, com tempo suficiente:
+`h4: iperf -s`
+`h1: iperf -b 15M -u -c 172.16.10.4 -t 100`
+
+* Observar a largura de banda dos fluxos que entram e saem em h4 (atualiza a cada 2s):
+`iftop -i h4-eth0 -t >> h4iftop.saida`
+
+- tirar uma média da banda usada para o iperf e para o stream quando: i) iperf não está executando; i) iperf em execução:
+
+* Iniciar o streaming e observar as metricas de qualidade de video usando mplayer -benchmark:
+`h1: ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a copy -listen 1 -ar 44100 -preset ultrafast -f flv rtmp://172.16.10.1:10000/live`
+`h4: mplayer -benchmark rtmp://172.16.10.1:10000/live`
 
 
+
+
+
+
+
+
+
+### TESTES PREVIOS
 #### UM TESTE COM RTP (UDP) E UM COM RTMP(TCP):
+* A topologia 5c_1sc foi alterada para 15 Mb de banda, para poder alocar 5mb no fluxo do video .... nas outras versões é apenas 10Mb, que se divide em frações por classes e, na versão atual, é possível emprestar banda mas somente se o fluxo "couber inteiro", não pode metade da banda em uma fila, metade em outra...
+
 * video_stream/video2.mp4
 
 * h4 abrir servidor iperf:
 `iper -s`
 
-* h2 iperf h4
-`iperf -b 10M -c 172.16.10.4`
-
-* h3 iperf h4
-`iperf -b 10M -c 172.16.10.4`
+* h2 iperf h4 - usando udp para estressar realmente a rede
+`iperf -b 15-M -u -c 172.16.10.4`
 
 * Observar que a largura de banda do streaming cai para 1Mb . NOTE QUE: o video degrada um pouco no cliente, enquanto que o servidor de streaming não perde desempenho no tratamento do video, apenas a rede é afetada - o que valida o teste.
 `iftop -i h4-eth0`
+
+* Usar o comando -benchmark no mplayer para mostrar os framedrops.
 
 ##### COM RTMP
 * Obs: RTMP usa tcp, ou seja, necessita de tráfego de "volta" +- 32kb, ida +- 5Mb (testado com video2.mp4).
@@ -89,7 +125,7 @@ Logo, é preciso um contrato para este tráfego tbm - no caso do framework.
 
 
 
-#####  TESTES ANTERIORES E PROCESSO DE APRENDIZAGEM
+#####  PROCESSO DE APRENDIZAGEM
 
 * Iperf entre h2-h4 para simular tráfego background:
 ``

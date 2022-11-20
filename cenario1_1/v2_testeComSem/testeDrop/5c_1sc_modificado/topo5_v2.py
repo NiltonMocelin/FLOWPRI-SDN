@@ -48,11 +48,11 @@ def myNet():
     s5 = net.addSwitch( 's5', listenPort=6638, mac='00:00:00:00:00:05', dpid='0000000000000005',protocols="OpenFlow10,OpenFlow12,OpenFlow13")
 
     print ("*** Creating links")
-    intfh1 = net.addLink(h1, s1, port2=1, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
-    intfh2 = net.addLink(h2, s1, port2=2, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
-    intfh3 = net.addLink(h3, s1, port2=3, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
+    intfh1 = net.addLink(h1, s1, port2=1, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
+    intfh2 = net.addLink(h2, s1, port2=2, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
+    intfh3 = net.addLink(h3, s1, port2=3, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
 
-    intfh4 = net.addLink(h4, s5, port2=1, bw=10, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
+    intfh4 = net.addLink(h4, s5, port2=1, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True).intf1
 
     net.addLink(s1, s2, port1=4, port2=2, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)
     net.addLink(s2, s3, port1=3, port2=1, bw=15, delay='10ms', loss=0, max_queue_size=1000, use_htb=True)

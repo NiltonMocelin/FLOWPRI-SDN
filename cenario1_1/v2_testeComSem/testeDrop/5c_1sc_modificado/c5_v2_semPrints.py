@@ -265,7 +265,7 @@ def servidor_socket_hosts():
         #deletando o contrato anterior e as regras a ele associadas
         delContratoERegras(switches_rota, cip_src, cip_dst)
 
-        #print]("contrato salvo \n")
+        print("contrato salvo \n")
         contratos.append(contrato)      
 
         #pegando as acoes do alocarGBAM
@@ -280,7 +280,7 @@ def servidor_socket_hosts():
             #retorno vazio = nao tem espaco para alocar o fluxo
             if len(acoes_aux)==0:
                 #rejeitar o fluxo
-                #print]("Fluxo rejeitado!\n")
+                print("Fluxo rejeitado!\n")
                 break
             
             #adicionando as acoes
@@ -1238,7 +1238,7 @@ class Acao:
         return self.regra
     #regra = [ip_src, ip_dst, porta_dst, tos, banda, prioridade, classe, emprestando]
     def executar(self):
-        #print(self.toString())
+        print(self.toString())
         if(self.codigo == CRIAR):
             switch = SwitchOVS.getSwitch(self.nome_switch)
             porta = switch.getPorta(self.porta)
@@ -1368,9 +1368,9 @@ class Dinamico(app_manager.RyuApp):
         for i in range(5):
             nome_portas.append(str(i+1))
         
-        #para Total = 10 Mb += 10000kb
-        bandaC1T=3300 #33%
-        bandaC2T=3500 #35%
+        #para Total = 15 Mb += 15000kb
+        bandaC1T=int(15000 * 0.33) #33%
+        bandaC2T=int(15000 * 0.35) #35%
 
         #para permitir excedente de 10%
         tamanhoFilaC1 = bandaC1T * 0.1 #33 kb

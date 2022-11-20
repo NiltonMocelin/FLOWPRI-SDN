@@ -73,11 +73,11 @@ TC['20.50.50.4'] = '10.10.10.4'
 ############################################
 # informacoes armazenadas pelo controlador #
 ############################################
-#CONTROLADOR C1
+#CONTROLADOR C3
 #cada controlador deve ter o seu
-CONTROLADOR_ID = 1
-IPC = "10.123.123.1" #IP do root/controlador
-MACC = "00:00:00:00:00:05" #MAC do root/controlador
+CONTROLADOR_ID = 3
+IPC = "10.123.123.3" #IP do root/controlador
+MACC = "00:00:00:00:00:07" #MAC do root/controlador
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
 #dictionary com os ips e as conversoes em ficticios, especifico para cada controlador
@@ -265,7 +265,7 @@ def servidor_socket_hosts():
         #deletando o contrato anterior e as regras a ele associadas
         delContratoERegras(switches_rota, cip_src, cip_dst)
 
-        #print]("contrato salvo \n")
+        print("contrato salvo \n")
         contratos.append(contrato)      
 
         #pegando as acoes do alocarGBAM
@@ -280,7 +280,7 @@ def servidor_socket_hosts():
             #retorno vazio = nao tem espaco para alocar o fluxo
             if len(acoes_aux)==0:
                 #rejeitar o fluxo
-                #print]("Fluxo rejeitado!\n")
+                print("Fluxo rejeitado!\n")
                 break
             
             #adicionando as acoes
@@ -1238,7 +1238,7 @@ class Acao:
         return self.regra
     #regra = [ip_src, ip_dst, porta_dst, tos, banda, prioridade, classe, emprestando]
     def executar(self):
-        #print(self.toString())
+        print(self.toString())
         if(self.codigo == CRIAR):
             switch = SwitchOVS.getSwitch(self.nome_switch)
             porta = switch.getPorta(self.porta)
@@ -1368,9 +1368,9 @@ class Dinamico(app_manager.RyuApp):
         for i in range(5):
             nome_portas.append(str(i+1))
         
-        #para Total = 10 Mb += 10000kb
-        bandaC1T=3300 #33%
-        bandaC2T=3500 #35%
+        #para Total = 15 Mb += 15000kb
+        bandaC1T=int(15000 * 0.33) #33%
+        bandaC2T=int(15000 * 0.35) #35%
 
         #para permitir excedente de 10%
         tamanhoFilaC1 = bandaC1T * 0.1 #33 kb
