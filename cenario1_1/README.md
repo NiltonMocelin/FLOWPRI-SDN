@@ -2,7 +2,10 @@
 
 # Estado atual
 
-* Versão mais atual c4_1sc/c1_v2_semPrints.py
+* Versão mais atual v2_testeComSem/testeDrop/5c_1sc_modificado/c1_v2.py -- suporta 5 controladores (criei traduções de enderecos para 5 controladores)
+* V2: versão final 2.
+
+
 
 * verificar onde colocar os prints de tempo e fazer os testes.
 * hoje: vazer os gráficos e comecar o artigo.
@@ -109,10 +112,6 @@
 `ovs-ofctl -O OpenFlow13 meter-features s1`
 `ovs-ofctl -O OpenFlow13 dump-meters s1`
 `ovs-ofctl -O OpenFlow13 meter-stats s1`
-
-
-* mostrar a largura de banda dos links dos switches:
-`sh ovs-ofctl -O openflow13 dump-ports-desc s1`
 
 * monitorar alteracoes nas tabelas de fluxo dos switches (com --stats mostra mais informações):
 

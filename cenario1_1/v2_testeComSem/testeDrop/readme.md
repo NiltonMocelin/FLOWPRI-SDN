@@ -16,11 +16,15 @@
 - CPUs: 1 -> 4
 
 * A topologia 5c_1sc foi alterada para links de 15Mb banda
+* Consequentemente, a topologia sem framework tbm passou a ser 15Mb cada link
 
-* Qualidade do vídeo - video2.mp4:
+* Qualidade do vídeo - original video4.mp4 -> cortado em 30s para video2.mp4:
 - Resolução: 1920x1080
 - Requisito de banda: +- 5Mbps
 - Usando rtmp - tráfego de volta +- 32kbps
+
+* video4.mp4 foi cortado usando ffmpeg:
+`ffmpeg -i video4.mp4 -ss 00:00:00 -t 00:00:30 -c:v copy -c:a copy video2.mp4`
 
 * Medir banda de um fluxo com iftop, ou com netstat(acho que não funciona com netstat):
 `iftop -i <interface>`
@@ -31,6 +35,11 @@
 
  - OBS2: mplayer é melhor que ffplay
 
+* Foram testadas as transmissões usando UDP puro, RTP (UDP) e RTMP. RTMP tem a melhor qualidade mas o servidor trabalha sobre demanda, então, com sobrecarga da rede não é possível ver a degradação na imagem, apenas a imagem congela. Já com RTP e UDP é possível perceber visualmente a degradação, no entanto, nos testes feitos, com UDP puro a qualidade de transmissão está melhor (possívelmente por imperícia).
+
+* Comparar a banda antes e durante o iperf.
+* Comparar a qualidade da imagem antes e durante o iperf.
+* X Comparar a quantidade de frames recebidos sem iperf e com iperf (não dá para fazer pois não consigo inicializar o cliente e o servidor simultaneamente n sei pq).
 
 ## Cenário (topologia) - Framework:5c_1sc Vs semFramework:5switch
 
@@ -64,7 +73,7 @@
 
 * Iniciar o iperf servidor e cliente, com tempo suficiente:
 `h4: iperf -s`
-`h1: iperf -b 15M -u -c 172.16.10.4 -t 100`
+`h2: iperf -b 15M -u -c 172.16.10.4 -t 100`
 
 * Observar a largura de banda dos fluxos que entram e saem em h4 (atualiza a cada 2s):
 `iftop -i h4-eth0 -t >> h4iftop.saida`
@@ -72,13 +81,51 @@
 - tirar uma média da banda usada para o iperf e para o stream quando: i) iperf não está executando; i) iperf em execução:
 
 * Iniciar o streaming e observar as metricas de qualidade de video usando mplayer -benchmark:
-`h1: ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a copy -listen 1 -ar 44100 -preset ultrafast -f flv rtmp://172.16.10.1:10000/live`
-`h4: mplayer -benchmark rtmp://172.16.10.1:10000/live`
+`h1: ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -f mpegts udp://172.16.10.4:10000`
+`h4: mplayer udp://172.16.10.4:10000`
 
 
+#### Sem Framework - 5s_topo5_v2.py:
+* Iniciar a topologia:
+`mininet: sudo python topo5_v2.py`
 
+* Executar o script de configuração de filas - para deixar as propriedades dos links iguais, mas vai usar apenas a default (15Mb):
+`mininet: sh switchQueueConf2.sh`
 
+* Observar as filas e configurações de links de cada switch, para ver se estão com 15Mb corretamente:
+`mininet: sh ovs-ofctl -O openflow13 dump-ports-desc s1`
 
+* Criar as regras nos switches para h1-h4 (streaming) e h2-h4 (iperf):
+`mininet: ovs-ofctl add-flow s1 ip,nw_dst=172.16.10.1,actions:output=1`
+`mininet: ovs-ofctl add-flow s2 ip,nw_dst=172.16.10.1,actions:output=2`
+`mininet: ovs-ofctl add-flow s3 ip,nw_dst=172.16.10.1,actions:output=1`
+`mininet: ovs-ofctl add-flow s4 ip,nw_dst=172.16.10.1,actions:output=1`
+`mininet: ovs-ofctl add-flow s5 ip,nw_dst=172.16.10.1,actions:output=4`
+
+`mininet: ovs-ofctl add-flow s1 ip,nw_dst=172.16.10.2,actions:output=2`
+`mininet: ovs-ofctl add-flow s2 ip,nw_dst=172.16.10.2,actions:output=2`
+`mininet: ovs-ofctl add-flow s3 ip,nw_dst=172.16.10.2,actions:output=1`
+`mininet: ovs-ofctl add-flow s4 ip,nw_dst=172.16.10.2,actions:output=1`
+`mininet: ovs-ofctl add-flow s5 ip,nw_dst=172.16.10.2,actions:output=4`
+
+`mininet: ovs-ofctl add-flow s1 ip,nw_dst=172.16.10.4,actions:output=4`
+`mininet: ovs-ofctl add-flow s2 ip,nw_dst=172.16.10.4,actions:output=3`
+`mininet: ovs-ofctl add-flow s3 ip,nw_dst=172.16.10.4,actions:output=2`
+`mininet: ovs-ofctl add-flow s4 ip,nw_dst=172.16.10.4,actions:output=2`
+`mininet: ovs-ofctl add-flow s5 ip,nw_dst=172.16.10.4,actions:output=1`
+
+* Iniciar o iperf servidor e cliente, com tempo suficiente:
+`h4: iperf -s`
+`h2: iperf -b 15M -u -c 172.16.10.4 -t 100`
+
+* Observar a largura de banda dos fluxos que entram e saem em h4 (atualiza a cada 2s):
+`iftop -i h4-eth0 -t >> h4iftop.saida`
+
+- tirar uma média da banda usada para o iperf e para o stream quando: i) iperf não está executando; i) iperf em execução:
+
+* Iniciar o streaming e observar as metricas de qualidade de video usando mplayer -benchmark:
+`h1: ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -f mpegts udp://172.16.10.4:10000`
+`h4: mplayer udp://172.16.10.4:10000`
 
 
 
@@ -100,7 +147,20 @@
 
 * Usar o comando -benchmark no mplayer para mostrar os framedrops.
 
+### COM UDP:
+* É possível ver os framedrops, pois o servidor não trabalha sobre demanda (não tem "conexão" estabelecida)
+
+* Emissor
+
+`ffmpeg -re -i video2.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -f mpegts udp://192.168.1.71:10000`
+
+* Receptor
+
+`ffplay udp://192.168.1.71:10000`
+
 ##### COM RTMP
+* SE fizer testes com RTMP - que usa tcp, não será possível ver drops de pacotes, pq o servidor envia sobre demanda....
+
 * Obs: RTMP usa tcp, ou seja, necessita de tráfego de "volta" +- 32kb, ida +- 5Mb (testado com video2.mp4).
 Logo, é preciso um contrato para este tráfego tbm - no caso do framework.
 
@@ -110,7 +170,9 @@ Logo, é preciso um contrato para este tráfego tbm - no caso do framework.
 * h4 executar mplayer:
 `mplayer rtmp://172.16.10.1:10000/live`
 
-##### COM RTP - CANCELADO POR BAIXA QUALIDADE (não achei um modo de streamar com qualidade, rtmp tem qualidade muito superior e usa menos banda - só que é tráfego bilateral tcp)
+##### COM RTP - usa UDP
+* SE fizer testes com RTP - que usa udp, é possível ver os framedrops.... Mas a qualidade de streaming está pior que a usando udp puro, então usar udp
+
 * h1 video streaming to h4 - usando rtp:
 ` ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a copy -listen 1 -ar 44100 -preset ultrafast -f rtp rtp://172.16.10.4:10000 -sdp_file foo.sdp`
 
