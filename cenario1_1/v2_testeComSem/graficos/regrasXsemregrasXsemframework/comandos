@@ -1,5 +1,5 @@
+library(ggplot2)
 c2sc1.ativas <- read.table("../../2c_1sc/tempos/pacote_regras-ativas-total.tempo", head=FALSE)$V1
-c2sc1.naoativas
 c3sc1.ativas <- read.table("../../3c_1sc/tempos/pacote_regras-ativas-total.tempo", head=FALSE)$V1
 c4sc1.ativas <- read.table("../../4c_1sc/tempos/pacote_regras-ativas-total.tempo", head=FALSE)$V1
 c5sc1.ativas <- read.table("../../5c_1sc/tempos/pacote_regras-ativas-total.tempo", head=FALSE)$V1
@@ -25,126 +25,24 @@ c2sc1.processamentosemativas = mean ( c2sc1.processamentosemativas)
 c3sc1.processamentosemativas = mean ( c3sc1.processamentosemativas)
 c4sc1.processamentosemativas = mean ( c4sc1.processamentosemativas)
 c5sc1.processamentosemativas = mean ( c5sc1.processamentosemativas)
-cenarios = rep(c("2c1sc","3c1sc","4c1sc","5c1sc"),3)
-teste = rep(c("Regras ativas","Sem regras ativas - total", "Sem regras ativas - processamento"),3)
-teste
-valores = c(c2sc1.ativas, c2sc1.semativas, c2sc1.processamentosemativas,c3sc1.ativas, c3sc1.semativas, c3sc1.processamentosemativas,c4sc1.ativas, c4sc1.semativas, c4sc1.processamentosemativas,c5sc1.ativas, c5sc1.semativas, c5sc1.processamentosemativas)
-data.frame(cenarios,teste,valores)
-teste = rep(c("Regras ativas","Sem regras ativas - total", "Sem regras ativas - processamento"),4)
-data.frame(cenarios,teste,valores)
-c2sc1.ativas
-c2sc1.semativas
-cenarios = c(rep(c("2c1sc"),3), rep(c("3c1sc"),3),rep(c("4c1sc"),3),rep(c("5c1sc"),3))
-cenarios
-data.frame(cenarios,teste,valores)
-c2sc1.processamentosemativas
-dados <- data.frame(cenarios,teste,valores)
-graficp <- ggplot(dados, aes(x=cenarios,y=valores,group=1))
-library(ggplot2)
-graficp <- ggplot(dados, aes(x=cenarios,y=valores,group=1))
-print(graficp)
-graficp <- ggplot(dados, aes(x=cenarios,y=valores))
-print(graficp)
-graficp <- ggplot(dados, aes(x=cenarios,y=valores)) + geom_line()
-print(graficp)
-graficp <- ggplot(dados, aes(x=cenarios,y=valores)) + geom_point()
-print(graficp)
-graficp <- ggplot(dados, aes(x=cenarios,y=valores)) + geom_point() + geom_line()
-print(graficp) 
-graficp <- ggplot() + geom_line(dados, aes(x=cenarios, y=valores), color="blue")
-graficp <- ggplot() + geom_line(dados, aes(x=cenarios, y=valores, group=1), color="blue")
+c5sc1.processamentosemativas
 semframework2s <- read.table("../../semFramework/2s_tempo.out", head=FALSE)$V1
 semframework3s <- read.table("../../semFramework/3s_tempo.out", head=FALSE)$V1
 semframework4s <- read.table("../../semFramework/4s_tempo.out", head=FALSE)$V1
 semframework5s <- read.table("../../semFramework/5s_tempo.out", head=FALSE)$V1
 semframework5s <- c(0.14,0.17,0.15,0.16,0.24,0.26,0.18,0.21,0.17,0.22)
-dados
-teste
-teste = rep(c("Regras ativas"),4)
-teste = c(rep(c("Regras ativas"),4),rep(c("Sem regras ativas - total"),4),rep(c("Sem regras ativas - processamento"),4), rep(c("Sem Framework"),4))
-teste
-cenarios
-cenarios = rep(c("2c1sc","3c1sc","4c1sc","5c1sc"),5)
-cenaros
-cenarios
-cenarios = rep(c("2c1sc","3c1sc","4c1sc","5c1sc"),4)
-cenarios
-semframework
-semframework2s
 semframework2s = mean(semframework2s)
 semframework3s = mean(semframework3s)
 semframework4s = mean(semframework4s)
 semframework5s = mean(semframework5s)
-teste
 valores = c(c2sc1.ativas, c3sc1.ativas,c4sc1.ativas,c5sc1.ativas,c2sc1.semativas,c3sc1.semativas,c4sc1.semativas,c5sc1.semativas,c2sc1.processamentosemativas,c3sc1.processamentosemativas,c4sc1.processamentosemativas,c5sc1.processamentosemativas,semframework2s,semframework3s,semframework4s,semframework5s)
-valores
+cenarios = rep(c("2c1sc","3c1sc","4c1sc","5c1sc"),4)
+teste = c(rep(c("Regras ativas"),4),rep(c("Sem regras ativas - total"),4),rep(c("Sem regras ativas - processamento"),4), rep(c("Sem Framework"),4))
 dados <- data.frame(teste,cenarios,valores)
 dados
-graficp <- ggplot() + geom_line(dados, aes(x=cenarios, y=valores, group=1), color="blue")
-graficp <- ggplot() + geom_line(dados, aes(x=cenarios, y=valores), color="blue")
-graficp <- ggplot() + geom_line(dados, aes(x=cenarios, y=valores))
-graficp <- ggplot() + geom_line(dados, aes(x=cenarios, y=valores, group=1))
-graficp <- ggplot() + geom_line(dados, aes(x=cenarios, y=valores, fill=teste))
-graficp <- ggplot() + geom_line(dados, aes(x=cenarios, y=valores, fill=teste, group=1))
-graficp <- ggplot(dados, aes(x=cenarios, y=valores)) + geom_line() + geom_point()
-print(graficp)
-#ruim
-#fazer na mao
-cenarios = c("2c1sc", "3c1sc", "4c1sc","5c1sc")
-regras_ativas = c(c2sc1.ativas, c3sc1.ativas,c4sc1.ativas,c5sc1.ativas)
-sem_regras_ativas_total = c(c2sc1.semativas, c3sc1.semativas,c4sc1.semativas,c5sc1.semativas)
-sem_regras_ativas_processamento = c(c2sc1.processamentosemativas, c3sc1.processamentosemativas,c4sc1.processamentosemativas,c5sc1.processamentosemativas)
-sem_framework = c(semframework2s, semframework3s, semframework4s, semframework5s)
-grafico <- ggplot() + geom_line(aes(x=cenarios, y= regras_ativas))
-print(grafico)
-grafico <- ggplot() + geom_line(aes(x=cenarios, y= regras_ativas, group=1))
-print(grafico)
-grafico <- ggplot() + geom_line(aes(x=cenarios, y= regras_ativas), color="red") + geom_line(aes(x=cenarios, y=sem_regras_ativas_total), color="blue")
-print(grafico)
-grafico <- ggplot() + geom_line(aes(x=cenarios, y= regras_ativas, group=1), color="red") + geom_line(aes(x=cenarios, y=sem_regras_ativas_total, group=1), color="blue")
-print(grafico)
-grafico <- ggplot() + geom_line(aes(x=cenarios, y= regras_ativas, group=1), color="red") + geom_line(aes(x=cenarios, y=sem_regras_ativas_total, group=1), color="blue") + geom_line(aes(x=cenarios, y=sem_regras_ativas_processamento, group=1), color="green") + geom_line(aes(x=cenarios, y=sem_framework,group=1), color="yellow")
-print(grafico)
-#ainda está ruim
-teste
-teste[:3]
-teste[3]
-teste.ativas = rep(c("Regras ativas"),4)
-teste.semativas = rep(c("Sem regras ativas"),4)
-teste.semativas = rep(c("Sem regras ativas - total"),4)
-teste.semativasproc = rep(c("Sem regras ativas - processamento"),4)
-teste.semframework = rep(c("Sem framework"),4)
-data.ativas = data.frame(teste.ativas,cenarios,regras_ativas)
-data.semativastot = data.frame(teste.semativas,cenarios,sem_regras_ativas_total)
-data.semativasproc = data.frame(teste.semativasproc,cenarios,sem_regras_ativas_processamento)
-data.semframework = data.frame(teste.semframework,cenarios,sem_framework)
-dados
-data.ativas
-data.semativas
-grafico <- ggplot() + geom_line(data.ativas, aes(x=cenarios, y= regras_ativas, group=1), color="red") + geom_line(data.semativastot,aes(x=cenarios, y=sem_regras_ativas_total, group=1), color="blue") + geom_line(data.semativasproc, aes(x=cenarios, y=sem_regras_ativas_processamento, group=1), color="green") + geom_line(data.semframework, aes(x=cenarios, y=sem_framework,group=1), color="yellow")
-grafico <- ggplot() + geom_line(data.ativas, aes(x=cenarios, y= regras_ativas)) + geom_line(data.semativastot,aes(x=cenarios, y=sem_regras_ativas_total)) + geom_line(data.semativasproc, aes(x=cenarios, y=sem_regras_ativas_processamento)) + geom_line(data.semframework, aes(x=cenarios, y=sem_framework))
-grafico <- ggplot() + geom_line(data.ativas, mapping=aes(x=cenarios, y= regras_ativas)) + geom_line(data.semativastot,mapping=aes(x=cenarios, y=sem_regras_ativas_total)) + geom_line(data.semativasproc, mapping=aes(x=cenarios, y=sem_regras_ativas_processamento)) + geom_line(data.semframework, mapping=aes(x=cenarios, y=sem_framework))
-print(grafico)
-grafico <- ggplot() + geom_line(data.ativas, mapping=aes(x=cenarios, y= regras_ativas,group=1)) + geom_line(data.semativastot,mapping=aes(x=cenarios, y=sem_regras_ativas_total,group=1)) + geom_line(data.semativasproc, mapping=aes(x=cenarios, y=sem_regras_ativas_processamento,group=1)) + geom_line(data.semframework, mapping=aes(x=cenarios, y=sem_framework,group=1))
-print(grafico)
-grafico <- ggplot() + geom_line(data.ativas, mapping=aes(x=cenarios, y= regras_ativas,group=1)) + geom_line(data.semativastot,mapping=aes(x=cenarios, y=sem_regras_ativas_total,group=1)) + geom_line(data.semativasproc, mapping=aes(x=cenarios, y=sem_regras_ativas_processamento,group=1)) + geom_line(data.semframework, mapping=aes(x=cenarios, y=sem_framework,group=1),color="green")
-print(grafico)
-grafico <- ggplot() + geom_line(data= data.ativas, aes(x=cenarios, y= regras_ativas,group=1)) + geom_line(data=data.semativastot,aes(x=cenarios, y=sem_regras_ativas_total,group=1)) + geom_line(data=data.semativasproc, aes(x=cenarios, y=sem_regras_ativas_processamento,group=1)) + geom_line(data=data.semframework, aes(x=cenarios, y=sem_framework,group=1),color="green")
-print(grafico)
-grafico <- ggplot() + geom_line(data= data.ativas, aes(x=cenarios, y= regras_ativas,group=1),"yellow") + geom_line(data=data.semativastot,aes(x=cenarios, y=sem_regras_ativas_total,group=1),color="blue") + geom_line(data=data.semativasproc, aes(x=cenarios, y=sem_regras_ativas_processamento,group=1),color="red") + geom_line(data=data.semframework, aes(x=cenarios, y=sem_framework,group=1),color="green")
-grafico <- ggplot() + geom_line(data= data.ativas, aes(x=cenarios, y= regras_ativas,group=1),color="yellow") + geom_line(data=data.semativastot,aes(x=cenarios, y=sem_regras_ativas_total,group=1),color="blue") + geom_line(data=data.semativasproc, aes(x=cenarios, y=sem_regras_ativas_processamento,group=1),color="red") + geom_line(data=data.semframework, aes(x=cenarios, y=sem_framework,group=1),color="green")
-print(grafico)
-grafico <- ggplot() + geom_line(data= data.ativas, aes(x=cenarios, y= regras_ativas,group=teste.ativas),color="yellow") + geom_line(data=data.semativastot,aes(x=cenarios, y=sem_regras_ativas_total,group=1),color="blue") + geom_line(data=data.semativasproc, aes(x=cenarios, y=sem_regras_ativas_processamento,group=1),color="red") + geom_line(data=data.semframework, aes(x=cenarios, y=sem_framework,group=1),color="green")
-print(grafico)
-ggplot(data=dados, aes(x=cenarios,y=valores,group=teste))
-ggplot(data=dados, aes(x=cenarios,y=valores,group=teste)) + geom_line()
-ggplot(data=dados, aes(x=cenarios,y=valores,group=teste)) + geom_line(color=teste)
-ggplot(data=dados, aes(x=cenarios,y=valores,group=teste)) + geom_line() + scale_color_manual(values=c("red","blue","green","black"))
-ggplot(data=dados, aes(x=cenarios,y=valores,group=teste)) + geom_line() + scale_color_manual(values=c("red","blue","green","black"))+ scale_fill_discrete()
-dados
-ggplot(data=dados, aes(x=cenarios,y=valores,group=teste)) + geom_line(aes(color=teste))
 ggplot(data=dados, aes(x=cenarios,y=valores,group=teste)) + geom_line(aes(color=teste)) + labs(x="Cenário", y="milliseconds")
+ggplot(data=dados, aes(x=cenarios,y=valores,group=teste)) + geom_line(aes(color=teste)) + labs(x="Cenário", y="milliseconds") + geom_point()
 png("comregrasXsemregrasXsemframework.png", width = 480, height = 480)
-ggplot(data=dados, aes(x=cenarios,y=valores,group=teste)) + geom_line(aes(color=teste)) + labs(x="Cenário", y="milliseconds")
+ggplot(data=dados, aes(x=cenarios,y=valores,group=teste)) + geom_line(aes(color=teste)) + labs(x="Cenário", y="milliseconds") + geom_point()
 dev.off()
 savehistory("comandos")
