@@ -81,7 +81,7 @@
 - tirar uma média da banda usada para o iperf e para o stream quando: i) iperf não está executando; i) iperf em execução:
 
 * Iniciar o streaming e observar as metricas de qualidade de video usando mplayer -benchmark:
-`h1: ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -f mpegts udp://172.16.10.4:10000`
+`h1: ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -preset ultrafast -f mpegts udp://172.16.10.4:10000`
 `h4: mplayer udp://172.16.10.4:10000`
 
 
@@ -124,7 +124,7 @@
 - tirar uma média da banda usada para o iperf e para o stream quando: i) iperf não está executando; i) iperf em execução:
 
 * Iniciar o streaming e observar as metricas de qualidade de video usando mplayer -benchmark:
-`h1: ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -f mpegts udp://172.16.10.4:10000`
+`h1: ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -preset ultrafast -f mpegts udp://172.16.10.4:10000`
 `h4: mplayer udp://172.16.10.4:10000`
 
 
