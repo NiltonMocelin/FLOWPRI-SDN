@@ -1601,6 +1601,11 @@ class Dinamico(app_manager.RyuApp):
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def packet_in_handler(self, ev):
+        
+        t = time.localtime()
+        current_time = time.strftime("%H:%M:%S", t)
+        print("packet_in",current_time)
+
 
         tempo_i = round(time.monotonic()*1000)
 
@@ -1778,6 +1783,9 @@ class Dinamico(app_manager.RyuApp):
                 send_icmp(switch_ultimo_dp, src, ip_src, dst, ip_dst,out_port,0,pkt.data,1,15,64)
                 logging.info('[Packet_In] fim icmp 15  - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
 
+                current_time = time.strftime("%H:%M:%S", t)
+                print("packet_out",current_time)
+
                 return 
                 
     ############################3
@@ -1884,6 +1892,9 @@ class Dinamico(app_manager.RyuApp):
                     Thread(target=enviar_contratos, args=(ip_src, PORTAC_C, cip_dst,)).start()
                                        
                     logging.info('[Packet_In] icmp 16 - controlador destino (%s->%s) - fim - tempo: %d\n' % (ip_src, ip_dst, round(time.monotonic()*1000) - tempo_i))
+                    current_time = time.strftime("%H:%M:%S", t)
+                    print("packet_out",current_time)
+
                     return 0
 
           ###### (ii) esse controlador nao eh o controlador destino - logo criar as regras de marcacao e encaminhamento para passar os contratos
@@ -1910,6 +1921,9 @@ class Dinamico(app_manager.RyuApp):
                 send_icmp(switch_primeiro.datapath, src, ip_src, dst, ip_dst, out_port, 0,pkt.data,1,16,64)
 
                 logging.info('[Packet_In] icmp 16 - nao destino - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
+                current_time = time.strftime("%H:%M:%S", t)
+                print("packet_out",current_time)
+
                 return
         
         #######         Buscar correspondencia Pkt-in com contratos         ############
@@ -2002,6 +2016,8 @@ class Dinamico(app_manager.RyuApp):
                             break
 
                     logging.info('[Packet_In] pacote com match - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
+                    current_time = time.strftime("%H:%M:%S", t)
+                    print("packet_out",current_time)
 
                     return
 				
@@ -2040,6 +2056,9 @@ class Dinamico(app_manager.RyuApp):
             fila = CPF[(classe,1)]
             switch_ultimo.injetarPacote(switch_ultimo.datapath,fila, out_port, msg)
             logging.info('[Packet_In] pacote sem match (%s->%s) - fim - tempo: %d\n' % (ip_src, ip_dst, round(time.monotonic()*1000) - tempo_i))
+            
+            current_time = time.strftime("%H:%M:%S", t)
+            print("packet_out",current_time)
 
             return	 
                     
