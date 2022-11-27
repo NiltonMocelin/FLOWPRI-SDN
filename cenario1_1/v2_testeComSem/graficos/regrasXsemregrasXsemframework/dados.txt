@@ -1,0 +1,17 @@
+teste,cenarios,valores
+Regras ativas,2c1sc,0.15500
+Regras ativas,3c1sc,0.21000
+Regras ativas,4c1sc,0.27700
+Regras ativas,5c1sc,0.21600
+Sem regras ativas - total,2c1sc,11.04889
+Sem regras ativas - total,3c1sc,23.07400
+Sem regras ativas - total,4c1sc,43.04100
+Sem regras ativas - total,5c1sc,49.01600
+Sem regras ativas - processamento,2c1sc,4.00000
+Sem regras ativas - processamento,3c1sc,8.10000
+Sem regras ativas - processamento,4c1sc,16.60000
+Sem regras ativas - processamento,5c1sc,22.00000
+Sem Framework,2c1sc,0.20100
+Sem Framework,3c1sc,0.14200
+Sem Framework,4c1sc,0.17600
+Sem Framework,5c1sc,0.19000

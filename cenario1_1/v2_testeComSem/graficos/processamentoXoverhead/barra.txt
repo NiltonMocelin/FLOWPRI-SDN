@@ -1,0 +1,17 @@
+cenario,funcoes,valores
+2c1sc,server_host,2.777778
+2c1sc,ICMP 15,1.330000
+2c1sc,ICMP 16,7.890000
+2c1sc,server_controller,2.555556
+3c1sc,server_host,10.400000
+3c1sc,ICMP 15,2.000000
+3c1sc,ICMP 16,29.300000
+3c1sc,server_controller,2.900000
+4c1sc,server_host,3.600000
+4c1sc,ICMP 15,3.700000
+4c1sc,ICMP 16,56.600000
+4c1sc,server_controller,6.300000
+5c1sc,server_host,3.000000
+5c1sc,ICMP 15,5.000000
+5c1sc,ICMP 16,74.600000
+5c1sc,server_controller,7.000000
