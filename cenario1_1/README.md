@@ -2,6 +2,18 @@
 
 # Estado atual
 
+***** URGENTE *******
+0- Mudar A configuração das filas (script); o alocarGBAM e meter bands são por fluxo, entao cada vez que se aceita um fluxo é necessário criar uma nova regra meter
+--> (Script): As filas de real-time e dados (classe 1 e 2), devem ter a largura de banda minima = soma da largura de banda das duas classes. Assim, controlando com o controlador é possível emprestar banda sem ter que mudar o dscp. Aloca o fluxo na fila original com o dscp original mas armazena na classe oposta, reduzindo sua largura de banda disponivel. Assim, a fila de best-effort nao consegue obter a largura de banda emprestada.
+
+-> alocarGBAM: mudar para que fluxos que emprestam banda mantenham o dscp original, tenham a flag emprestando, armazene na fila da classe que empresta.-- talvez precise mudar o algoritmo de remocao de regras apos isso 
+
+-> meter band: os switches precisam ter um vetor de regras meter
+- cada regra meter precisa ter um identificador unico - baseado nos ips origem e destino a principio tipo tira os pontos e concatena esse eh o id da meter
+- cada regra salva precisa ter o id de sua regra meter associada
+- quando uma regra é removida, sua meter tbm é removida junto, baseado no id- tanto na instancia do switch quanto na tabela ovs
+
+
 * Versão mais atual v2_testeComSem/testeDrop/5c_1sc_modificado/c1_v2.py -- suporta 5 controladores (criei traduções de enderecos para 5 controladores)
 * V2: versão final 2.
 
