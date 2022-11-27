@@ -2,7 +2,7 @@
 
 # Estado atual
 
-***** URGENTE *******
+***** URGENTE ******* -->> FEITO EM 5c_1sc c1_v2_testes.py [ESSA EH A VERSAO MAIS ATUALIZADA - deve ser usada de base e arrumada nos outros] - o v2_testes/ tem o script mais atualizado e tbm tem o mesmo c1_v2_testes.py
 0- Mudar A configuração das filas (script); o alocarGBAM e meter bands são por fluxo, entao cada vez que se aceita um fluxo é necessário criar uma nova regra meter
 --> (Script): As filas de real-time e dados (classe 1 e 2), devem ter a largura de banda minima = soma da largura de banda das duas classes. Assim, controlando com o controlador é possível emprestar banda sem ter que mudar o dscp. Aloca o fluxo na fila original com o dscp original mas armazena na classe oposta, reduzindo sua largura de banda disponivel. Assim, a fila de best-effort nao consegue obter a largura de banda emprestada.
 
