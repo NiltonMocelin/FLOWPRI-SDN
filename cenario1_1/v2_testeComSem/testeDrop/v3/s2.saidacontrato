@@ -1,0 +1,33 @@
+OFPST_FLOW reply (OF1.3) (xid=0x2):
+ cookie=0x0, duration=23.589s, table=0, n_packets=28, n_bytes=1896, priority=100,ip,nw_src=10.123.123.2,nw_dst=20.20.20.1 actions=set_field:10.10.10.2->ip_src,set_field:10.10.10.1->ip_dst,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=40, n_bytes=3468, priority=100,ip,nw_src=10.10.10.1,nw_dst=10.10.10.2 actions=set_field:20.20.20.1->ip_src,set_field:10.123.123.2->ip_dst,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_src=10.123.123.2,nw_dst=20.20.20.2 actions=set_field:10.10.10.2->ip_src,set_field:10.10.10.2->ip_dst,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_src=10.10.10.2,nw_dst=10.10.10.2 actions=set_field:20.20.20.2->ip_src,set_field:10.123.123.2->ip_dst,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_src=10.123.123.2,nw_dst=20.20.20.3 actions=set_field:10.10.10.2->ip_src,set_field:10.10.10.3->ip_dst,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_src=10.10.10.3,nw_dst=10.10.10.2 actions=set_field:20.20.20.3->ip_src,set_field:10.123.123.2->ip_dst,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_src=10.123.123.2,nw_dst=20.20.20.4 actions=set_field:10.10.10.2->ip_src,set_field:10.10.10.4->ip_dst,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_src=10.10.10.4,nw_dst=10.10.10.2 actions=set_field:20.20.20.4->ip_src,set_field:10.123.123.2->ip_dst,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_src=10.123.123.2,nw_dst=20.20.20.5 actions=set_field:10.10.10.2->ip_src,set_field:10.10.10.5->ip_dst,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_src=10.10.10.5,nw_dst=10.10.10.2 actions=set_field:20.20.20.5->ip_src,set_field:10.123.123.2->ip_dst,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_src=10.123.123.2 actions=set_field:10.10.10.2->ip_src,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_dst=10.10.10.2 actions=set_field:10.123.123.2->ip_dst,goto_table:1
+ cookie=0x0, duration=23.589s, table=0, n_packets=8554, n_bytes=12103958, priority=0 actions=goto_table:1
+ cookie=0x0, duration=18.265s, table=1, n_packets=5, n_bytes=338, idle_timeout=30, priority=100,ip,nw_src=10.10.10.2,nw_dst=10.10.10.1 actions=set_field:61->ip_dscp,goto_table:2
+ cookie=0x0, duration=18.263s, table=1, n_packets=0, n_bytes=0, idle_timeout=30, priority=100,ip,nw_src=172.16.10.1,nw_dst=172.16.10.4 actions=set_field:7->ip_dscp,goto_table:2
+ cookie=0x0, duration=18.262s, table=1, n_packets=7, n_bytes=600, idle_timeout=30, priority=100,ip,nw_src=10.10.10.1,nw_dst=10.10.10.3 actions=set_field:61->ip_dscp,goto_table:2
+ cookie=0x0, duration=18.262s, table=1, n_packets=5, n_bytes=338, idle_timeout=30, priority=100,ip,nw_src=10.10.10.3,nw_dst=10.10.10.1 actions=set_field:61->ip_dscp,goto_table:2
+ cookie=0x0, duration=18.258s, table=1, n_packets=7, n_bytes=600, idle_timeout=30, priority=100,ip,nw_src=10.10.10.1,nw_dst=10.10.10.4 actions=set_field:61->ip_dscp,goto_table:2
+ cookie=0x0, duration=18.258s, table=1, n_packets=5, n_bytes=338, idle_timeout=30, priority=100,ip,nw_src=10.10.10.4,nw_dst=10.10.10.1 actions=set_field:61->ip_dscp,goto_table:2
+ cookie=0x0, duration=18.256s, table=1, n_packets=7, n_bytes=600, idle_timeout=30, priority=100,ip,nw_src=10.10.10.1,nw_dst=10.10.10.5 actions=set_field:61->ip_dscp,goto_table:2
+ cookie=0x0, duration=18.256s, table=1, n_packets=5, n_bytes=338, idle_timeout=30, priority=100,ip,nw_src=10.10.10.5,nw_dst=10.10.10.1 actions=set_field:61->ip_dscp,goto_table:2
+ cookie=0x0, duration=23.589s, table=1, n_packets=66, n_bytes=6826, priority=0 actions=goto_table:2
+ cookie=0x0, duration=23.589s, table=2, n_packets=40, n_bytes=3468, priority=105,tcp,nw_dst=10.123.123.2 actions=set_queue:7,output:5
+ cookie=0x0, duration=18.265s, table=2, n_packets=5, n_bytes=338, idle_timeout=30, priority=100,ip,nw_src=10.10.10.2,nw_dst=10.10.10.1,nw_tos=244 actions=set_queue:7,output:2
+ cookie=0x0, duration=18.263s, table=2, n_packets=0, n_bytes=0, idle_timeout=30, send_flow_rem priority=100,ip,nw_src=172.16.10.1,nw_dst=172.16.10.4,nw_tos=28 actions=meter:14,set_queue:0,output:3
+ cookie=0x0, duration=18.262s, table=2, n_packets=7, n_bytes=600, idle_timeout=30, priority=100,ip,nw_src=10.10.10.1,nw_dst=10.10.10.3,nw_tos=244 actions=set_queue:7,output:3
+ cookie=0x0, duration=18.262s, table=2, n_packets=5, n_bytes=338, idle_timeout=30, priority=100,ip,nw_src=10.10.10.3,nw_dst=10.10.10.1,nw_tos=244 actions=set_queue:7,output:2
+ cookie=0x0, duration=18.258s, table=2, n_packets=7, n_bytes=600, idle_timeout=30, priority=100,ip,nw_src=10.10.10.1,nw_dst=10.10.10.4,nw_tos=244 actions=set_queue:7,output:3
+ cookie=0x0, duration=18.258s, table=2, n_packets=5, n_bytes=338, idle_timeout=30, priority=100,ip,nw_src=10.10.10.4,nw_dst=10.10.10.1,nw_tos=244 actions=set_queue:7,output:2
+ cookie=0x0, duration=18.256s, table=2, n_packets=7, n_bytes=600, idle_timeout=30, priority=100,ip,nw_src=10.10.10.1,nw_dst=10.10.10.5,nw_tos=244 actions=set_queue:7,output:3
+ cookie=0x0, duration=18.256s, table=2, n_packets=5, n_bytes=338, idle_timeout=30, priority=100,ip,nw_src=10.10.10.5,nw_dst=10.10.10.1,nw_tos=244 actions=set_queue:7,output:2
+ cookie=0x0, duration=23.588s, table=2, n_packets=26, n_bytes=3358, priority=0 actions=CONTROLLER:65535

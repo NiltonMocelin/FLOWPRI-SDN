@@ -1,0 +1,51 @@
+[19:53:43.988997] switch_features - setup de S5 
+
+[19:53:47.950205] pkt_in ip_src: 10.10.10.1; ip_dst: 172.16.10.4
+
+
+[s5-p1] listar regras || C1T:5068, C1U:0 || C2T:5376, C2U: 0 ||:
+
+
+[s5-p2] listar regras || C1T:5068, C1U:0 || C2T:5376, C2U: 0 ||:
+
+
+[s5-p3] listar regras || C1T:5068, C1U:0 || C2T:5376, C2U: 0 ||:
+
+
+[s5-p4] listar regras || C1T:5068, C1U:0 || C2T:5376, C2U: 0 ||:
+
+
+[s5-p5] listar regras || C1T:5068, C1U:0 || C2T:5376, C2U: 0 ||:
+
+[19:53:47.950294] tratamento ICMP 15 
+
+[alocarGBAM-S5] porta 4, src: 10.10.10.5, dst: 10.10.10.1, banda: 1000, prioridade: 2, classe: 4 
+
+[19:53:47.957655] servidor_socket controlador - recebendo contrato:
+
+[19:53:47.957799] servidor_socket controlador - contrato recebido:
+
+{u'contrato': {u'ip_destino': u'172.16.10.4', u'ip_origem': u'172.16.10.1', u'banda': u'5000', u'prioridade': u'1', u'classe': u'1'}}
+[alocarGBAM-S5] porta 1, src: 172.16.10.1, dst: 172.16.10.4, banda: 5000, prioridade: 1, classe: 1 
+
+[Acao] Criar: [regra]src:172.16.10.1; dst=172.16.10.4; banda:5000, porta_dst=1, tos=7, emprestando=0
+
+
+[s5-p1] listar regras || C1T:5068, C1U:5000 || C2T:5376, C2U: 0 ||:
+
+[regra]src:172.16.10.1; dst=172.16.10.4; banda:5000, porta_dst=1, tos=7, emprestando=0
+
+
+[s5-p2] listar regras || C1T:5068, C1U:0 || C2T:5376, C2U: 0 ||:
+
+
+[s5-p3] listar regras || C1T:5068, C1U:0 || C2T:5376, C2U: 0 ||:
+
+
+[s5-p4] listar regras || C1T:5068, C1U:0 || C2T:5376, C2U: 0 ||:
+
+
+[s5-p5] listar regras || C1T:5068, C1U:0 || C2T:5376, C2U: 0 ||:
+
+[19:54:18.335082] flow_removed - removendo regra ip_src: 172.16.10.1, ip_dst: 172.16.10.4, dscp: 7, meter: 14 
+

@@ -60,12 +60,13 @@ declare -i SOMACLASS12
 declare -i CLASS3
 declare -i CLASS4
 
-BANDA=10000000
-CLASS1=3300000
-CLASS2=3500000
-SOMACLASS12=6800000
-CLASS3=2500000
-CLASS4=700000
+BANDA=15000000
+CLASS1=4950000
+CLASS2=5250000
+CLASS3=3750000
+CLASS4=1050000
+SOMACLASS12=10200000
+
 
 echo "Banda Total=$BANDA, Classe1=$CLASS1, Classe2=$CLASS2, Classe3=$CLASS3, Classe4 $CLASS4"
 
@@ -73,7 +74,6 @@ sudo ovs-vsctl clear port s1-eth4 qos
 sudo tc qdisc del dev s1-eth4 root
 
 sudo ovs-vsctl -- set port s1-eth4 qos=@newqos -- --id=@newqos create qos type=linux-htb other-config:max-rate=$BANDA queues=0=@q0,1=@q1,2=@q2,3=@q3,4=@q4,5=@q5,6=@q6,7=@q7 -- --id=@q0 create queue other-config:min-rate=$SOMACLASS12 other-config:max-rate=$SOMACLASS12 other-config:priority=10 -- --id=@q1 create queue other-config:min-rate=$SOMACLASS12 other-config:max-rate=$SOMACLASS12 other-config:priority=5 -- --id=@q2 create queue other-config:min-rate=$SOMACLASS12 other-config:max-rate=$SOMACLASS12 other-config:priority=2 -- --id=@q3 create queue other-config:min-rate=$SOMACLASS12 other-config:max-rate=$SOMACLASS12 other-config:priority=10 -- --id=@q4 create queue other-config:min-rate=$SOMACLASS12 other-config:max-rate=$SOMACLASS12 other-config:priority=5 -- --id=@q5 create queue other-config:min-rate=$SOMACLASS12 other-config:max-rate=$SOMACLASS12 other-config:priority=2 -- --id=@q6 create queue other-config:min-rate=$CLASS3 other-config:max-rate=$BANDA other-config:priority=10 -- --id=@q7 create queue other-config:min-rate=$CLASS4 other-config:max-rate=$CLASS4 other-config:priority=2
-
 
 sudo ovs-vsctl clear port s1-eth1 qos
 sudo tc qdisc del dev s1-eth1 root
