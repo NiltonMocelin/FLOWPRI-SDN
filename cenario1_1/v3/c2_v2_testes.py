@@ -344,7 +344,6 @@ def servidor_socket_hosts():
 
         #recebeu um contrato fecha a conexao, se o host quiser enviar mais, que inicie outra
         conn.close()
-        print("[%s] servidor_socket host - fim:\n" % (datetime.datetime.now().time()))
 
 #servidor para escutar controladores - mesmo que o de hosts, mas o controlador que recebe um contrato nao gera um icmp inf. req.
 def servidor_socket_controladores():
@@ -456,7 +455,6 @@ def servidor_socket_controladores():
             # logging.info('[server-control] fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
 
         conn.close()
-        print("[%s] servidor_socket controlador - fim:\n" % (datetime.datetime.now().time()))
     
 #remove um contrato e as regras associadas a ele nos switches da rota entre ip_src, ip_dst
 def delContratoERegras(switches_rota, cip_src, cip_dst):
@@ -545,7 +543,6 @@ def enviar_contratos(host_ip, host_port, ip_dst_contrato):
     #fechando a conexao
     #print]("\n")
     tcp.close()
-    print("[%s] enviar contrato p/ %s - fim\n" % (datetime.datetime.now().time(), host_ip))
     # logging.info('[Packet_In] icmp 16 - enviar_contrato - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
 
 ############# send_icmp TORNADO GLOBAL EM 06/10 - para ser aproveitado em server socket ###################
@@ -1298,7 +1295,6 @@ class Acao:
             #criando id unico
             meter_id = int(self.regra.ip_src.split(".")[3] + self.regra.ip_dst.split(".")[3]) #com a banda obter o meter               
             switch.addRegraM(meter_id, int(self.regra.banda))
-            print("criando regra meter: meter_id: %d, banda = %s\n" % (meter_id, str(self.regra.banda)))
 
             #criando a regra na tabela do switch ovs
             switch.addRegraF(self.regra.ip_src, self.regra.ip_dst, self.regra.tos, self.regra.porta_dst, fila, meter_id, 1)
@@ -1315,8 +1311,6 @@ class Acao:
 
             #removendo a regra da tabela
             switch.delRegraT(self.regra.ip_src, self.regra.ip_dst, self.regra.tos ,ALL_TABLES) #remove a regra no ovswitch
-
-            switch.delRegraM(meter_id)
 
             switch.listarRegras()
 
@@ -2127,7 +2121,6 @@ class Dinamico(app_manager.RyuApp):
                 send_icmp(switch_ultimo_dp, src, ip_src, dst, ip_dst,out_port,0,pkt_icmp.data,1,15,64)
 
                 # logging.info('[Packet_In] fim icmp 15  - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
-                print("[%s] tratamento ICMP 15 - fim \n" % (datetime.datetime.now().time()))
 
                 return 
                 
@@ -2235,7 +2228,6 @@ class Dinamico(app_manager.RyuApp):
 
                     
                     # logging.info('[Packet_In] icmp 16 - controlador destino - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
-                    print("[%s] tratamento ICMP 16 - controlador destino - fim \n" % (datetime.datetime.now().time()))
 
                     return 0
 
@@ -2267,7 +2259,6 @@ class Dinamico(app_manager.RyuApp):
 
                 
                 # logging.info('[Packet_In] icmp 16 - nao destino - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
-                print("[%s]  tratamento ICMP 16 - controlador da rota - fim \n" % (datetime.datetime.now().time()))
 
                 return
         
@@ -2365,7 +2356,7 @@ class Dinamico(app_manager.RyuApp):
                     
 
                     # logging.info('[Packet_In] pacote com match - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
-                    print("[%s] pkt_in fim \n" % (datetime.datetime.now().time()))
+
                     return
 				
 	    #todos os contratos foram checados e nao foi achado correspondencia
@@ -2406,8 +2397,7 @@ class Dinamico(app_manager.RyuApp):
             switch_ultimo.injetarPacote(switch_ultimo.datapath,fila, out_port, msg)
 
             # logging.info('[Packet_In] pacote sem match - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
-            print("[%s] pkt_in fim \n" % (datetime.datetime.now().time()))
-
+            
             return	 
                     
         

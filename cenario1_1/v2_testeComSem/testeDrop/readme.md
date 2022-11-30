@@ -1,5 +1,7 @@
 # Teste de funcionalidade Framework
 
+########## REFAZER USANDO O RELOGIO CONVENCIONAL?
+
 * Objetivo: Demonstrar que em um cenário onde um fluxo de baixa prioridade consome muita banda, um fluxo de maior prioridade tem seus requisitos garantidos quando usando o Framework. Comparar com o cenário sem o Framework.
 
 * Fluxo de stream de vídeo (fluxo de alta prioridade)
@@ -127,6 +129,8 @@
 `h1: ffmpeg -re -i ../video_stream/video2.mp4 -c:v copy -c:a aac -listen 1 -ar 44100 -preset ultrafast -f mpegts udp://172.16.10.4:10000`
 `h4: mplayer udp://172.16.10.4:10000`
 
+usar  ffplay: fd = frame drop
+`ffplay --stats udp://192.168.1.71:10000`
 
 
 
@@ -156,7 +160,11 @@
 
 * Receptor
 
-`ffplay udp://192.168.1.71:10000`
+`ffplay udp://192.168.1.71:10000 --stats`
+Informações sobre o logging informado com --stats - fd=frame drop
+https://stackoverflow.com/questions/27778678/what-are-mv-fd-aq-vq-sq-and-f-in-a-video-stream
+
+Obs: 
 
 ##### COM RTMP
 * SE fizer testes com RTMP - que usa tcp, não será possível ver drops de pacotes, pq o servidor envia sobre demanda....

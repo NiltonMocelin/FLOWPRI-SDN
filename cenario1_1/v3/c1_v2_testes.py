@@ -77,11 +77,11 @@ TC['20.50.50.4'] = '10.10.10.4'
 ############################################
 # informacoes armazenadas pelo controlador #
 ############################################
-#CONTROLADOR C2
+#CONTROLADOR C1
 #cada controlador deve ter o seu
-CONTROLADOR_ID = 2
-IPC = "10.123.123.2" #IP do root/controlador
-MACC = "00:00:00:00:00:06" #MAC do root/controlador
+CONTROLADOR_ID = 1
+IPC = "10.123.123.1" #IP do root/controlador
+MACC = "00:00:00:00:00:05" #MAC do root/controlador
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
 #dictionary com os ips e as conversoes em ficticios, especifico para cada controlador
@@ -344,7 +344,6 @@ def servidor_socket_hosts():
 
         #recebeu um contrato fecha a conexao, se o host quiser enviar mais, que inicie outra
         conn.close()
-        print("[%s] servidor_socket host - fim:\n" % (datetime.datetime.now().time()))
 
 #servidor para escutar controladores - mesmo que o de hosts, mas o controlador que recebe um contrato nao gera um icmp inf. req.
 def servidor_socket_controladores():
@@ -456,7 +455,6 @@ def servidor_socket_controladores():
             # logging.info('[server-control] fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
 
         conn.close()
-        print("[%s] servidor_socket controlador - fim:\n" % (datetime.datetime.now().time()))
     
 #remove um contrato e as regras associadas a ele nos switches da rota entre ip_src, ip_dst
 def delContratoERegras(switches_rota, cip_src, cip_dst):
@@ -545,7 +543,6 @@ def enviar_contratos(host_ip, host_port, ip_dst_contrato):
     #fechando a conexao
     #print]("\n")
     tcp.close()
-    print("[%s] enviar contrato p/ %s - fim\n" % (datetime.datetime.now().time(), host_ip))
     # logging.info('[Packet_In] icmp 16 - enviar_contrato - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
 
 ############# send_icmp TORNADO GLOBAL EM 06/10 - para ser aproveitado em server socket ###################
@@ -2127,7 +2124,6 @@ class Dinamico(app_manager.RyuApp):
                 send_icmp(switch_ultimo_dp, src, ip_src, dst, ip_dst,out_port,0,pkt_icmp.data,1,15,64)
 
                 # logging.info('[Packet_In] fim icmp 15  - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
-                print("[%s] tratamento ICMP 15 - fim \n" % (datetime.datetime.now().time()))
 
                 return 
                 
@@ -2235,7 +2231,6 @@ class Dinamico(app_manager.RyuApp):
 
                     
                     # logging.info('[Packet_In] icmp 16 - controlador destino - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
-                    print("[%s] tratamento ICMP 16 - controlador destino - fim \n" % (datetime.datetime.now().time()))
 
                     return 0
 
@@ -2267,7 +2262,6 @@ class Dinamico(app_manager.RyuApp):
 
                 
                 # logging.info('[Packet_In] icmp 16 - nao destino - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
-                print("[%s]  tratamento ICMP 16 - controlador da rota - fim \n" % (datetime.datetime.now().time()))
 
                 return
         
@@ -2365,7 +2359,7 @@ class Dinamico(app_manager.RyuApp):
                     
 
                     # logging.info('[Packet_In] pacote com match - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
-                    print("[%s] pkt_in fim \n" % (datetime.datetime.now().time()))
+
                     return
 				
 	    #todos os contratos foram checados e nao foi achado correspondencia
@@ -2406,8 +2400,7 @@ class Dinamico(app_manager.RyuApp):
             switch_ultimo.injetarPacote(switch_ultimo.datapath,fila, out_port, msg)
 
             # logging.info('[Packet_In] pacote sem match - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
-            print("[%s] pkt_in fim \n" % (datetime.datetime.now().time()))
-
+            
             return	 
                     
         
