@@ -1,0 +1,189 @@
+soma: 13.94
+server_host: 0.75
+icmp15: 0.58 + 0.8 + 0.663 + 0.65=2.69
+icmp16: 2.22 + 1.8 + 1.49 + 0.893= 6.4
+enviar_contrato: 0.41
+server_controller: 0.55 + 1.99 + 0.58 + 0.57= 3.69
+c1-ult: 14.96
+h1-c1: 11.88
+percebido: 26.85
+
+
+soma: 13.84
+server_host: 0.7
+icmp15: 0.561 + 0.611 + 0.58 + 0.632 = 2.38
+icmp16: 2.2 + 2.35 + 1.76 + 0.623 = 6.93
+enviar_contrato: 0.37
+server_controller:  0.649+ 0.796 + 0.66 + 1.34 = 3.44
+c1-ult: 6.480454 - 6.464668 = 15.78
+h1-c1: 6.464668 - 6.452870 =  11.79
+percebido:  6.480454 - 6.452870 = 27.58
+
+
+5c_1sc
+MEDIAS:
+soma: 13.89
+server_host: 0.72
+icmp15: = 2.53
+icmp16:  = 6.66
+enviar_contrato: 0.39
+server_controller: = 3.56
+c1-ult: = 15.37
+h1-c1: =  11.83
+percebido: = = 27.215
+
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+rodada 1
+c1:
+server_host:6.465373 - 6.464668 = 0.7
+icmp15:
+icmp16: 2.2
+enviar_contrato: 0.37
+server_controller:
+
+c2:
+server_host:
+icmp15: 0.561
+icmp16: 2.35
+enviar_contrato:
+server_controller: 0.649
+
+
+c3:
+server_host:
+icmp15: 0.611
+icmp16: 1.76
+enviar_contrato:
+server_controller: 0.796
+
+
+c4:
+server_host:
+icmp15: 0.58
+icmp16: 0.623
+enviar_contrato:
+server_controller: 0.66 
+
+
+c5: 
+server_host:
+icmp15: 0.632
+icmp16:
+enviar_contrato:
+server_controller: 1.34
+
+c1-ult: 6.480454 - 6.464668 = 15.78
+h1-c1: 6.464668 - 6.452870 =  11.79
+percebido:  6.480454 - 6.452870 = 27.58
+
+soma: 13.84
+server_host: 0.7
+icmp15: 0.561 + 0.611 + 0.58 + 0.632 = 2.38
+icmp16: 2.2 + 2.35 + 1.76 + 0.623 = 6.93
+enviar_contrato: 0.37
+server_controller:  0.649+ 0.796 + 0.66 + 1.34 = 3.44
+
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+rodada 2
+c1:
+server_host: 2.984903 - 2.984151 = 0.75
+icmp15:
+icmp16: 2.22
+enviar_contrato: 0.41
+server_controller:
+
+c2:
+server_host:
+icmp15: 0.65
+icmp16: 1.8
+enviar_contrato:
+server_controller: 0.57
+
+
+c3:
+server_host:
+icmp15: 0.663
+icmp16: 1.49
+enviar_contrato:
+server_controller: 0.58
+
+
+c4:
+server_host:
+icmp15: 0.8
+icmp16: 0.893
+enviar_contrato: 
+server_controller: 1.99
+
+
+c5: 
+server_host:
+icmp15: 0.58
+icmp16:
+enviar_contrato:
+server_controller: 0.55
+
+c1-ult: 14.96
+h1-c1: 11.88
+percebido: 26.85
+
+soma: 13.94
+server_host: 0.75
+icmp15: 0.58 + 0.8 + 0.663 + 0.65=2.69
+icmp16: 2.22 + 1.8 + 1.49 + 0.893= 6.4
+enviar_contrato: 0.41
+server_controller: 0.55 + 1.99 + 0.58 + 0.57= 3.69
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+rodada 3
+c1:
+server_host:
+icmp15:
+icmp16:
+enviar_contrato:
+server_controller:
+
+c2:
+server_host:
+icmp15:
+icmp16:
+enviar_contrato:
+server_controller:
+
+
+c3:
+server_host:
+icmp15:
+icmp16:
+enviar_contrato:
+server_controller:
+
+
+c4:
+server_host:
+icmp15:
+icmp16:
+enviar_contrato:
+server_controller:
+
+
+c5: 
+server_host:
+icmp15:
+icmp16:
+enviar_contrato:
+server_controller:
+
+h1-c1:
+percebido:
+
+soma:
+server_host:
+icmp15:
+icmp16:
+enviar_contrato:
+server_controller:

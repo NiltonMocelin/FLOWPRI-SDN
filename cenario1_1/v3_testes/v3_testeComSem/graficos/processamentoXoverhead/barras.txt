@@ -1,0 +1,47 @@
+cenario,funcoes,valores
+2c1sc,server_host,1.625
+2c1sc,ICMP 15,1.35
+2c1sc,ICMP 16,1.502
+2c1sc,server_controller,1.53
+3c1sc,server_host,0.9815
+3c1sc,ICMP 15,1.397
+3c1sc,ICMP 16,2.9395
+3c1sc,server_controller,1.347
+4c1sc,server_host,
+4c1sc,ICMP 15,
+4c1sc,ICMP 16,
+4c1sc,server_controller,
+5c1sc,server_host,
+5c1sc,ICMP 15,
+5c1sc,ICMP 16,
+5c1sc,server_controller,
+
+
+
+
+
+
+5c_1sc
+MEDIAS:
+soma: 13.89
+server_host: 0.72
+icmp15: = 2.53
+icmp16:  = 6.66
+enviar_contrato: 0.39
+server_controller: = 3.56
+c1-ult: = 15.37
+h1-c1: =  11.83
+percebido: = = 27.215
+
+
+4c_1sc
+MEDIAS:
+total: 11.24
+server_host: 1.20
+icmp15: 2.7
+icmp16: 4.57
+enviar_contrato:  0.329
+server_controller: 2.44
+h1-c1:  = 12.20
+percebido: = 26.22
+c1-culti: = 14.02

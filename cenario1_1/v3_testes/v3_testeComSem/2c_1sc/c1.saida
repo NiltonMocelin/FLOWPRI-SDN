@@ -1,0 +1,102 @@
+[07:56:58.643582] switch_features - setup de S1 
+
+[07:57:03.410568] pkt_in ip_src: 10.10.10.1; ip_dst: 172.16.10.1
+
+
+[s1-p1] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p2] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p3] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p4] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p5] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+[07:57:03.410624] sem match nos contratos 
+
+[alocarGBAM-S1] porta 1, src: 10.10.10.1, dst: 172.16.10.1, banda: 1000, prioridade: 3, classe: 3 
+
+[07:57:03.411031] pkt_in fim 
+
+[07:57:03.421989] servidor_socket host - recebendo contrato:
+
+[07:57:03.422046] servidor_socket host - contrato recebido:
+
+{u'contrato': {u'ip_destino': u'172.16.10.4', u'ip_origem': u'172.16.10.1', u'banda': u'5000', u'prioridade': u'1', u'classe': u'1'}}
+[alocarGBAM-S1] porta 4, src: 172.16.10.1, dst: 172.16.10.4, banda: 5000, prioridade: 1, classe: 1 
+
+[Acao] Criar: [regra]src:172.16.10.1; dst=172.16.10.4; banda:5000, porta_dst=4, tos=7, emprestando=1
+
+criando regra meter: meter_id: 14, banda = 5000
+
+
+[s1-p1] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p2] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p3] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p4] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 5000 ||:
+
+[regra]src:172.16.10.1; dst=172.16.10.4; banda:5000, porta_dst=4, tos=7, emprestando=1
+
+
+[s1-p5] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p1] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p2] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p3] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p4] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 5000 ||:
+
+[regra]src:172.16.10.1; dst=172.16.10.4; banda:5000, porta_dst=4, tos=7, emprestando=1
+
+
+[s1-p5] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+[07:57:03.422751] servidor_socket host - fim:
+
+[07:57:03.424837] pkt_in ip_src: 20.10.10.2; ip_dst: 10.123.123.1
+
+
+[s1-p1] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p2] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p3] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+
+[s1-p4] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 5000 ||:
+
+[regra]src:172.16.10.1; dst=172.16.10.4; banda:5000, porta_dst=4, tos=7, emprestando=1
+
+
+[s1-p5] listar regras || C1T:4950, C1U:0 || C2T:5250, C2U: 0 ||:
+
+[07:57:03.424878] tratamento ICMP 16 - controlador destino 
+
+[alocarGBAM-S1] porta 4, src: 10.10.10.1, dst: 10.10.10.2, banda: 1000, prioridade: 2, classe: 4 
+
+[07:57:03.425449] tratamento ICMP 16 - controlador destino - fim 
+
+[07:57:03.425575] enviar contrato p/ 20.10.10.2
+
+{u'contrato': {u'ip_destino': u'172.16.10.4', u'ip_origem': u'172.16.10.1', u'banda': u'5000', u'prioridade': u'1', u'classe': u'1'}}
+[07:57:03.425647] enviar contrato p/ 20.10.10.2 - fim
+
