@@ -1,5 +1,5 @@
 MEDIAS:
-total: 11.24
+total: 11.99
 server_host: 1.22
 icmp15: 2.60
 icmp16: 4.71
@@ -8,7 +8,6 @@ server_controller: 3.13
 h1-c1:  = 11.17
 percebido: = 24.41
 c1-culti: = 13.23
-
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 rodada 1

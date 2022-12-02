@@ -1,5 +1,6 @@
 
 MEDIAS:
+total:7.47
 server_host: 1.09
 icmp15: 1.62
 icmp16: 2.77
@@ -8,7 +9,6 @@ server_controller: 1.75
 percebido: 22.43
 c1-ult: 10
 h1-c1:  12.43
-
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 rodada 1

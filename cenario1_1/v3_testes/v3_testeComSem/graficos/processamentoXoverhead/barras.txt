@@ -1,4 +1,4 @@
-cenario,funcoes,valores
+cenario,funcoes,milisegundos
 2c1sc,server_host,1.374
 2c1sc,ICMP 15,0.962
 2c1sc,ICMP 16,1.18
