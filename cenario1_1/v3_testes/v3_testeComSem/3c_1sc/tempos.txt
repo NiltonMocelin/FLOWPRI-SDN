@@ -1,34 +1,14 @@
-soma: 6.917
-server_host:  1.04
-icmp15: 0.68 +  0.684 = 1.364
-icmp16:  1.55 + 0.767 + 0.717 = 3.04
-enviar_contrato: 0.219
-server_controller: 1.26
-percebido: 7.192209 - 7.170353 = 21.85
-c1-ult: 7.192209 - 7.182751 = 9.45
-h1-c1: 7.182751-7.170353 = 12.39
-
-
-soma:  6.4
-server_host: 0.923
-icmp15: 1.43
-icmp16: 2.43
-enviar_contrato:  0.19
-server_controller: 1.435
-percebido: 8.950371 - 8.929596 = 20.77
-c1-ult: 8.950371 - 8.942039 = 8.33
-h1-c1:  8.942039 - 8.929596 = 12.44
 
 MEDIAS:
-total: 6.6585
-server_host: 0.9815
-icmp15 = 1.397
-icmp16: 2.735
-enviar_contrato: 0.2045
-server_controller: 1.347
-percebido = 21.31
-c1-ult: 8.89
-h1-c1: 12.415
+server_host: 1.09
+icmp15: 1.62
+icmp16: 2.77
+enviar_contrato:  0.24
+server_controller: 1.75
+percebido: 22.43
+c1-ult: 10
+h1-c1:  12.43
+
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 rodada 1
@@ -108,36 +88,112 @@ server_controller: 1.435
 
 rodada 3
 c1:
-server_host: 
+server_host: 9.765897-9.764798 = 1.09
 icmp15:
-icmp16: 
-enviar_contrato: 
+icmp16: 9.774754-9.774113+9.769694-9.768520 = 1.81
+enviar_contrato: 9.775052-9.774948+9.769930-9.769813=0.22
 server_controller:
 
 
 
 c2:
 server_host:
-icmp15: 
-icmp16: 
+icmp15: 9.767853-9.766864 = 0.98
+icmp16: 9.771708-9.770441 = 1.26
 enviar_contrato:
-server_controller: 
+server_controller: 9.773383-9.771907 = 1.47
 
 
 c3:
 server_host:
-icmp15:
+icmp15:9.769382-9.768787 = 0.59
 icmp16:
 enviar_contrato:
-server_controller:
+server_controller:9.775582-9.775011=0.57
 
-h1-c1:
-percebido: 
+h1-c1: 9.764798-9.752580 = 12.21
+percebido:9.775582- 9.752580 =23.00
+c1-ult:9.775582-9.764798= 10.78
 soma: 
-server_host:
+server_host:1.09
+icmp15:1.57
+icmp16:3.07
+enviar_contrato:0.22
+server_controller: 2.04
+
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+rodada 4
+c1:
+server_host: 9.508084-9.507026 = 1.05
 icmp15:
-icmp16:
-enviar_contrato:
+icmp16: 9.515155-9.513969+9.511837-9.51103= 1.99
+enviar_contrato: 9.515487-9.515246+9.514776-9.514589=0.42
 server_controller:
 
 
+
+c2:
+server_host:
+icmp15: 9.510257-9.509264 = 0.99
+icmp16: 9.513237-9.512528 =0.70
+enviar_contrato:
+server_controller: 9.515436-9.513714= 1.72
+
+
+c3:
+server_host:
+icmp15:9.511937-9.511278=0.65
+icmp16:
+enviar_contrato:
+server_controller:9.516214-9.515602=0.61
+
+h1-c1:9.507026-9.494144=12.88
+percebido: 9.516214-9.494144=22.06
+c1-ult:9.516214-9.507026=9.18
+
+soma: 
+server_host:1.05
+icmp15:1.64
+icmp16: 2.69
+enviar_contrato:0.42
+server_controller:2.33
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+rodada 5
+c1:
+server_host: 4.158606-4.157225 =1.38
+icmp15:
+icmp16: 4.168335-4.167830+4.162998-4.161729= 1.77
+enviar_contrato: 4.168683-4.168589+4.164226-4.164142=0.17
+server_controller:
+
+
+
+c2:
+server_host:
+icmp15: 4.160683-4.159810=0.87
+icmp16: 4.164872-4.163995=0.87
+enviar_contrato:
+server_controller: 4.168607-4.167695=0.91
+
+
+c3:
+server_host:
+icmp15:4.163230-4.161997=1.23
+icmp16:
+enviar_contrato:
+server_controller:4.169489-4.168665=0.82
+
+h1-c1: 4.157225- 4.144993=12.23
+c1-ult: 4.169489- 4.157225=12.26
+percebido:4.169489-4.144993=24.49
+
+soma: 
+server_host:1.38
+icmp15:2.1
+icmp16:2.64
+enviar_contrato:0.17
+server_controller:1.73
