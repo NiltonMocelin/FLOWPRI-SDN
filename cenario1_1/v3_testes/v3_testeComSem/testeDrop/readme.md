@@ -130,7 +130,7 @@
 `h4: mplayer udp://172.16.10.4:10000`
 
 usar  ffplay: fd = frame drop
-`ffplay --stats udp://192.168.1.71:10000`
+`ffplay -stats udp://192.168.1.71:10000`
 
 
 
