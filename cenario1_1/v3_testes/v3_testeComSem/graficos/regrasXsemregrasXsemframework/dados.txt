@@ -1,0 +1,13 @@
+teste,cenarios,valores
+Com Framework - Regras ativas,2c1sc,0.11
+Com Framework - Regras ativas,3c1sc,0.16
+Com Framework - Regras ativas,4c1sc,0.19
+Com Framework - Regras ativas,5c1sc,0.29
+Com Framework - Sem regras ativas,2c1sc,4.76
+Com Framework - Sem regras ativas,3c1sc,8.00
+Com Framework - Sem regras ativas,4c1sc,11.48
+Com Framework - Sem regras ativas,5c1sc,19.07
+Sem Framework,2c1sc,0.04
+Sem Framework,3c1sc,0.1
+Sem Framework,4c1sc,0.07
+Sem Framework,5c1sc,0.06
