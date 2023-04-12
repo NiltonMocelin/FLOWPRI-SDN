@@ -17,6 +17,7 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
 
 - É necessário que a topologia mininet possua NÓS externos ao mininet (Roots) conectados a portas dos switches internos da topologia.
 
+`
 	   Container1:FLOWPRI
 		   |
 [UserSpace]      Root		
@@ -26,6 +27,8 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
 		  S1-------S2-----S3....
 		 /  \
 		H1  H2
+
+`
 
 - Desta forma, é possivel ter multiplos containers de controladores FLOWPRI.
 
