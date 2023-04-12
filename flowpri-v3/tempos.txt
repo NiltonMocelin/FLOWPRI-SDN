@@ -1,0 +1,57 @@
+
+refazer usando o relogio convencional
+saiu de h1: 19:14:34.604385
+chegou em c5: 19:14:34.635450
+
+setup
+c1: 3
+c2:3
+c3:3
+c4:3
+c5:2
+
+percebido = 4.635450 - 4.604385 = 31.06
+
+c1: tempo total receber o contrato de h1 =   4.617927 - 4.605525 = 12ms
+c1: tempo total icmp15 =
+c1: tempo total icmp 16= 4.621133 - 4.620424 + 4.626566 - 4.625966 + 4.630007 -  4.629397 + 4.634288 - 4.633798 = 2.4
+c1: server host = 4.617927 -  4.616697 = 1.2
+c1: server controler = 
+c1: tempo total enviando =
+
+c2: tempo total receber o contrato de h1 =   
+c2: tempo total icmp15 = 4.619731 - 4.619044 = 0.6
+c2: tempo total icmp 16=  4.623798 - 4.623051 +  4.628252 - 4.627575 +  4.632294 - 4.631271 = 2.44
+c2: server host = 
+c2: server controler = 4.621893- 4.621280 = 0.6
+c2: tempo total enviando =
+
+
+c3: tempo total receber o contrato de h1 =   
+c3: tempo total icmp15 =  4.621886 - 4.620998 = 0.8
+c3: tempo total icmp 16= 4.626660 - 4.626037 + 4.630688 - 4.629908 + = 1.4
+c3: server host = 
+c3: server controler =4.628892 - 4.627436 + =1.4
+c3: tempo total enviando =
+
+
+c4: tempo total receber o contrato de h1 =   
+c4: tempo total icmp15 =4.625255 - 4.624570 = 0.6
+c4: tempo total icmp 16=4.628456 - 4.627651 = 0.8
+c4: server host = 
+c4: server controler = 4.634340 - 4.633789 = 0.5
+c4: tempo total enviando =
+
+
+c5: tempo total receber o contrato de h1 =   
+c5: tempo total icmp15 = 4.626930 - 4.626307 = 0.6
+c5: tempo total icmp 16= 4.635450 - 4.634772 = 0.6
+c5: server host = 
+c5: server controler = 
+c5: tempo total enviando =
+
+total icmp15 = 0.6+0.6+0.8+0.6 = 2.6
+total icmp16 =0.6+ 0.8+1.4 + 1.8 = 4.6
+total sc =0.5 + 1.4+0.6+1.2 =3.7
+total sh = 12ms
+total processamento = 20.9
