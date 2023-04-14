@@ -17,18 +17,18 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
 
 - É necessário que a topologia mininet possua NÓS externos ao mininet (Roots) conectados a portas dos switches internos da topologia.
 
-`
-	   Container1:FLOWPRI
-		   |
-[UserSpace]      Root		
-		   |
+<div>
+	   	Container1:FLOWPRI
+		 			|
+UserSpace         Root		
+		    	    |
 --------------------------------------------
-[MininetSpace]	   |
-		  S1-------S2-----S3....
-		 /  \
-		H1  H2
+MininetSpace	    |
+		  			S1-------S2-----S3....
+		           /  \
+				H1      H2
 
-`
+</div>
 
 - Desta forma, é possivel ter multiplos containers de controladores FLOWPRI.
 
@@ -48,9 +48,9 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
 
 - [remover-image] sudo docker image rm -f <image-id>
 
-##BASE docker
+## BASE docker
 
-####https://medium.com/oracledevs/create-a-simple-docker-container-with-a-python-web-server-26534205061a
+- https://medium.com/oracledevs/create-a-simple-docker-container-with-a-python-web-server-26534205061a
 
  - Utiliza uma imagem alpine linux
  
@@ -59,8 +59,18 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
  - Exporta portas para fazer bind de endereços (escutar/realizar conexões)
 
 
+## Recursos
+
+ - Cada instância do FLOWPRI fora do mininet (apenas aberto) utiliza 50mb ram
+
+ - Cada instância do FLOWPRI fora do mininet (apenas aberto) utiliza 50-80mb ram +- 
+ 
+ - pelo menos em termos de memória RAM e sem estar fazendo nada, o consumo aparenta ser semelhante.
+
+
 #12/04
-## Docker container build Objetivos {
+## Docker container build Objetivos 
+{
 
 	- Importar uma imagem que contenha os requisitos do ryu
 
@@ -72,7 +82,8 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
 
 }
 
-## Questões de design container-ryu{
+## Questões de design container-ryu
+{
 
 	- FROM python importa uma imagem ubuntu aparentemente, que pesa 900mb
 
@@ -92,7 +103,8 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
                         libcurl \
                         python3-dev \
                         gpgme-dev \
-                        libc-dev \`	
+                        libc-dev \
+	`	
 	
 	- quando se usa --no-cache, nao precisa no fim fazer rm -rf /var/cache/apk/*
 
@@ -102,7 +114,10 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
 	
 	
 	### Os requisitos listados para instalar o ryu-controller são os seguintes pacotes e suas dependencias: 
-	#### segundo https://janieltec.wordpress.com/2016/06/16/instalando-o-ryu-no-debian-8/ {
+	
+	#### segundo https://janieltec.wordpress.com/2016/06/16/instalando-o-ryu-no-debian-8/ 
+	
+	{
 
 		- setuptools.
 
@@ -159,16 +174,18 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
 	
 	
 # Ainda em desenvolvimento
-	- [atualmente] Como fazer o ryu-manager funcionar{
+	- [atualmente] Como fazer o ryu-manager funcionar
+	{
 		- Nao foi testado
 		- Nao foi verificado se os switches conseguem se comunicar
 		- Nao foi testado dentro do cenario de testes do mininet
 	}
 
 
-    - para testar{
+    * para testar
+	{
 
-        - [build] 
+    - [build] 
 
 	`sudo docker build -t flowpri-controller:1.0 .`
         
@@ -180,9 +197,18 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
 	
 	`docker images`
 
-        - [remover-image]
+    - [remover-image]
 
 	` sudo docker image rm -f <image-id>`
 
     }
 }
+
+> Markdown Guide:
+> https://www.markdownguide.org/basic-syntax/
+
+> Sobre a relação de uso de recursos entre Container e Imagens:
+> http://stackoverflow.com/questions/36213646/why-are-containers-size-and-images-size-equivalent
+> Lançar 100 containers de uma imagem não ocupa 100x o tamanho da imagem.
+> Os containers compartilham a mesma imagem.
+> Cada modificação na imagem (escrever/deletar/mover/modificar) é escrita sobre uma camada intermediária (container layer).

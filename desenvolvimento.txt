@@ -1,0 +1,260 @@
+#Permanente 
+
+-> [explorar em algum momento] Obs: existe uma versão mininet docker (container tem melhor performance que vm) - Pode ser bem mais fácil de configurar que uma vm+mininet : https://containernet.github.io/
+
+-> [configurações performance docker] To have your containers perform well, you should not trust the default docker settings.  Use the cpus and cpuset-cpus flags when possible.  Watch your task manager for high usage and adjust your container settings as needed.  Connect to the console of your container to see what resources your container can see and how they are being used.  You can improve the performance of your containers by adjusting cpu and memory settings, but your application will likely never run as fast it could outside of a container. https://blogs.perficient.com/2021/08/19/docker-bootcamp-understanding-performance-and-performance-tuning/
+
+-> caso eu queira implementar a parte gráfica do FLOWPRI em docker e exportar para o servidor gráfico xorg fora do container https://www.howtogeek.com/devops/how-to-run-gui-applications-in-a-docker-container/
+
+-> abrir mais uma porta no flowpri para ouvir configurações a partir de arquivos json. (isso vai tornar o controlador programável por administradores e faz sentido pois um domínio pode conter diversos controladores.
+
+-> preciso de uma estratégia para atualizar rotas no FLOWPRI-> algo do tipo roteamento dinâmico + políticas de encaminhamento do domínio (rotas desejadas e indesejadas).
+-> tenho que ser capaz de modificar as políticas de encaminhamento de fora do controlador (sem que seja necessário re-lançar o processo -> pois assim se perdem os estados dos switches armazenados).
+
+-> obs: [segurança] no hello todas as regras de fluxo e meter devem ser removidas dos switches ovs.
+-> achar um modo de mandar as configurações de filas usando o openflow -> parece que pode usando regras EXPERIMENTER 
+-> achar um modo de os switches ovs utilizarem a rede interna do mininet.
+
+
+-> poderia implementar o suporte a gbam de subredes: um prefixo de rede ou vlan,seria limitado em largura de banda para uma porção da largura de banda real do lin e usaria gbam para consumir a largura de banda - isso não poderia ser feito no best-effort - até poderia ser criada uma regra meter para limitar o uso de banda na classe mas teria pouco impacto (mas seria bom criar msm assim). - poderia ser implementado como um vetor de regras especiais, caso exista uma regra especial de limitação gbam para o prefixo, então não segue o fluxo padrão mas do gbam modificado
+
+
+-> pensar em como habilitar suporte a nat e melhorar o processo de estabelecimento de contrato na parte do cliente-controlador principalmente
+
+
+-> obs: sobre os multiplos controladores no ambiente linux, é possível usar regras TC: pacotes com origem localhost e porta tcp X, encaminhar para a interface Ix. Essa porta TCP x seria a porta que o controlador está ouvindo. 
+
+
+-> V4 resolveu o problema das traduções de endereços.
+
+#UPDATES do DIA
+
+#14/04
+
+-> Resolver multicontroladores - tirar a dependencia de traduções de endereços usando TC filters {
+
+	- Verificar como os pacotes chegam e saem nos controladores na versão com traduções de endereços; 
+	- Enquanto dentro do mininet h1->c1 é feita com ip dst 10.10.10.1
+	
+	Trace:	H1-eth0 -> s1-eth1 -> s1-eth5 -> root1-eth0 -> C1
+	ip_dst: 10..1   -> 10..1   -> mininet.vm -> mininet.vm -> C1
+	
+	C1 recebe o pacote com mininet.vm no campo de destino mesmo não tendo ip correto. Muito estranho. Na verdade C1 faz bind do IP 10..1 no controlador, mas o pacote não vem comportado...
+	
+	As vezes queremos rotear pacotes não apenas por endereço de destino, mas também por outros campos, como endereço origem (nosso caso!) https://man7.org/linux/man-pages/man8/ip-rule.8.html
+	
+	- Usando ip rule show verifiquei que existe mais de uma tabela de roteamento :O
+	`ip route show table local` Mostra as regras da tabela de roteamento local
+	
+	Aparentemente, o linux tem 3 tabelas por padrão local, main e default.
+	
+	- É possível criar até 255 tabelas, com as 3 padrão, restão 252.
+	
+	-> combinando regras de filtragem ip-route com tabelas de roteamento, é possível fazer cada controlador utilizar uma tabela de encaminhamento e assim agir como for necessário.
+	
+	-> e a tabela ARP, o que vai acontecer (aparentemente essa é só uma). Acho que nada.
+
+	-> Como criar novas tabelas de roteamento (o cenário 2 reflete o nosso) : http://www.allgoodbits.org/articles/view/24
+	
+	
+	Criando uma tabela de roteamento para cada controlador {
+		
+		- Criando a tabela myorg
+		
+		`echo "1   myorg" >> /etc/iproute2/rt_tables`
+		
+		- Especificar a condição de uso da tabela
+		
+		`ip rule add from 10.1.0.0/24 table myorg`
+		
+		- Criar a regra na tabela de roteamento de qual interface usar
+		
+		`ip route add default via 10.1.0.1 dev br1 table myorg`
+		
+		- Pronto! 
+		
+		- Falta configurar corretamente o esquema de endereçamento entre controlador e hosts, pois esses dispositivos estão enviando muitos arps quando não deveriam.
+	
+	}
+
+}
+
+
+#13/04
+- Finalizar a portabilidade do controlador no container e verificar sua funcionalidade (obs: talvez alguns daqueles pacotes instalados no alpine possam ser removidos apos a instalação do ryu pois foram usados apenas na compilação de algumas dependencias, talvez removendo alguma coisa seja possível manter o ryu funcionando e diminuir o tamanho da imagem.
+- Desenvolver testes novos
+
+- Produzir gráficos
+- Começar a escrever o artigo (talvez pensar em uma versão menor) - cancelado
+
+
+Colocar no readme do docker_{
+ - Cada instância do FLOWPRI fora do mininet (apenas aberto) utiliza 50mb ram
+ - Cada instância do FLOWPRI fora do mininet (apenas aberto) utiliza 50-80mb ram +- 
+ - pelo menos em termos de memória RAM e sem estar fazendo nada, o consumo aparenta ser semelhante.
+}
+
+Automatizar a parte de configuração de switches no FLOWPRI: rotas + politicas | Como construir o grafo da rede do domínio
+{
+	
+	- O que o controlador precisa saber para configurar um switch{
+		- Identificador
+		- Quantidade de portas
+		- Identificador de cada porta
+		- Largura de banda de cada porta
+		- Prefixos suportados para cada porta
+		- Para qual switch cada porta leva: switch do domínio ou desconhecido (switch de outro domínio/host final ou similar).
+	}
+	
+	- Quais informações são passadas ao controlador com a mensagem do hello{
+	 (verificar)
+	}
+	
+	- Como contruir o grafo da rede e atualizar de forma dinâmica para criar rotas de forma autonoma e até usar algorítmos de anúncio de rotas compatíveis com redes convencionais {
+	
+		- obs: hello quer dizer evento switch_features OpenFlow
+		- Ideia é de alimentar a rede no hello ou com arquivos de configuração json (porta aberta)
+		- Configurar regras nas tabelas dos switches para identificarem pacotes de descoberta de rede
+		- Pacotes de descoberta de rede são injetadas pelo controlador durante o hello para que o switch os envie pela porta de saída especificada.
+		- Durante o hello deveriam ser conhecidos os ids das portas ativas do switch.
+		- Os pacotes de descoberta são pacotes de controle de rede, marcados com um TOS específico ou com algum endereço IP destino específico, para que possa ser identificado no outro switch.
+		- Pacotes de descoberta devem ter o endereço origem IP do controlador do domínio e destino talvez um endereço IP específico reservado para representar os switches em geral. 
+		- Pacotes de descoberta devem ter um TOS para identificar que é um pacote de descoberta (um tos que não foi utilizado ainda)
+		- Pacotes de descoberta devem ter no campo de dados a porta que se está testando, pois essa informação vai se perder no packet in - não lembro, na verdade acho que o packet-in informa a porta de entrada do pacote, então o pacote em si não precisa carregar essa informação no campo de dados.
+		- Em cada switch deve existir uma regra de fluxo para identificar pacotes do tipo descoberta: e (opção 1) devem devolver ao switch que enviou marcando com um ip especifico do switch que responde-permitindo identificação do link(opção 2) devem enviar ao controlador via packet-in, necessitando ter as informações do switch e porta testados no campo de dados do pacote ICMP15-assim o controlador sabe quem são os switches conectados e as portas conectadas, para montar o grafo.
+		
+		- Opção 2 parece fazer mais sentido no momento.
+		
+		- O controlador recebendo um pacote de resposta do protocolo de descoberta de rede, deve atualizar o grafo com o link descoberto.
+		
+		- Quando o protocolo de descoberta for ocorrer, as regras devem ser criadas, e quando receber as respostas esperadas, as regras devem ser removidas.
+		- Fazer isso no hello? fazer isso periodicamente?
+		
+		- sOFDP muda a abordagem de descoberta de topologia do controlador para o switch por meio de anuncio de topologia.
+		- A cada alteração em um switch, ele informa o controlador.(esse é o ideal, porém como implementar).
+  		- Isso é feito no sOFTD por meio de um mecanismo chamado port-liveness-detection nos switches : sOFTD adds a port-liveness-detection mechanism.
+		
+		- Os dados do pacote podem ser criptografados com chave publica-privada, man-in-the-middle, quando chegar ao controlador
+		- Infelizmente, qualquer um pode pode se passar pelo controlador e enviar pacotes desse tipo para os switches e inundar a rede, se bem que esse pacote será enviado ao controlador via packet-in que verificando não bater a criptografia pode bloquear o protocolo no switch por um tempo ou desliga-lo do grafo para evitar criar conexões por um tempo - não sei o que é pior. Pode ser resolvido da seguinte forma, sempre que o controlador for fazer os testes de lldp, as regras são criadas e após receber a resposta, as regras são removidas.
+		
+		- Quando um switch for fisicamente modificado -> tipo foi adicionado um novo cabo ligando a outro switch -> como o controlador atualiza o grafo? Via arquivos de configuração JSON-pq é o jeito mais correto-assim o controlador pode criar regras de fluxo para a porta tornando-a ativa de fato, caso o controlador não determine, nada vai acontecer a porta msm que ela tenha um link.
+		
+		- Informações sobre largura de banda das portas -> via arquivos de configuração, pois não tem outra forma, o administrador pode configurar quanto quiser.
+		
+		- OK o meu pode funcionar, não encontrei implementações do sofdp.
+		- No entanto, tem que verificar como funcionam as port-liveness-detection{
+			- Aparentemente existem regras de grupo que fazem verificação de port-liveness
+			- entender se essas regras de grupo podem ser usadas para anunciar modificações de portas para o controlador.
+			- Parece se nomear FAST-FAILOVER -> em regras de grupo
+		}
+		
+
+		Experimenter: Experimenter messages provide a standard way for OpenFlow switches to offer additional functionality within the OpenFlow message type space. This is a staging area for features meant for future OpenFlow revisions.	
+		-> Podemos explorar mensagens Experimenter para realizar as configurações de filas dentro dos switches;
+		-> Extender experimenter para executar script para verificar modificações de portas e avisar ao controlador: Modificar o switch para gerar a mensagem ou o controlador deve perguntar a cada switch. Gosto mais da primeira. Criar um script que grava a configuração de portas de um switch e de tempos em tempos verifica se foi modificado, se for, gera uma mensagem experimenter ou uma mensagem packet_in com as modificações escritas no campo de dados.
+		
+		APARENTEMENTE é possível configurar os switches para informarem ao controlador sobre mudanças em portas e estados de links{
+			B.6.4 Port and Link Status and Configuration
+			The switch should inform the controller of changes to port and link status. This is done with a new
+			flag in ofp_port_config:
+			 OFPPC_PORT_DOWN - The port has been configured ”down”.
+			... and a new flag in ofp_port_state:
+			 OFPPS_LINK_DOWN - There is no physical link present.
+			The switch should support enabling and disabling a physical port by modifying the OFPPFL_PORT_DOWN
+			flag (and mask bit) in the ofp_port_mod message. Note that this is not the same as adding or removing
+			the interface from the list of OpenFlow monitored ports; it is equivalent to "ifconfig eth0 down" on Unix system
+			
+			- Ocorre o hello, a instancia do switch é criada -> achar um jeito de descobrir os estados das portas
+			- mandar uma mensagem port_state para obter as portas ativas? e então criar as portas e adiciona-las na instancia do switch.
+			- configurar para que os switches informem quando as portas são modificadas
+			- Quando uma porta for modificada, uma mensagem é enviada ao controlador
+			- Ainda seria necessário verificar essa mensagem pois pode ser spoofing. Fazer isso enviando uma mensagem port_state ao switch, e somente alterar com a confirmação.
+			- Assim tenho os enlaces do grafo atualizados.
+			-> resta manter os nós atualizados, pois basta um nó nunca enviar mensagens de att. que ele é considerado ativo; Isso pode ser feito periodicamente enviando uma mensagem switch_state para os nós do grafo, caso não responda->  remove e altera o grafo.
+			
+			
+			-> ofp_port_features suporta a velocidade dos links, mas é diferente da largura de banda. (velocidade da conexão e não largura de banda);
+			
+			
+			
+			RYU já possui implementado eventos para tratar modificações de portas dos switches: https://github.com/faucetsdn/ryu/blob/master/ryu/controller/dpset.py
+			Aqui tem mais sobre implementação de descoberta de topologia https://stackoverflow.com/questions/23838784/information-about-switches-and-ports-from-openflow-ryu-controller
+			-> segundo o meu entendimento, sempre que uma alteração nas portas dos switches ocorrem, isso já é reportado para o controlador, então é só tratar https://docs.openvswitch.org/en/latest/topics/design/
+		}
+		
+		-> Tendo o grafo: É executado um algorítmo para encontrar o menor caminho entre todos os switches ( ou fazer isso dinamico )?
+		-> alterar as rotas que incluem um determinado switch em todos os outros switches, sempre que as políticas para ele forem alteradas. 
+		
+		Como OFDP funciona nos controladores SDN + vulnerabilidades e propõe um novo modelo - https://arxiv.org/pdf/1705.00706.pdf
+		
+		-- verificar como o protocolo lldp funciona, pois ele tbm é um protocolo de descoberta de rede (voltado para redes convencionais na verdade).
+			-> habilitar lldp em ovs-switch: https://www.reddit.com/r/linuxadmin/comments/j6va3c/howto_enable_basic_lldp_in_open_vswitch/
+		 	-> sOFTD, a new discovery protocol with a built-in security characteristics and which is more efficient than traditional OFDP. Alternativa para lldp, talvez seja possível implementar sla.
+		 	-> all current OpenFlow controllers implement the same protocol OFDP (aparentemente todos os controladores já implementam um mecanismo de descobrimento de topologia.
+		 	
+		 	
+	}
+
+
+}
+
+- Adaptar contratos para NAT {
+ 		- implementar um NAT
+		- Como os hosts sabem qual o ip do destino? - via dns local
+		(pensar em como habilitar suporte a nat e melhorar o processo de estabelecimento de contrato na parte do cliente-controlador principalmente)
+}
+
+#12/04
+
+Implementado container FLOWPRI com docker (ver github)
+
+Docker container build {
+	- Importar uma imagem que contenha os requisitos do ryu
+	- Instalar pacotes necessários para o ryu
+	- Instalar o ryu
+	- Exportar as portas necessárias
+}
+
+    Não foi testado em cenários mininet, mas não está dando erro 
+
+    Falta ajustar regras ip no userspace para encaminhar pacotes de forma direta entre os containers 
+
+    MELHOR CASO: o container subir em um host Root (externo ao cenario mininet) ou um host convencional, que ai não tem mais questão de enderecos. 
+
+#11/04
+-> implementar FLOWPRI:
+	- contrato {proto:TCP ou UDP, destPort:int}
+	
+	- achar um modo de implementar multi-controladores usando container + hook-regra-iptable{
+	- uma determinada interface correspondente de um switch envia pacotes para um determinado container
+	- tudo que um container especifico envia deve ser encaminhado para uma determinada interface
+	}
+
+-> instalado o docker engine (seguindo o tutorial para o ubuntu)
+
+
+
+#04/04
+- Encontrar uma forma de simular cenarios multi-controladores de forma mais fácil!
+- Separar melhor as etapas do controlador - e definir um modelo de descoberta de rotas ? - implementar balanceamento ?
+
+
+
+
+
+-> metodos de testar QoS ?
+Yang, W. C., Jhan, J. D., Chen, D. Y., Lai, K. H., & Lee, R. R.,
+“Quality of service test mechanism and management of
+broadband access network”, Asia-Pacific Network Operations
+and Management Symposium (APNOMS), September 2014.
+
+
+
+-> End-to-End Dynamic Bandwidth Resource Allocation Based on QoS Demand in SDN
+- Cita diversos trabalhos com mecanismos de reserva de largura de banda, que podem ser comparados.
+-> explica um modelo de roteamento uni-controlador baseado na largura de banda disponível dos links.
+-> utiliza dijstra para montar a tabela de distancias juntamente com a identificação de gargalos (>80% da utilização de link).
+
+-> [gerador de trafego] In our experiment, Distributed Internet Traffic Generator (D-ITG) [13] which is a popular packet generator among network researchers is used in order to generate multiple network flows.
+A. Botta, W. Donato, A. Dainotti, S. Avallone, and A. Pescape, ’D-ITG
+2.8.1 Manual’ University of Napoli Federico II http://traffic.comics.unina.it/software/ITG, October 28, 2013.
