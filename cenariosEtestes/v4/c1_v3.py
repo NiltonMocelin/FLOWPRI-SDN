@@ -45,12 +45,11 @@ import logging
 #CONTROLADOR C1
 #cada controlador deve ter o seu
 CONTROLADOR_ID = 1
-IPC = "10.123.123.1" #IP do root/controlador
+IPC = "10.10.1.1" #IP do root/controlador
+# IPC = "127.0.0.1" #IP do root/controlador
 MACC = "00:00:00:00:00:05" #MAC do root/controlador
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
-#dictionary com os ips e as conversoes em ficticios, especifico para cada controlador
-IPS_FIC = {}
 
 FILA_C1P1=0
 FILA_C1P2=1
@@ -1302,61 +1301,8 @@ class Dinamico(app_manager.RyuApp):
         self.mac_to_port = {}
         self.ip_to_mac = {}
 
-        if CONTROLADOR_ID == 1:
-            IPS_FIC['10.10.10.1']='20.10.10.1'
-            IPS_FIC['10.10.10.2']='20.10.10.2'
-            IPS_FIC['10.10.10.3']='20.10.10.3'
-            IPS_FIC['10.10.10.4']='20.10.10.4'
-            IPS_FIC['10.10.10.5']='20.10.10.5'
-        elif CONTROLADOR_ID == 2:
-            IPS_FIC['10.10.10.1']='20.20.20.1'
-            IPS_FIC['10.10.10.2']='20.20.20.2'
-            IPS_FIC['10.10.10.3']='20.20.20.3'
-            IPS_FIC['10.10.10.4']='20.20.20.4'
-            IPS_FIC['10.10.10.5']='20.20.20.5'
-        elif CONTROLADOR_ID == 3:
-            IPS_FIC['10.10.10.1']='20.30.30.1'
-            IPS_FIC['10.10.10.2']='20.30.30.2'
-            IPS_FIC['10.10.10.3']='20.30.30.3'
-            IPS_FIC['10.10.10.4']='20.30.30.4'
-            IPS_FIC['10.10.10.5']='20.30.30.5'
-        elif CONTROLADOR_ID == 4:
-            IPS_FIC['10.10.10.1']='20.40.40.1'
-            IPS_FIC['10.10.10.2']='20.40.40.2'
-            IPS_FIC['10.10.10.3']='20.40.40.3'
-            IPS_FIC['10.10.10.4']='20.40.40.4'
-            IPS_FIC['10.10.10.5']='20.40.40.5'
-        elif CONTROLADOR_ID == 5:
-            IPS_FIC['10.10.10.1']='20.50.50.1'
-            IPS_FIC['10.10.10.2']='20.50.50.2'
-            IPS_FIC['10.10.10.3']='20.50.50.3'
-            IPS_FIC['10.10.10.4']='20.50.50.4'
-            IPS_FIC['10.10.10.5']='20.50.50.5'
-        else:
-            print("ERRO - ID de controlador desconhecido ou nao configurado\nVAI DAR ERRO EM ALGUM LUGAR ADIANTE (nao sera encerrado)\n")
-
-
-        #print("Init Over\n")
-
-        
-        #contrato = {
-        #        "contrato":{
-        #            "ip_origem":'172.16.10.1',
-        #            "ip_destino":'172.16.10.2',
-        #            "banda":'1000',
-        #            "prioridade":'1',
-        #            "classe":'1'
-        #    }
-        #}
-
-        #contrato = {'contrato':{'ip_origem':'172.16.10.1','ip_destino':'172.16.10.2','banda':'1000','prioridade':'1','classe':'1'}}
-        contrato = """{"contrato":{"ip_origem":"172.16.10.1","ip_destino":"172.16.10.2","banda":"1000","prioridade":"1","classe":"1"}}"""
-        contratos.append(json.loads(contrato))
+       
         #contratos.append(contrato)
-
-#    def __def__(self):
-#        #print("finalizando thread\n")
-#        t1.join()
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -1421,13 +1367,7 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.123.123.1',5) #rota para controlador do S1
             switch.addRede('10.123.123.2',4) #rota para controlador do S2
             switch.addRede('10.123.123.3',4) #rota para controlador do S2
-            switch.addRede('10.10.10.2',4) #rota para controlador do S2
-            switch.addRede('10.10.10.1',5) #rota para controlador do S1
-            switch.addRede('10.10.10.3',4) #rota para controlador do S1
-            switch.addRede('20.10.10.2',4) #rota para controlador do S2
-            switch.addRede('20.10.10.1',5) #rota para controlador do S1
-            switch.addRede('20.10.10.3',4) #rota para controlador do S1
-
+            
             # portas ligadas a hosts ou a outros dominios: next = -1; significa que nao podemos pegar switches alem dessa conexao
             switch.getPorta(1).next=-1
             switch.getPorta(2).next=-1
@@ -1459,12 +1399,7 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.123.123.3',3)
             switch.addRede('10.123.123.2',5) #rota para controlador do S2
             switch.addRede('10.123.123.1',2) #rota para controlador do S1
-            switch.addRede('10.10.10.2',5) #rota para controlador do S2
-            switch.addRede('10.10.10.1',2) #rota para controlador do S1
-            switch.addRede('10.10.10.3',3) #rota para controlador do S1
-            switch.addRede('20.20.20.2',5) #rota para controlador do S2
-            switch.addRede('20.20.20.1',2) #rota para controlador do S1
-            switch.addRede('20.20.20.3',3) #rota para controlador do S1
+            
 
             # portas ligadas a hosts: next = -1
             switch.getPorta(2).next=-1
@@ -1491,13 +1426,7 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.123.123.3',5)
             switch.addRede('10.123.123.2',4) #rota para controlador do S2
             switch.addRede('10.123.123.1',4) #rota para controlador do S1
-            switch.addRede('10.10.10.3',5)
-            switch.addRede('10.10.10.2',4) #rota para controlador do S2
-            switch.addRede('10.10.10.1',4) #rota para controlador do S1
-            switch.addRede('20.30.30.3',5)
-            switch.addRede('20.30.30.2',4) #rota para controlador do S2
-            switch.addRede('20.30.30.1',4) #rota para controlador do S1
-
+           
             # portas ligadas a hosts: next = -1
             switch.getPorta(1).next=-1
             switch.getPorta(4).next=-2
@@ -1518,15 +1447,6 @@ class Dinamico(app_manager.RyuApp):
 
         global FORWARD_TABLE
         global CLASSIFICATION_TABLE
-        
-        ################
-        #criar a regra para o controlador do dominio
-        #obs: se nao fosse o ultimo switch, que conecta com o controlador, o ip teria de ser o ficticio, mas como eh o ultimo, o ip ficticio eh traduzido antes dessa regra, entao tem que ser o original - assim como esta feito
-        actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(IPC))]
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=IPC)
-        mod = parser.OFPFlowMod(datapath=datapath, priority=105, match=match, instructions=inst, table_id=FORWARD_TABLE)
-        datapath.send_msg(mod)
 
 #        #print(datapath.address)
 #        #print(ev.__dict__)

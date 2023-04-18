@@ -26,15 +26,14 @@ RUN pip install networkx
 #instalar ryu
 RUN pip install ryu
 
+#porta para receber contratos de hosts
 EXPOSE 4444
+#porta para troca de contratos entre controladores
 EXPOSE 8888
+#porta alcancavel pelos switches
+EXPOSE 8000
+#porta para o controlador receber programacao?
+
 ADD flowpri.py flowpri.py
-#ENTRYPOINT ["python", "teste.py"]
-# CMD ["python", "ryu-manager", "flowpri.py", "--ofp-tcp-listen-port", "8000"]
-# CMD ["ls"]
-#ADD flowpri.py flowpri.py
-#ADD ryu/ ryu/
-#RUN cd ryu/; pip install .
+
 ENTRYPOINT ["ryu-manager", "flowpri.py", "--ofp-tcp-listen-port", "8000"]
-#RUN ryu-manager flowpri.py --ofp-tcp-listen-port 8000
-#CMD ["ryu","-v"]

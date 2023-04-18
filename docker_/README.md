@@ -11,6 +11,12 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
 
 - [link-para conectar multiplas topologias mininet] https://mailman.stanford.edu/pipermail/mininet-discuss/2018-September/008064.html
 
+
+Obs:
+- port 8888 -> Troca de contratos entre controladores
+- port 4444 -> Receber contratos de hosts
+- port 8000 -> Comunicação com switches OpenFlow
+
 ## Aplicação: 
 
 - Ser utilizado em cenários de simulação mininet
@@ -18,16 +24,16 @@ Utilizando containers, se espera conseguir isolar controladores e bindar interfa
 - É necessário que a topologia mininet possua NÓS externos ao mininet (Roots) conectados a portas dos switches internos da topologia.
 
 <div>
-	   	Container1:FLOWPRI
-		 			|
-UserSpace         Root		
-		    	    |
---------------------------------------------
-MininetSpace	    |
-		  			S1-------S2-----S3....
-		           /  \
-				H1      H2
-
+:	   	Container1:FLOWPRI
+:		 			|
+:UserSpace         Root		
+:		    	    |
+:--------------------------------------------
+:MininetSpace	    |
+:		  			S1-------S2-----S3....
+:		           /  \
+:				H1      H2
+:
 </div>
 
 - Desta forma, é possivel ter multiplos containers de controladores FLOWPRI.
@@ -41,6 +47,10 @@ MininetSpace	    |
 - [build] sudo docker build -t flowpri-controller:1.0 .
 
 - [run] sudo docker run -t flowpri-controller:1.0
+
+-[run-publicando-portas] sudo docker run -p <ip-host-root>:<porta-host-root>:<porta-docker> -t flowpri-controller:1.0 
+
+-[run-publicando-portas-ex] sudo docker run -p 10.10.1.1:8888:8888 -p 10.10.1.1:4444:4444 -p 10.10.1.1:7000:7000 -t flowpri-controller:1.0
 
 # Remover
 

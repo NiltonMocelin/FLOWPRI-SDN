@@ -40,52 +40,15 @@ import datetime
 import logging
 
 ############################################
-#       Tabela de traducao de enderecos de controladores (para burlar o uso da mesma tabela (route) e forcar o encaminhamento pela interface correta)
-#  CADA CONTROLADOR TEM A SUA (caso seja apenas dois controladores, nao tem problema)
-TC = {}
-TC['10.123.123.1'] = '10.10.10.1'
-TC['10.123.123.2'] = '10.10.10.2'
-TC['10.123.123.3'] = '10.10.10.3'
-TC['10.123.123.4'] = '10.10.10.4'
-TC['10.123.123.5'] = '10.10.10.5'
-TC['10.10.10.3'] = '10.123.123.3'
-TC['10.10.10.2'] = '10.123.123.2'
-TC['10.10.10.3'] = '10.123.123.3'
-TC['10.10.10.4'] = '10.123.123.4'
-TC['10.10.10.5'] = '10.123.123.5'
-TC['20.10.10.3'] = '10.10.10.3'
-TC['20.10.10.2'] = '10.10.10.2'
-TC['20.10.10.4'] = '10.10.10.4'
-TC['20.10.10.5'] = '10.10.10.5'
-TC['20.20.20.1'] = '10.10.10.1'
-TC['20.20.20.3'] = '10.10.10.3'
-TC['20.20.20.4'] = '10.10.10.4'
-TC['20.20.20.5'] = '10.10.10.5'
-TC['20.30.30.1'] = '10.10.10.1'
-TC['20.30.30.2'] = '10.10.10.2'
-TC['20.30.30.4'] = '10.10.10.4'
-TC['20.30.30.5'] = '10.10.10.5'
-TC['20.40.40.1'] = '10.10.10.1'
-TC['20.40.40.2'] = '10.10.10.2'
-TC['20.40.40.3'] = '10.10.10.3'
-TC['20.40.40.5'] = '10.10.10.5'
-TC['20.50.50.1'] = '10.10.10.1'
-TC['20.50.50.2'] = '10.10.10.2'
-TC['20.50.50.3'] = '10.10.10.3'
-TC['20.50.50.4'] = '10.10.10.4'
-
-############################################
 # informacoes armazenadas pelo controlador #
 ############################################
 #CONTROLADOR C1
 #cada controlador deve ter o seu
 CONTROLADOR_ID = 1
-IPC = "10.123.123.1" #IP do root/controlador
+IPC = "10.10.1.1" #IP do root/controlador
 MACC = "00:00:00:00:00:05" #MAC do root/controlador
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
-#dictionary com os ips e as conversoes em ficticios, especifico para cada controlador
-IPS_FIC = {}
 
 FILA_C1P1=0
 FILA_C1P2=1
@@ -114,9 +77,8 @@ switches = [] #switches administrados pelo controlador
 #vetor com os enderecos ip dos controladores conhecidos (enviaram icmps)
 controladores_conhecidos = []
 
-PRE_TABLE = 0 #tabela para lidar com os ips ficticios dos controladores
-CLASSIFICATION_TABLE = 1 #tabela para marcacao de pacotes
-FORWARD_TABLE = 2 #tabela para encaminhar a porta destino
+CLASSIFICATION_TABLE = 0 #tabela para marcacao de pacotes
+FORWARD_TABLE = 1 #tabela para encaminhar a porta destino
 ALL_TABLES = 255 #codigo para informar que uma acao deve ser tomada em todas as tabelas
 
 CPT = {} #chave (CLASSE,PRIORIDADE,BANDA): valor TOS  
@@ -338,7 +300,7 @@ def servidor_socket_hosts():
         data = {"ip_src":cip_src}
         data = json.dumps(data)
 
-        send_icmp(switch_ultimo_dp, MACC, TC[IPC], MACC, cip_dst, out_port, 0, data, 1, 15,64)        
+        send_icmp(switch_ultimo_dp, MACC, IPC, MACC, cip_dst, out_port, 0, data, 1, 15,64)        
 
         # logging.info('[server-host] fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))        
 
@@ -1338,61 +1300,10 @@ class Dinamico(app_manager.RyuApp):
         self.mac_to_port = {}
         self.ip_to_mac = {}
 
-        if CONTROLADOR_ID == 1:
-            IPS_FIC['10.10.10.1']='20.10.10.1'
-            IPS_FIC['10.10.10.2']='20.10.10.2'
-            IPS_FIC['10.10.10.3']='20.10.10.3'
-            IPS_FIC['10.10.10.4']='20.10.10.4'
-            IPS_FIC['10.10.10.5']='20.10.10.5'
-        elif CONTROLADOR_ID == 2:
-            IPS_FIC['10.10.10.1']='20.20.20.1'
-            IPS_FIC['10.10.10.2']='20.20.20.2'
-            IPS_FIC['10.10.10.3']='20.20.20.3'
-            IPS_FIC['10.10.10.4']='20.20.20.4'
-            IPS_FIC['10.10.10.5']='20.20.20.5'
-        elif CONTROLADOR_ID == 3:
-            IPS_FIC['10.10.10.1']='20.30.30.1'
-            IPS_FIC['10.10.10.2']='20.30.30.2'
-            IPS_FIC['10.10.10.3']='20.30.30.3'
-            IPS_FIC['10.10.10.4']='20.30.30.4'
-            IPS_FIC['10.10.10.5']='20.30.30.5'
-        elif CONTROLADOR_ID == 4:
-            IPS_FIC['10.10.10.1']='20.40.40.1'
-            IPS_FIC['10.10.10.2']='20.40.40.2'
-            IPS_FIC['10.10.10.3']='20.40.40.3'
-            IPS_FIC['10.10.10.4']='20.40.40.4'
-            IPS_FIC['10.10.10.5']='20.40.40.5'
-        elif CONTROLADOR_ID == 5:
-            IPS_FIC['10.10.10.1']='20.50.50.1'
-            IPS_FIC['10.10.10.2']='20.50.50.2'
-            IPS_FIC['10.10.10.3']='20.50.50.3'
-            IPS_FIC['10.10.10.4']='20.50.50.4'
-            IPS_FIC['10.10.10.5']='20.50.50.5'
-        else:
-            print("ERRO - ID de controlador desconhecido ou nao configurado\nVAI DAR ERRO EM ALGUM LUGAR ADIANTE (nao sera encerrado)\n")
-
-
-        #print("Init Over\n")
-
-        
-        #contrato = {
-        #        "contrato":{
-        #            "ip_origem":'172.16.10.1',
-        #            "ip_destino":'172.16.10.2',
-        #            "banda":'1000',
-        #            "prioridade":'1',
-        #            "classe":'1'
-        #    }
-        #}
-
         #contrato = {'contrato':{'ip_origem':'172.16.10.1','ip_destino':'172.16.10.2','banda':'1000','prioridade':'1','classe':'1'}}
         contrato = """{"contrato":{"ip_origem":"172.16.10.1","ip_destino":"172.16.10.2","banda":"1000","prioridade":"1","classe":"1"}}"""
         contratos.append(json.loads(contrato))
         #contratos.append(contrato)
-
-#    def __def__(self):
-#        #print("finalizando thread\n")
-#        t1.join()
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -1457,13 +1368,7 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.123.123.1',5) #rota para controlador do S1
             switch.addRede('10.123.123.2',4) #rota para controlador do S2
             switch.addRede('10.123.123.3',4) #rota para controlador do S2
-            switch.addRede('10.10.10.2',4) #rota para controlador do S2
-            switch.addRede('10.10.10.1',5) #rota para controlador do S1
-            switch.addRede('10.10.10.3',4) #rota para controlador do S1
-            switch.addRede('20.10.10.2',4) #rota para controlador do S2
-            switch.addRede('20.10.10.1',5) #rota para controlador do S1
-            switch.addRede('20.10.10.3',4) #rota para controlador do S1
-
+            
             # portas ligadas a hosts ou a outros dominios: next = -1; significa que nao podemos pegar switches alem dessa conexao
             switch.getPorta(1).next=-1
             switch.getPorta(2).next=-1
@@ -1495,12 +1400,7 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.123.123.3',3)
             switch.addRede('10.123.123.2',5) #rota para controlador do S2
             switch.addRede('10.123.123.1',2) #rota para controlador do S1
-            switch.addRede('10.10.10.2',5) #rota para controlador do S2
-            switch.addRede('10.10.10.1',2) #rota para controlador do S1
-            switch.addRede('10.10.10.3',3) #rota para controlador do S1
-            switch.addRede('20.20.20.2',5) #rota para controlador do S2
-            switch.addRede('20.20.20.1',2) #rota para controlador do S1
-            switch.addRede('20.20.20.3',3) #rota para controlador do S1
+            
 
             # portas ligadas a hosts: next = -1
             switch.getPorta(2).next=-1
@@ -1527,13 +1427,7 @@ class Dinamico(app_manager.RyuApp):
             switch.addRede('10.123.123.3',5)
             switch.addRede('10.123.123.2',4) #rota para controlador do S2
             switch.addRede('10.123.123.1',4) #rota para controlador do S1
-            switch.addRede('10.10.10.3',5)
-            switch.addRede('10.10.10.2',4) #rota para controlador do S2
-            switch.addRede('10.10.10.1',4) #rota para controlador do S1
-            switch.addRede('20.30.30.3',5)
-            switch.addRede('20.30.30.2',4) #rota para controlador do S2
-            switch.addRede('20.30.30.1',4) #rota para controlador do S1
-
+           
             # portas ligadas a hosts: next = -1
             switch.getPorta(1).next=-1
             switch.getPorta(4).next=-2
@@ -1554,100 +1448,6 @@ class Dinamico(app_manager.RyuApp):
 
         global FORWARD_TABLE
         global CLASSIFICATION_TABLE
-        global PRE_TABLE
-
-        #regra default da tabela 0 - > enviar para a tabela 1 => caso nao seja pacote com envolvimento nos controladores
-        inst = [parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
-        # parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=TC[IPC])
-        mod = parser.OFPFlowMod(datapath=datapath, priority=0, instructions=inst, table_id=PRE_TABLE)
-        datapath.send_msg(mod)
-
-        #se for o switch que conecta ao controlador, configurar a tabela de pre-marcacao e 
-        if datapath.id == 1 or datapath.id == 2 or datapath.id == 3 or datapath.id ==4 or datapath.id ==5:
-
-            ####### TRATAMENTO IPS FICTICIOS ###############
-            ### tabela 0 de pre-marcacao, para lidar com os ips ficticios dos controladores
-
-            #pacotes que chegam, do ip-c2 10.10.10.2 devem ser modificados para 20.10.10.2 
-            #pacotes que saem com destino ip-c2 20.10.10.2, devem ser modificados para 10.10.10.2
-            #alem das conversoes do proprio controlador
-
-            #[mudado, agr cria, nao tem problema e evita um monte de ifs] nao criar regras para si mesmo -- feito da pior forma possivel mas enfim. 
-            #comunicacao com os controladores exige traducao de enderecos ficticios
-            #10.10.10.2->20.10.10.2
-
-            #ida
-            #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.1'], TC[IPC], '10.10.10.1')
-
-            #chegada
-            #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, '10.10.10.1', TC[IPC], IPS_FIC['10.10.10.1'], IPC)
-
-            #ida
-            #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.2'], TC[IPC], '10.10.10.2')
-
-            #chegada
-            #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, '10.10.10.2', TC[IPC], IPS_FIC['10.10.10.2'], IPC)
-
-            #10.10.10.3->20.10.10.3
-            self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.3'], TC[IPC], '10.10.10.3')
-            #chegada
-            #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, '10.10.10.3', TC[IPC], IPS_FIC['10.10.10.3'], IPC)
-
-            #10.10.10.4->20.10.10.4
-            self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.4'], TC[IPC], '10.10.10.4')
-
-            #chegada
-            #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, '10.10.10.4', TC[IPC], IPS_FIC['10.10.10.4'], IPC)
-
-            #10.10.10.5->20.10.10.5
-            self.addRegraPre(datapath, IPC, IPS_FIC['10.10.10.5'], TC[IPC], '10.10.10.5')
-
-            #chegada
-            #match:>ip_src, ip_dst; remark:> ip_src, ip_dst
-            self.addRegraPre(datapath, '10.10.10.5', TC[IPC], IPS_FIC['10.10.10.5'], IPC)
-
-            ###### default para conversar com os 
-            #ida
-            actions = [parser.OFPActionSetField(ipv4_src=TC[IPC])]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
-            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=IPC)
-            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
-            datapath.send_msg(mod)
-
-            #chegada
-            actions = [parser.OFPActionSetField(ipv4_dst=IPC)]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
-            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=TC[IPC])
-            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
-            datapath.send_msg(mod)
-
-            ################
-
-            #criar a regra para o controlador do dominio
-            #obs: se nao fosse o ultimo switch, que conecta com o controlador, o ip teria de ser o ficticio, mas como eh o ultimo, o ip ficticio eh traduzido antes dessa regra, entao tem que ser o original - assim como esta feito
-            actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(IPC))]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=IPC)
-            mod = parser.OFPFlowMod(datapath=datapath, priority=105, match=match, instructions=inst, table_id=FORWARD_TABLE)
-            datapath.send_msg(mod)
-
-        else:
-            #nao eh um switch conectado diretamente ao host do controlador (root)
-            #tornar a tabela de classificacao a tabela zero
-
-            #criar a regra para o controlador do dominio
-            #obs: se nao fosse o ultimo switch, que conecta com o controlador, o ip teria de ser o ficticio, mas como eh o ultimo, o ip ficticio eh traduzido antes dessa regra, entao tem que ser o original - assim como esta feito
-            actions = [parser.OFPActionSetQueue(FILA_CONTROLE), parser.OFPActionOutput(switch.getPortaSaida(TC[IPC]))]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=6, ipv4_dst=TC[IPC])
-            mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=FORWARD_TABLE)
-            datapath.send_msg(mod)
 
 #        #print(datapath.address)
 #        #print(ev.__dict__)
@@ -1674,17 +1474,6 @@ class Dinamico(app_manager.RyuApp):
     	#Regras ICMP inf. Req. e inf. reply --
         
         #as demais regras de marcacao sao feitas com base no packet_in e contratos
-
-    def addRegraPre(self, datapath, ip_src, ip_dst, novo_ip_src, novo_ip_dst):
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
-
-        actions = [parser.OFPActionSetField(ipv4_src=novo_ip_src), parser.OFPActionSetField(ipv4_dst=novo_ip_dst)]
-        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_dst=ip_dst, ipv4_src=ip_src)
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions), parser.OFPInstructionGotoTable(CLASSIFICATION_TABLE)]
-        mod = parser.OFPFlowMod(datapath=datapath, priority=100, match=match, instructions=inst, table_id=PRE_TABLE)
-        datapath.send_msg(mod)
-
 
     def add_flow(self, datapath, priority, match, actions, table_id, buffer_id=None):
         ofproto = datapath.ofproto
@@ -1965,18 +1754,18 @@ class Dinamico(app_manager.RyuApp):
 ######### etapa 3 - responder com icmp 16                  
 ### RESPONDENDO ICMP 15 inf. req com um ICMP 16 inf. reply + ip_dst que quero dos contratos - injetar pelo primeiro switch da rota entre este controlador e o emissor == switch que gerou o packet_in
                 ### o primeiro switch da rota eh o proprio que enviou o packet_in
-                send_icmp(dp,MACC, TC[IPC], src, ip_src, in_port,0,data,1,16,64) # se mostrou desnecessario, mas deixei a implementacao de qualquer forma, dst_controlador=True)
+                send_icmp(dp,MACC, IPC, src, ip_src, in_port,0,data,1,16,64) # se mostrou desnecessario, mas deixei a implementacao de qualquer forma, dst_controlador=True)
                 #print("[ICMP-15] ICMP Information Request -> Replied\n")
 
                 #as regras de vinda dos pacotes de contrato ja existem, pq sao para este controlador
                 #no entanto as regras de volta (tcp-handshake) nao existem e sao do tipo controle tbm, entao criar 
                 switches_rota = SwitchOVS.getRota(str(dpid), IPC)
-                switches_rota[-1].addRegraC(TC[IPC], ip_src, 61)
+                switches_rota[-1].addRegraC(IPC, ip_src, 61)
                 for s in switches_rota:
                     #porta de saida
                     out_port = s.getPortaSaida(ip_src)
                     #ida
-                    s.alocarGBAM(out_port, TC[IPC], ip_src, '1000', 2, 4)
+                    s.alocarGBAM(out_port, IPC, ip_src, '1000', 2, 4)
 ######### etapa 4 - suprimida - movida para o switch_feature_handler
             #     #preparar para receber os contratos                
             #     #criar as regras nos switches da rota que leva ao controlador,
@@ -2069,14 +1858,14 @@ class Dinamico(app_manager.RyuApp):
                     #criar a regra de encaminhamento + marcacao --- para enviar os contratos
                     #regra de marcacao - apenas no switch que esta conectado ao controlador
                     #primeiro switch == switch conectado ao controlador - alterado para TC[ip_src]
-                    switch_primeiro.addRegraC(TC[ip_dst], TC[ip_src], 61)
+                    switch_primeiro.addRegraC(ip_dst, ip_src, 61)
 
                     #out_port = switch_primeiro.getPortaSaida(ip_src)
 
                     #criar regras de encaminhamento de contratos nos switches da rota 
                     for s in switches_rota:
                         out_port = s.getPortaSaida(ip_src)
-                        s.alocarGBAM(out_port, TC[ip_dst], TC[ip_src], '1000', '2', '4') #criando as regras - alterado para tc[ip_src]
+                        s.alocarGBAM(out_port, ip_dst, ip_src, '1000', '2', '4') #criando as regras - alterado para tc[ip_src]
 
                     #criando a volta tbm pq precisa estabelecer a conexao
                     
@@ -2195,7 +1984,7 @@ class Dinamico(app_manager.RyuApp):
                     data = {"ip_src":cip_src}
                     data = json.dumps(data)
             
-                    send_icmp(switch_ultimo_dp, MACC, TC[IPC], dst, ip_dst, out_port, 0, data, 1, 15,64)
+                    send_icmp(switch_ultimo_dp, MACC, IPC, dst, ip_dst, out_port, 0, data, 1, 15,64)
                           
                     #print("[%s] icmp enviado enviado - ipdst=%s  portasaida=%d\n" % (switch_ultimo.nome,ip_dst,out_port))
                     #print("---------------------------------\n")
