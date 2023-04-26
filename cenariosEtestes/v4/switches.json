@@ -1,0 +1,79 @@
+{
+    "addswitch":[
+
+        {
+            "nome":"s1", 
+            "datapath":"1", 
+            "qtdPortas":"5", 
+            "portas":[
+                {
+                    "nome":"1",
+                    "larguraBanda":"15000",
+                    "proxSwitch":"s1"
+                },
+
+                {
+                    "nome":"2", 
+                    "larguraBanda":"15000", 
+                    "proxSwitch":"s1" 
+                },
+
+                {
+                    "nome":"3", 
+                    "larguraBanda":"15000",
+                    "proxSwitch":"s1" 
+                },
+
+                {
+                    "nome":"4", 
+                    "larguraBanda":"15000",
+                    "proxSwitch":"s1"
+                },
+
+                {
+                    "nome":"5", 
+                    "larguraBanda":"15000",
+                    "proxSwitch":"s1" 
+                }
+            ]
+        },
+
+        {
+            "nome":"s2", 
+            "datapath":"2",
+            "qtdPortas":"5",
+            "portas":[
+                {
+                    "nome":"1",
+                    "larguraBanda":"15000",
+                    "proxSwitch":"s1" 
+                },
+
+                {
+                    "nome":"2", 
+                    "larguraBanda":"15000",
+                    "proxSwitch":"s1" 
+                },
+
+                {
+                    "nome":"3", 
+                    "larguraBanda":"15000", 
+                    "proxSwitch":"s1" 
+                },
+
+                {
+                    "nome":"4", 
+                    "larguraBanda":"15000", 
+                    "proxSwitch":"s1" 
+                },
+
+                {
+                    "nome":"5", 
+                    "larguraBanda":"15000",
+                    "proxSwitch":"s1" 
+                }
+            ]
+        }
+
+    ]
+}

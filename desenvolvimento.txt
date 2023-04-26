@@ -29,6 +29,39 @@
 
 #UPDATES do DIA
 
+
+#26/04
+-> Arrumar a parte das configurações dos switches e aprendizagem mac.
+-> NAO ESTAMOS ATUALIZANDO TODAS AS PORTAS COM A CONFIGURAÇÃO DA RESERVA DE LARGURA DE BANDA!!{
+	- quando um fluxo reserva largura de banda, apenas a porta de saída dos switches são atualizados com a largura de banda utilizada, falta 
+	fazer isso na porta de entrada tbm, pois essa porta não poderá utilizar largura de banda (é isso certo?)
+}
+
+-> utilizar mensagem openflow para configurar as filas nos switches!
+
+-> [problema] como descubrir se um fluxo está recebendo os recursos -> um processo nos hosts clientes que responde um icmp 15 sobre o qos recebido em um fluxo para o controlador que o enviou.
+-> [problema] NAT traduz endereços de origem e destino algumas vezes, como enviar um contrato de qos para outros dominios sendo que os ips podem ter mudado 
+em domínios intermediários que nem suportam o flowpri-sdn. -> o contrato evita que multiplos domínios tenham que descobrir os requisitos do mesmo fluxo.
+
+
+
+
+#18/04
+
+-> configurar nos hosts e nos root-hosts, em suas tabelas de roteamento, rotas para default gateway. O default gateway é para onde pacotes fora da rede local são enviados. ASSIM, SE EVITAM OS ARP PACKAGES DOS HOSTS
+
+-> Mudar os endereços IP dos hosts para estarem em redes diferentes.
+
+-> fazer funcionar o docker
+
+By default, the EXPOSE instruction does not expose the container’s ports to be accessible from the host. In other words, it only makes the stated ports available for inter-container interaction. 
+
+For example, let’s say you have a Node.js application and a Redis server deployed on the same Docker network. To ensure the Node.js application communicates with the Redis server, the Redis container should expose a port. 
+
+-> como funciona a exportação de portas no docker container:
+https://www.mend.io/free-developer-tools/blog/docker-expose-port/
+
+
 #14/04
 
 -> Resolver multicontroladores - tirar a dependencia de traduções de endereços usando TC filters {

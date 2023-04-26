@@ -1,0 +1,79 @@
+{
+    "addswitch":[//tipo de comando a executar no controlador
+
+        {
+            "nome":"s1", //nome do switch no dominio
+            "datapath":"1", //identificador do switch
+            "qtdPortas":"5", //qtd de portas do switch
+            "portas":[
+                {
+                    "nome":"1", //identificador da porta
+                    "larguraBanda":"15000", //largura de banda do link
+                    "proxSwitch":"s1" //nome de outro switch do dominio ou -1 para host/outroDominio
+                },
+
+                {
+                    "nome":"2", //identificador da porta
+                    "larguraBanda":"15000", //largura de banda do link
+                    "proxSwitch":"s1" //nome de outro switch do dominio ou -1 para host/outroDominio
+                },
+
+                {
+                    "nome":"3", //identificador da porta
+                    "larguraBanda":"15000", //largura de banda do link
+                    "proxSwitch":"s1" //nome de outro switch do dominio ou -1 para host/outroDominio
+                },
+
+                {
+                    "nome":"4", //identificador da porta
+                    "larguraBanda":"15000", //largura de banda do link
+                    "proxSwitch":"s1" //nome de outro switch do dominio ou -1 para host/outroDominio
+                },
+
+                {
+                    "nome":"5", //identificador da porta
+                    "larguraBanda":"15000", //largura de banda do link
+                    "proxSwitch":"s1" //nome de outro switch do dominio ou -1 para host/outroDominio
+                }
+            ]
+        },
+
+        {
+            "nome":"s2", 
+            "datapath":"2",
+            "qtdPortas":"5",
+            "portas":[
+                {
+                    "nome":"1",
+                    "larguraBanda":"15000",
+                    "proxSwitch":"s1" 
+                },
+
+                {
+                    "nome":"2", 
+                    "larguraBanda":"15000",
+                    "proxSwitch":"s1" 
+                },
+
+                {
+                    "nome":"3", 
+                    "larguraBanda":"15000", 
+                    "proxSwitch":"s1" 
+                },
+
+                {
+                    "nome":"4", 
+                    "larguraBanda":"15000", 
+                    "proxSwitch":"s1" 
+                },
+
+                {
+                    "nome":"5", 
+                    "larguraBanda":"15000",
+                    "proxSwitch":"s1" 
+                }
+            ]
+        }
+
+    ]
+}
