@@ -1,5 +1,6 @@
-### controlador com addRegrasM e novo GBAM
 
+#para obter as variaveis de ambiente os.getenv('API_USER') ;; para setar os.environ['API_USER'] = 'username'
+import os 
 
 from ryu.base import app_manager
 from ryu.controller import ofp_event
@@ -42,12 +43,21 @@ import logging
 ############################################
 # informacoes armazenadas pelo controlador #
 ############################################
-#CONTROLADOR C1
+
 #cada controlador deve ter o seu
-CONTROLADOR_ID = 1
-IPC = "10.10.1.1" #IP do root/controlador
-# IPC = "127.0.0.1" #IP do root/controlador
-MACC = "00:00:00:00:00:05" #MAC do root/controlador
+CONTROLLER_INTERFACE = input("Digite a interface do host do controlador")
+
+# obter o endereco ip da interface
+#ip addr show enp7s0 | grep "\<inet\>" | awk '{ print $2}' | awk -F "/" '{ print $1 }'
+
+# obter o endereco mac da interface
+#ip addr show enp7s0 | grep "\<ether\>" | awk '{ print $2}'
+
+#ta errado -> os.system nao pega a saida apenas printa no terminal
+CONTROLADOR_ID = CONTROLLER_INTERFACE
+IPC = os.system("""ip addr show {} | grep "\<inet\>" | awk '{{ print $2}}' | awk -F "/" '{{ print $1 }}'""".format(CONTROLLER_INTERFACE)) #IP do root/controlador
+
+MACC = os.system(""" ip addr show {} | grep "\<ether\>" | awk '{{ print $2}}' """.format(CONTROLLER_INTERFACE)) #MAC do root/controlador
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
 
@@ -88,7 +98,6 @@ CPF = {} #classe + prioridade = fila
 
 #banda = valor ; indice = meter_id
 #RATES = [4,16,32,64,128,500,1000,2000,4000,8000,10000,20000,25000] #sao 13 meter bands
-RATES = [4,32,64,128,500,1000,2000,5000,10000,25000] #novos meters
 
 #alimentar o dicionario CPT !!
 #tem que criar uma nova tabela no TCC - tabela TOS
