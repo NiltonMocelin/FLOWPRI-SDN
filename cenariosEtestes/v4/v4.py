@@ -1,6 +1,6 @@
 
 #para obter as variaveis de ambiente os.getenv('API_USER') ;; para setar os.environ['API_USER'] = 'username'
-import os 
+# import os 
 
 from ryu.base import app_manager
 from ryu.controller import ofp_event
@@ -44,20 +44,26 @@ import logging
 # informacoes armazenadas pelo controlador #
 ############################################
 
+#para obter as informacoes de interface IP/MAC
+# try:
+#     from netifaces import AF_INET, ifaddresses
+# except ModuleNotFoundError as e:
+#     raise SystemExit(f"Faltando o modulo {e.name}. Rodar 'pip install {e.name}'")
+
+from netifaces import AF_INET, ifaddresses
+
 #cada controlador deve ter o seu
-CONTROLLER_INTERFACE = input("Digite a interface do host do controlador")
+CONTROLLER_INTERFACE = raw_input("Digite a interface do host do controlador\n")
 
-# obter o endereco ip da interface
-#ip addr show enp7s0 | grep "\<inet\>" | awk '{ print $2}' | awk -F "/" '{ print $1 }'
+CONTROLADOR_ID = str(CONTROLLER_INTERFACE)
+IPC = str(ifaddresses(CONTROLLER_INTERFACE)[AF_INET][0]['addr'])
 
-# obter o endereco mac da interface
-#ip addr show enp7s0 | grep "\<ether\>" | awk '{ print $2}'
+MACC = str(ifaddresses(CONTROLLER_INTERFACE)[17][0]['addr'])
 
-#ta errado -> os.system nao pega a saida apenas printa no terminal
-CONTROLADOR_ID = CONTROLLER_INTERFACE
-IPC = os.system("""ip addr show {} | grep "\<inet\>" | awk '{{ print $2}}' | awk -F "/" '{{ print $1 }}'""".format(CONTROLLER_INTERFACE)) #IP do root/controlador
+print("Controlador ID - {}".format(CONTROLADOR_ID))
+print("Controlador IP - {}".format(IPC))
+print("Controlador MAC - {}".format(MACC))
 
-MACC = os.system(""" ip addr show {} | grep "\<ether\>" | awk '{{ print $2}}' """.format(CONTROLLER_INTERFACE)) #MAC do root/controlador
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
 
@@ -1329,18 +1335,6 @@ class Dinamico(app_manager.RyuApp):
 
         print("[%s] switch_features - setup de S%d \n" % (datetime.datetime.now().time(), datapath.id))
 
-#        switch = ev.switch.dp
-
-        #print("\n[switch_handler] ")
-
-        #print("Switch_id: "+ str(datapath.id) + " conectado: interfaces")
-###################################################
-###        #criar os switches 
-###################################################
-   
-#        #print("\nEventos possiveis?\n")
-#        #print(ofp_event.__dict__)##printar a classe como um dicionario -> identificar os possiveis eventos
-
         #obter o numero de portas do switch ?
         qtd_portas = 5
         
@@ -1461,9 +1455,6 @@ class Dinamico(app_manager.RyuApp):
         global FORWARD_TABLE
         global CLASSIFICATION_TABLE
 
-#        #print(datapath.address)
-#        #print(ev.__dict__)
-
 ###########################################################################################
 ##########        Criar regras TABELAs - marcacao e identificacao              ###########
 ###########################################################################################
@@ -1519,15 +1510,6 @@ class Dinamico(app_manager.RyuApp):
             mod = parser.OFPFlowMod(datapath=datapath, table_id=FORWARD_TABLE,priority=prioridade, instructions=inst, actions=actions)
 
         datapath.send_msg(mod)
-#
-#    def apply_filter_table_rules(self, datapath):
-#        ofproto = datapath.ofproto
-#        parser = datapath.ofproto_parser
-#        match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=in_proto.IPPROTO_TCP)
-#        mod = parser.OFPFlowMod(datapath=datapath, table_id=FILTER_TABLE,
-#                                priority=10000, match=match)
-#        datapath.send_msg(mod)
-
 
     def _send_packet(self, datapath, port, pkt):
         ofproto = datapath.ofproto
@@ -1561,25 +1543,6 @@ class Dinamico(app_manager.RyuApp):
         else:
             reason = 'unknown'
 
-        #self.logger.debug('OFPFlowRemoved received: '
-        #                  'cookie=%d priority=%d reason=%s table_id=%d '
-        #                  'duration_sec=%d duration_nsec=%d '
-        #                  'idle_timeout=%d hard_timeout=%d '
-        #                  'packet_count=%d byte_count=%d match.fields=%s',
-        #                  msg.cookie, msg.priority, reason, msg.table_id,
-        #                  msg.duration_sec, msg.duration_nsec,
-        #                  msg.idle_timeout, msg.hard_timeout,
-        #                  msg.packet_count, msg.byte_count, msg.match)
-        #print('OFPFlowRemoved received switch=%s :: '
-        #                  'cookie=%d priority=%d reason=%s table_id=%d '
-        #                  'duration_sec=%d duration_nsec=%d '
-        #                  'idle_timeout=%d hard_timeout=%d '
-        #                  'packet_count=%d byte_count=%d match.fields=%s \n' % (str(dp.id),
-        #                  msg.cookie, msg.priority, reason, msg.table_id,
-        #                  msg.duration_sec, msg.duration_nsec,
-        #                  msg.idle_timeout, msg.hard_timeout,
-        #                  msg.packet_count, msg.byte_count, msg.match))
-       
         ip_src = None
         ip_dst = None
         tos = None
