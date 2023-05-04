@@ -29,6 +29,14 @@
 
 #UPDATES do DIA
 
+#03/05
+
+-> configurando melhor como o controlador recebe as configuracoes dos switches
+-> falta melhorar e abrir uma porta para receber arquivos de configuracao
+-> talvez devesse ter utilizado rest mesmo ... talvez estudar e criar uma versao rest
+-> no fim, a parte grafica tera de ser web se for implementada (para ver o grafo da rede e tals)
+-> arrumar mais algumas coisas para facilitar o uso por outros
+-> fazer testes
 
 #26/04
 -> Arrumar a parte das configurações dos switches e aprendizagem mac.

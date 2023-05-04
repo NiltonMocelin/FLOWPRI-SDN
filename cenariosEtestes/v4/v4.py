@@ -66,6 +66,7 @@ print("Controlador MAC - {}".format(MACC))
 
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
+PORTA_X = 9999 #porta para receber arquivos de configuracao json
 
 FILA_C1P1=0
 FILA_C1P2=1
@@ -768,7 +769,7 @@ class Porta:
             return porta.c2U,porta.c2T
 
 class SwitchOVS:
-    def __init__(self, datapath, name, qtdPortas, vetNomePortas, bandaC1T, bandaC2T, tamanhoFilaC1, tamanhoFilaC2): 
+    def __init__(self, datapath, name): 
                 
         self.datapath = datapath
         self.nome = name
@@ -794,9 +795,9 @@ class SwitchOVS:
         #getRegra - pensar em um identificador para conseguir as regras
         #updateRegras - passa todas um vetor de regras vindos do switch, para atualizar o vetor da classe
 
-  #criar as portas no switch
-        for i in range(qtdPortas):
-            self.portas.append(Porta(vetNomePortas[i], bandaC1T, bandaC2T, tamanhoFilaC1, tamanhoFilaC2))
+    def addPorta(self, nomePorta, larguraBanda):
+        #criar a porta no switch
+        self.portas.append(Porta(nomePorta, larguraBanda*.33, larguraBanda*.35, 0, 0))
 
         #print]("\nSwitch %s criado\n" % (name))
     
@@ -1326,6 +1327,8 @@ class Dinamico(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
 
+
+        #aqui nao se obtem tantas informacoes sobre os switches como eu gostaria
         tempo_i = round(time.monotonic()*1000)
         
         
@@ -1335,112 +1338,8 @@ class Dinamico(app_manager.RyuApp):
 
         print("[%s] switch_features - setup de S%d \n" % (datetime.datetime.now().time(), datapath.id))
 
-        #obter o numero de portas do switch ?
-        qtd_portas = 5
-        
-        nome_portas = []
-        for i in range(5):
-            nome_portas.append(str(i+1))
-        
-        #para Total = 15 Mb += 15000kb
-        bandaC1T=1000*15 * 0.33 #33%
-        bandaC2T=1000*15 * 0.35 #35%
+        switch = SwitchOVS(datapath,str(datapath.id))
 
-        #para permitir excedente de 10%
-        tamanhoFilaC1 = bandaC1T * 0.1 #33 kb
-        tamanhoFilaC2 = bandaC2T * 0.1 #35 kb
-
-        switch = SwitchOVS(datapath,str(datapath.id), qtd_portas, nome_portas, bandaC1T, bandaC2T, tamanhoFilaC1, tamanhoFilaC2)
-        
-
-        #criando a tabela de roteamento - no momento existem apenas 2 switches
-        #em breve serao redes separadas
-        #switch S1 - dominio C1 --- arrumado -> porta eh agr um inteiro
-        if datapath.id == 1:
-
-            LISTA_HOSTS['10.10.10.1'] = 1
-            LISTA_HOSTS['10.123.123.1'] = 1
-            # dizendo qual o primeiro switch da rota para os hosts determinados
-            LISTA_HOSTS['172.16.10.1'] = 1
-            LISTA_HOSTS['172.16.10.2'] = 1
-            LISTA_HOSTS['172.16.10.3'] = 1
-            LISTA_HOSTS['172.16.10.4'] = 1
-            #
-            
-            switch.addRede('172.16.10.1',1) #rota para destino h1->s1-eth1
-            switch.addRede('172.16.10.2',2)
-            switch.addRede('172.16.10.3',3)
-            switch.addRede('172.16.10.4',4)
-            switch.addRede('10.123.123.1',5) #rota para controlador do S1
-            switch.addRede('10.123.123.2',4) #rota para controlador do S2
-            switch.addRede('10.123.123.3',4) #rota para controlador do S2
-            
-            # portas ligadas a hosts ou a outros dominios: next = -1; significa que nao podemos pegar switches alem dessa conexao
-            switch.getPorta(1).next=-1
-            switch.getPorta(2).next=-1
-            switch.getPorta(3).next=-1
-            #s1:4 <-> s2:1
-            switch.getPorta(4).next=-2
-
-            #root1-c1
-            switch.getPorta(5).next=-1
-		
-		
-		#switch S2 - dominio C2
-        elif datapath.id == 2:
-
-            LISTA_HOSTS['10.10.10.2'] = 2
-            LISTA_HOSTS['10.123.123.2'] = 2
-            # dizendo qual o primeiro switch da rota para os hosts determinados
-            LISTA_HOSTS['172.16.10.1'] = 2
-            LISTA_HOSTS['172.16.10.2'] = 2
-            LISTA_HOSTS['172.16.10.3'] = 2
-            LISTA_HOSTS['172.16.10.4'] = 2
-            #
-            
-
-            switch.addRede('172.16.10.4',3)
-            switch.addRede('172.16.10.1',2)
-            switch.addRede('172.16.10.2',2)
-            switch.addRede('172.16.10.3',2)
-            switch.addRede('10.123.123.3',3)
-            switch.addRede('10.123.123.2',5) #rota para controlador do S2
-            switch.addRede('10.123.123.1',2) #rota para controlador do S1
-            
-
-            # portas ligadas a hosts: next = -1
-            switch.getPorta(2).next=-1
-            switch.getPorta(3).next=-3
-            
-            #root2-c2
-            switch.getPorta(5).next=-1
-
-        elif datapath.id == 3:
-
-            LISTA_HOSTS['10.10.10.3'] = 3
-            LISTA_HOSTS['10.123.123.3'] = 3
-            # dizendo qual o primeiro switch da rota para os hosts determinados
-            LISTA_HOSTS['172.16.10.1'] = 3
-            LISTA_HOSTS['172.16.10.2'] = 3
-            LISTA_HOSTS['172.16.10.3'] = 3
-            LISTA_HOSTS['172.16.10.4'] = 3
-            #
-
-            switch.addRede('172.16.10.4',1)
-            switch.addRede('172.16.10.1',4)
-            switch.addRede('172.16.10.2',4)
-            switch.addRede('172.16.10.3',4)
-            switch.addRede('10.123.123.3',5)
-            switch.addRede('10.123.123.2',4) #rota para controlador do S2
-            switch.addRede('10.123.123.1',4) #rota para controlador do S1
-           
-            # portas ligadas a hosts: next = -1
-            switch.getPorta(1).next=-1
-            switch.getPorta(4).next=-2
-            
-            #root2-c2
-            switch.getPorta(5).next=-1
-   
         switches.append(switch)
         #print("\nSwitch criado\n")
 
@@ -1524,6 +1423,34 @@ class Dinamico(app_manager.RyuApp):
                                   actions=actions,
                                   data=data)
         datapath.send_msg(out)
+
+#tratador de eventos de modificacao de portas nos switcches
+    @set_ev_cls(ofp_event.EventOFPPortStatus, MAIN_DISPATCHER)
+    def port_status_handler(self, ev):
+        msg = ev.msg
+        dp = msg.datapath
+        ofp = dp.ofproto
+
+        if msg.reason == ofp.OFPPR_ADD:
+            reason = 'ADD'
+        elif msg.reason == ofp.OFPPR_DELETE:
+            reason = 'DELETE'
+        elif msg.reason == ofp.OFPPR_MODIFY:
+            reason = 'MODIFY'
+        else:
+            reason = 'unknown'
+
+        self.logger.debug('OFPPortStatus received: reason=%s desc=%s',
+                          reason, msg.desc)
+
+# #tratador de erros de tipos diversos -- parece ter erro nessa rotina
+#     @set_ev_cls(ofp_event.EventOFPErrorMsg,[HANDSHAKE_DISPATCHER, CONFIG_DISPATCHER, MAIN_DISPATCHER])
+#     def error_msg_handler(self, ev):
+#         msg = ev.msg
+
+#         self.logger.debug('OFPErrorMsg received: type=0x%02x code=0x%02x '
+#                           'message=%s',
+#                           msg.type, msg.code, utils.hex_array(msg.data))
 
     #Quando um fluxo eh removido ou expirou, chama essa funcao. OBJ --> atualizar quais fluxos nao estao mais utilizando banda e remover do switch     
     @set_ev_cls(ofp_event.EventOFPFlowRemoved, MAIN_DISPATCHER)
