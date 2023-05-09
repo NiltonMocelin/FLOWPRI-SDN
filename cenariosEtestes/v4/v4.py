@@ -66,7 +66,7 @@ print("Controlador MAC - {}".format(MACC))
 
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
-PORTA_X = 9999 #porta para receber arquivos de configuracao json
+PORTAC_X = 9999 #porta para receber arquivos de configuracao json
 
 FILA_C1P1=0
 FILA_C1P2=1
@@ -475,6 +475,26 @@ def delContratoERegras(switches_rota, cip_src, cip_dst):
             # como nao pode ter mais de um contrato, ja pode retornar
             return
 
+
+def tratador_configuracoes():
+
+    tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    #um desses funfa
+    tcp.bind((IPC, PORTAC_X))
+
+    tcp.listen(5)
+
+    while True:
+        conn, addr = tcp.accept()
+
+        data = conn.recev(100)
+
+        conn.close()
+
+    return
+
+
 #################
 #   INICIANDO SOCKET - RECEBER CONTRATOS (hosts e controladores)
 ################
@@ -484,6 +504,9 @@ t1.start()
 
 t2 = Thread(target=servidor_socket_controladores)
 t2.start()
+
+t3 = Thread(target=tratador_configuracoes)
+t3.start()
 
 #t1.join()
 

@@ -29,6 +29,11 @@
 
 #UPDATES do DIA
 
+#09/04
+-> Configurar o servidor/tratador de configuracoes para receber os dados dos switches e armazenar no controlador
+
+-> fazer testes
+
 #03/05
 
 -> configurando melhor como o controlador recebe as configuracoes dos switches
