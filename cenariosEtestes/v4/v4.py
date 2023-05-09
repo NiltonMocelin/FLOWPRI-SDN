@@ -488,12 +488,23 @@ def tratador_configuracoes():
     while True:
         conn, addr = tcp.accept()
 
-        data = conn.recev(100)
+        #receber a qtd de bytes do json a ser recebido
+        data = conn.recev(4)
 
+        qtdBytes = struct.unpack('<i',data)[0]
+
+        data = conn.recev(qtdBytes)
+
+        #formatando o cfg recebido
+        cfg = json.loads(data.encode('utf-8'))
+
+        #printando o json recebido
+        print(cfg)
+
+        #fechando a conexao
         conn.close()
 
     return
-
 
 #################
 #   INICIANDO SOCKET - RECEBER CONTRATOS (hosts e controladores)
