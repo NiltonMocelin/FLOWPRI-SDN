@@ -29,7 +29,31 @@
 
 #UPDATES do DIA
 
-#09/04
+#10/05
+-> poderia verificar se as portas dos switches existem com switchportstate message [openflow] -> se retornar algum erro ou informacao estranha alterar a configuracao da porta - tipo verificar as portas ativas e tal...
+
+
+
+-> Modificar as configurações de rotas
+-> Mudar como se obtem as rotas e os switches das rotas
+-> Mudar como se aprende o endeço MAC para que cada switch saiba quais endereços mac são do seu domínio
+-> implementar contratos com portas
+-> implementar suporte a ipv6
+-> implementar suporte a NAT -> mas ainda não sei como fazer isso - não entendi muito bem
+
+--> tendo isso feito -> fazer os testes de fato
+
+-> colocar o codigo do github no lattes -> software sem registro
+-> trabalhos publicados em anais de eventos ( AINA )
+
+Que tipos de testes:
+	- teste onde um switch intermediario não utiliza flowpri
+	- teste onde um switch intermediario está sem largura de banda suficiente e rejeita o contrato
+	- teste com multiplos fluxos onde todos os switches utilizam flowpri e possuem banda suficiente
+	- teste com multiplos fluxos onde todos os switches utilizam flowpri e um não possui banda suficiente
+	- teste com multiplos fluxos onde um switch não utiliza flowpri e possuem banda suficiente
+
+#09/05
 -> Configurar o servidor/tratador de configuracoes para receber os dados dos switches e armazenar no controlador
 
 -> fazer testes
