@@ -1,5 +1,8 @@
 #Permanente 
 
+31/05 ACA (validação de artigo) -> como validar o artigo --> imprimir o artigo e juntamente com o certificado de apresentação.
+
+
 -> [explorar em algum momento] Obs: existe uma versão mininet docker (container tem melhor performance que vm) - Pode ser bem mais fácil de configurar que uma vm+mininet : https://containernet.github.io/
 
 -> [configurações performance docker] To have your containers perform well, you should not trust the default docker settings.  Use the cpus and cpuset-cpus flags when possible.  Watch your task manager for high usage and adjust your container settings as needed.  Connect to the console of your container to see what resources your container can see and how they are being used.  You can improve the performance of your containers by adjusting cpu and memory settings, but your application will likely never run as fast it could outside of a container. https://blogs.perficient.com/2021/08/19/docker-bootcamp-understanding-performance-and-performance-tuning/
@@ -26,6 +29,8 @@
 
 
 -> V4 resolveu o problema das traduções de endereços.
+
+-> ieee access
 
 #UPDATES do DIA
 
