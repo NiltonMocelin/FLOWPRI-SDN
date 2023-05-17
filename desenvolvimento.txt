@@ -30,14 +30,14 @@
 
 -> V4 resolveu o problema das traduções de endereços.
 
-#UPDATES do DIA
-
 -> Trabalho semelhante -- comparar  https://github.com/amirashoori7/sdn_qos/tree/main (tem artigo)
 
 -> como configurar filas utilizando o ryu e o ovsdb  https://ryu.readthedocs.io/en/latest/library_ovsdb.html#ryu.lib.ovs.bridge.OVSBridge.set_qos
 No entanto, as configurações não trafegam como mensagens dentro da rede. (na verdade as outras mensagens openflow tbm nao faziam isso, entao ok).
 
 -> ieee access : journal a ser tentado
+
+#UPDATES do DIA
 
 
 #16/05
