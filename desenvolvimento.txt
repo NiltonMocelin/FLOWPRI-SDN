@@ -27,12 +27,28 @@
 
 -> V4 resolveu o problema das traduções de endereços.
 
+
+-> Trabalho semelhante -- comparar  https://github.com/amirashoori7/sdn_qos/tree/main (tem artigo)
+
+-> como configurar filas utilizando o ryu e o ovsdb  https://ryu.readthedocs.io/en/latest/library_ovsdb.html#ryu.lib.ovs.bridge.OVSBridge.set_qos
+No entanto, as configurações não trafegam como mensagens dentro da rede. (na verdade as outras mensagens openflow tbm nao faziam isso, entao ok).
+
 #UPDATES do DIA
 
+#16/05
 #10/05
+
+-> olhadinha nas mensagens Experimenter
+-> modificar a maneira de gerar as rotas {
+	-> ver qual switch conhece o end MAC de origem (o switch que ja gerou um packet in desse host e armazenou) e apartir desse switch obter os outros que compoe a rota.  
+}
+-> contratos com protocolo e porta
+
+-> encontrei um trabalho com codigo para comparar - amirashoori7
+-> 
+
+
 -> poderia verificar se as portas dos switches existem com switchportstate message [openflow] -> se retornar algum erro ou informacao estranha alterar a configuracao da porta - tipo verificar as portas ativas e tal...
-
-
 
 -> Modificar as configurações de rotas
 -> Mudar como se obtem as rotas e os switches das rotas
