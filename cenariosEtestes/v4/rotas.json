@@ -1,0 +1,23 @@
+{
+    "novasrotas":[
+
+        {
+            "switch":"1", 
+            "prefixo":"10.2.0.0/24", 
+            "porta":"5"
+        },
+
+        {
+            "switch":"2", 
+            "prefixo":"10.1.0.0/24", 
+            "porta":"5"
+        },
+
+        {
+            "switch":"3",
+            "prefixo":"10.3.0.0/24", 
+            "porta":"5"
+        }
+        
+    ]
+}

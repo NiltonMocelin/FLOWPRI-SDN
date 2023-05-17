@@ -1,3 +1,5 @@
+#codigo para enviar contratos de qos para o controlador
+
 import socket
 import sys #para usar os parametros por linha de comando
 import json
@@ -19,9 +21,7 @@ HOST = sys.argv[1]
 
 print("Enviando contrato para -> HOST:%s, PORT: %d\n" % (HOST,PORT))
 
-#with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-tcp.connect((HOST, PORT))
+
 
 #n = int(sys.argv[1]) #obtem o primeiro parametro da entrada
 #
@@ -50,6 +50,11 @@ contrato_json=json.dumps(contrato).encode('utf-8')
 print(contrato_json)
 
 qtdBytes = struct.pack('<i',len(contrato_json))
+
+
+#with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+tcp.connect((HOST, PORT))
 
 print("host: enviando contrato %d\n" %(round(time.monotonic() * 1000)))
 tcp.send(qtdBytes)
