@@ -41,6 +41,7 @@ No entanto, as configurações não trafegam como mensagens dentro da rede. (na 
 -> olhadinha nas mensagens Experimenter
 -> modificar a maneira de gerar as rotas {
 	-> ver qual switch conhece o end MAC de origem (o switch que ja gerou um packet in desse host e armazenou) e apartir desse switch obter os outros que compoe a rota.  
+	-> usar tbm a mascara de rede para descobrir qual prefixo utilizar ? ou isso eh uma coisa já sabida pelo  controlador? --> tudo /24 a principio
 }
 -> contratos com protocolo e porta
 
