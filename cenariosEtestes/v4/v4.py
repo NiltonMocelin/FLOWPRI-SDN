@@ -1256,12 +1256,17 @@ class SwitchOVS:
         self.macs[mac]=porta
         return
 
-    #retorna uma porta ou -1
+        #retorna uma porta ou -1
     def conheceMac(self, mac):
         if mac in self.macs:
             return self.macs[mac]
         
         return -1
+
+    def addHost(self, ip, porta):
+        self.hosts[ip]=porta
+        return
+
 
     def getPortaSaida(self, ip_dst):
         #retorna int
@@ -1662,7 +1667,7 @@ class Dinamico(app_manager.RyuApp):
         este_switch.listarRegras()
 
         este_switch.addMac(src, in_port)
-        este_switch.addHost
+        este_switch.addHost(ip_src, in_port)
 
         #aprender endereco MAC, evitar flood proxima vez
         self.mac_to_port[dpid][src] = in_port

@@ -1,5 +1,8 @@
 #Permanente 
 
+31/05 ACA (validação de artigo) -> como validar o artigo --> imprimir o artigo e juntamente com o certificado de apresentação.
+
+
 -> [explorar em algum momento] Obs: existe uma versão mininet docker (container tem melhor performance que vm) - Pode ser bem mais fácil de configurar que uma vm+mininet : https://containernet.github.io/
 
 -> [configurações performance docker] To have your containers perform well, you should not trust the default docker settings.  Use the cpus and cpuset-cpus flags when possible.  Watch your task manager for high usage and adjust your container settings as needed.  Connect to the console of your container to see what resources your container can see and how they are being used.  You can improve the performance of your containers by adjusting cpu and memory settings, but your application will likely never run as fast it could outside of a container. https://blogs.perficient.com/2021/08/19/docker-bootcamp-understanding-performance-and-performance-tuning/
@@ -27,13 +30,15 @@
 
 -> V4 resolveu o problema das traduções de endereços.
 
-
 -> Trabalho semelhante -- comparar  https://github.com/amirashoori7/sdn_qos/tree/main (tem artigo)
 
 -> como configurar filas utilizando o ryu e o ovsdb  https://ryu.readthedocs.io/en/latest/library_ovsdb.html#ryu.lib.ovs.bridge.OVSBridge.set_qos
 No entanto, as configurações não trafegam como mensagens dentro da rede. (na verdade as outras mensagens openflow tbm nao faziam isso, entao ok).
 
+-> ieee access : journal a ser tentado
+
 #UPDATES do DIA
+
 
 #16/05
 #10/05
