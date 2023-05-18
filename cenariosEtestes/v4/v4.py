@@ -1667,6 +1667,7 @@ class Dinamico(app_manager.RyuApp):
         este_switch.listarRegras()
 
         este_switch.addMac(src, in_port)
+        
         este_switch.addHost(ip_src, in_port)
 
         #aprender endereco MAC, evitar flood proxima vez
