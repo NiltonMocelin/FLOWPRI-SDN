@@ -10,10 +10,6 @@ from ryu.ofproto import ofproto_v1_3, inet, ether
 #from ryu.ofproto import ofproto_v1_5 as ofproto15
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
-
-#para configuracoes de queues
-from ryu.lib.ovs import ovs_bridge
-
 #
 from ryu.lib.packet import in_proto
 from ryu.lib.packet import ether_types
@@ -250,12 +246,7 @@ def servidor_socket_hosts():
 #### OBS -- Implementar : garantir que exista apenas um contrato com match para ip_src, ip_dst - e mais campos se forem usar - que se outro contrato vier com esse match, substituir o que ja existe 
 #OBS - os contratos sao armazenados como string, entao para acessa-los como json, eh preciso carregar como json: json.loads(contrato)['contrato']['ip_origem']
         #pegar os switches da rota
-        switches_rota = SwitchOVS.getRota(None, cip_dst)
-
-        if switches_rota == None:
-            print("[%s] Rota nao encontrada entre src:%s dst:%s \nRegras nao criadas - ICMP nao enviado" % (datetime.datetime.now().time(), cip_src, cip_dst))
-            print("[%s] servidor_socket host - fim:\n" % (datetime.datetime.now().time()))
-            conn.close()
+        switches_rota = SwitchOVS.getRota(str(LISTA_HOSTS[cip_src]), cip_dst)
 
         #deletando o contrato anterior e as regras a ele associadas
         delContratoERegras(switches_rota, cip_src, cip_dst)
@@ -390,12 +381,7 @@ def servidor_socket_controladores():
             classe =  contrato['contrato']['classe']
 
             #pegando os switches da rota
-            switches_rota = SwitchOVS.getRota(None, cip_dst)
-
-            if switches_rota == None:
-                print("[%s] Rota nao encontrada entre src:%s dst:%s \nRegras nao criadas - ICMP nao enviado" % (datetime.datetime.now().time(), cip_src, cip_dst))
-                print("[%s] servidor_socket host - fim:\n" % (datetime.datetime.now().time()))
-                conn.close()
+            switches_rota = SwitchOVS.getRota(str(LISTA_HOSTS[cip_src]), cip_dst)
 
             #deletando o contrato anterior e as regras a ele associadas
             delContratoERegras(switches_rota, cip_src, cip_dst)
@@ -517,30 +503,6 @@ def tratador_addswitch(addswitch_json):
             prox_porta = porta['proxSwitch']
             #prox_porta = id/datapath do proximo switch
             switch.addPorta(nome_porta, int(largura_porta), int(prox_porta))
-
-            #criar as filas
-            #pode ser usando: run_command(commands) -> onde commands = lista de comandos vsctl -- ryu.lib.ovs.vsctl.VSCtl.run_command
-
-            #usando a funcao set_qos(port_name, type='linux-htb', max_rate=None, queues=None)
-            #ela usa run_command por baixo dos panos
-            # imagino que queues é uma list desse formato "queues" (o mesmo utilizado na vesões rest): [{"max_rate": "500000"}, {"min_rate": "800000"}]    
-            interface = "s" + str(nome_switch) + "-eth"+ str(nome_porta)
-
-            #remover filas e configuracoes anteriores
-
-            #criar as novas filas
-            lbandatotal = int(largura_porta)
-            #classe tempo-real ids=[0,1,2]
-            lbandaclasse1 = lbandatotal * 0.25
-            #classe nao-tempo-real/dados ids=[3,4,5]
-            lbandaclasse2 = lbandatotal * 0.25
-            #classe best-effort id = 6
-            lbandaclasse3 = lbandatotal * 0.25
-            #classe controle id = 7
-            lbandaclasse4 = lbandatotal * 0.25
-
-            queues = [{'min-rate': '10000', 'max-rate': '100000', 'priority': ''},{'min-rate':'500000'}]
-            ovs_bridge.set_qos(interface, type='linux-htb', max_rate=None, queues=None)
 
 def tratador_novasrotas(novasrotas_json):
 
@@ -1339,14 +1301,6 @@ class SwitchOVS:
         #rota = vetor de switches
         rota = []
         ##print("[getRota] src:%s, dst:%s\n" % (ip_src, ip_dst))
-
-        if switch_primeiro_dpid == None:
-            for s in switches:
-                if ip_dst in s.hosts:
-                    switch_primeiro_dpid = s.nome
-
-        if switch_primeiro_dpid == None:
-            return None
 
         #pegar o primeiro switch da rota, baseado no ip_Src --- ou, por meio do packet in, mas entao nao poderia criar as regras na criacao dos contratos
         switch_primeiro = SwitchOVS.getSwitch(str(switch_primeiro_dpid))

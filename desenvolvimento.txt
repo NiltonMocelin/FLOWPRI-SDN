@@ -7,7 +7,7 @@
 
 -> [configurações performance docker] To have your containers perform well, you should not trust the default docker settings.  Use the cpus and cpuset-cpus flags when possible.  Watch your task manager for high usage and adjust your container settings as needed.  Connect to the console of your container to see what resources your container can see and how they are being used.  You can improve the performance of your containers by adjusting cpu and memory settings, but your application will likely never run as fast it could outside of a container. https://blogs.perficient.com/2021/08/19/docker-bootcamp-understanding-performance-and-performance-tuning/
 
--> caso eu queira implementar a parte gráfica do FLOWPRI em docker e exportar para o servidor gráfico xorg fora do container https://www.howtogeek.com/devops/how-to-run-gui-applications-in-a-docker-container/
+-> [obs: gui só web se não é perda de tempo] caso eu queira implementar a parte gráfica do FLOWPRI em docker e exportar para o servidor gráfico xorg fora do containerhttps://www.howtogeek.com/devops/how-to-run-gui-applications-in-a-docker-container/
 
 -> abrir mais uma porta no flowpri para ouvir configurações a partir de arquivos json. (isso vai tornar o controlador programável por administradores e faz sentido pois um domínio pode conter diversos controladores.
 
@@ -37,7 +37,37 @@ No entanto, as configurações não trafegam como mensagens dentro da rede. (na 
 
 -> ieee access : journal a ser tentado
 
+--> EM SI: desenvolvimento artigo comparando métodos ML em batch vs streaming para classificação de tráfego em tempo real.
+-> talvez seja possivel uma públicação.
+
 #UPDATES do DIA
+
+#24/05
+
+- priorização de fluxos mais regulares - fluxos que se comunicam com o mesmo destino e mais periodicamente.
+|- utilizando ML para descoberta de qos, é necessário encontrar outros mecanismos para priorização.
+-> Ver atualizações de SI -- desenvolvimento de artigo sobre classificação de tráfego.
+
+- buscar novas features ou informações uteis para classificação.
+
+- [ML-classificação] Comparar metodos utilizando batch vs streaming.
+
+-- usar ovsdb para setar qos -- self.ovs_bridge.set_qos(port_name, type=queue_type,
+                                        max_rate=parent_max_rate,
+                                        queues=queue_config)
+
+-> problema a resolver: encontrar rotas e obter os switches (novamente isso) + criar as filas dentro do controlador (esquece essa história de roubo)
+
+
+#para criar as filas
+#pode ser usando: run_command(commands) -> onde commands = lista de comandos vsctl -- ryu.lib.ovs.vsctl.VSCtl.run_command
+
+#usando a funcao set_qos(port_name, type='linux-htb', max_rate=None, queues=None)
+#ela usa run_command por baixo dos panos
+# imagino que queues é uma list desse formato "queues" (o mesmo utilizado na vesões rest): [{"max_rate": "500000"}, {"min_rate": "800000"}]    
+#tem um exemplo aqui mas está errada - talvez a estrutura das queues esteja correta:
+#ovsdb_bridge.set_qos("s3-eth0",
+#     queues=[{'min-rate': '10000', 'max-rate': '100000'},{'min-rate':'500000'}], max_rate="100000000")
 
 
 #16/05
