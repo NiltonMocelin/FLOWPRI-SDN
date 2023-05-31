@@ -124,7 +124,7 @@
 
 * listar filas em uma porta de um switch:
 
-` sudo ovs-ofctl list qos`
+` sudo ovs-vsctl list qos`
 
 ` sudo ovs-ofctl queue-stats s1`
 

@@ -1211,6 +1211,7 @@ class Acao:
             
             #criando a regra na tabela do switch ovs
             switch.addRegraF(self.regra.ip_src, self.regra.ip_dst, self.regra.tos, self.regra.porta_dst, fila, meter_id, 1)
+
         else:
             #codigo == REMOVER
             switch = SwitchOVS.getSwitch(self.nome_switch)
