@@ -13,6 +13,8 @@ from ryu.lib.packet import ethernet
 
 #para configuracoes de queues
 from ryu.lib.ovs import ovs_bridge
+#para invocar scripts e comandos tc qdisc
+import subprocess
 
 #
 from ryu.lib.packet import in_proto
@@ -540,11 +542,19 @@ def tratador_addswitch(addswitch_json):
             lbandaclasse4 = lbandatotal * 0.25
 
             #limpar antes as configuracoes existentes de qos
-            #tentar com apenas a configuracao ovs-vsctl - sem limpar o tcqdisc
+            # comando -> echo mininet | sudo -S tc qdisc del dev s1-eth1 root
+            p = subprocess.Popen("echo mininet | sudo -S tc qdisc del dev " + interface + " root", stdout=subprocess.PIPE, shell=True)
+
+            #tentar com apenas a configuracao ovs-vsctl - sem limpar o tcqdisc ---> nao funciona
+            #ovs-vsctl clear port s1-eth4 qos
+
+            #critico - tem que saber o endereco para o ovsdb
+            OVSDB_ADDR = 'tcp:127.0.0.1:6640'
+            ovs_vsctl = vsctl.VSCtl(OVSDB_ADDR)
+
             tabela = "port"
-            bridge = interface
             column = "qos"
-            command = vsctl.VSCtlCommand('clear', (table, bridge, column))
+            command = vsctl.VSCtlCommand('clear', (table, interface, column))
 
             ovs_bridge.run_command([command])
 
@@ -552,8 +562,8 @@ def tratador_addswitch(addswitch_json):
             #deu certo?
             print(command.result[0])
 
-            queues = [{'min-rate': '10000', 'max-rate': '100000', 'priority': ''},{'min-rate':'500000'}]
-            ovs_bridge.set_qos(interface, type='linux-htb', max_rate=None, queues=None)
+            queues = [{'min-rate': '10000', 'max-rate': '100000', 'priority': '5'},{'min-rate':'500000'}]
+            ovs_bridge.set_qos(interface, type='linux-htb', max_rate="15000000", queues=queues)
             #deu certo?
 
 def tratador_novasrotas(novasrotas_json):

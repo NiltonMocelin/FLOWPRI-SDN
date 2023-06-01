@@ -52,6 +52,14 @@
 
 ` tc class show dev s1-eth1`
 
+- limpar todas as configurações de qos anteriores ( limpar antes de rodar uma topologia ):
+
+` ovs-vsctl clear port s1-eth1 qos`
+
+ou
+
+` ovs-vsctl --all destroy qos `
+
 ###### Testar se elas estao limitando conforme definidas no script:
 
 * Xterm host1 e criar um contrato para enviar dados pela fila 0, <banda> <prioridade> <classe> - fila é uma combinação de prioridade e classe:
@@ -71,54 +79,109 @@
 `iperf -b 15M -u -c 172.16.10.4 -t 100`
 
 * testar fila 0:
-sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:0
-sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:0
-sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:0
-sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:0
+
+`sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:0`
+
+`sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:0`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:0`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:0`
 
 
 * testar fila 1:
-sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:1
-sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:1
-sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:1
-sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:1
+
+`sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:1`
+
+`sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:1`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:1`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:1`
 
 * testar fila 2:
-sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:2
-sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:2
-sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:2
-sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:2
+
+`sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:2`
+
+`sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:2`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:2`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:2`
 
 
 * testar fila 3:
-sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:3
-sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:3
-sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:3
-sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:3
+
+`sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:3`
+
+`sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:3`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:3`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:3`
 
 * testar fila 4:
-sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:4
-sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:4
-sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:4
-sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:4
+
+`sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:4`
+
+`sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:4`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:4`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:4`
 
 * testar fila 5:
-sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:5
-sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:5
-sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:5
-sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:5
+
+`sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:5`
+
+`sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:5`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:5`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:5`
 
 * testar fila 6:
-sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:6
-sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:6
-sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:6
-sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:6
+`sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:6`
+
+`sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:6`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:6`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:6`
 
 * testar fila 7:
-sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:7
-sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:7
-sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:7
-sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:7
+
+`sh ovs-ofctl add-flow s1 ip,in_port=1,actions=enqueue:4:7`
+
+`sh ovs-ofctl add-flow s1 ip,in_port=4,actions=enqueue:1:7`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=4,actions=enqueue:1:7`
+
+`sh ovs-ofctl add-flow s2 ip,in_port=1,actions=enqueue:4:7`
 
 
-* por algum motivo o link de 15Mbps só suporta 12.8. Mas o de 30Mbps funcionam +- 30Mbps
+### Conclusões:
+
+* [IPERF-UDP] por algum motivo o link de 15Mbps só suporta 12.8. Mas o de 30Mbps funcionam +- 30Mbps
+
+* [IPERF-TCP] bem mais preciso - fila de 10Mbps fornecendo os 10Mbps
+
+* A topologia coloca delay e perda tanto nas configuracoes tc root dos hosts quando das bridges (ovs)
+
+* As filas não são criadas apenas utilizando o comando : sudo ovs-vsctl -- set port s1-eth4 qos...
+
+* Para criar as filas, de fato, é necessário remover a fila root criada pela topologia (algo como):
+
+`sudo tc qdisc del dev s1-eth1 root`
+
+* O comando clear qos do ovs-vsctl apenas remove as entradas da tabela do ovsdb aparentemente (tem lacunas que não compreendi):
+
+`sudo ovs-vsctl clear port s1-eth1 qos`
+
+* Para simular as condições dos links assim como pretendido com configurações definidas na topologia (delay, loss ...) - usar TC-NETEM:
+
+- [tutorial netem](https://www.cs.unm.edu/~crandall/netsfall13/TCtutorial.pdf)
+
+- This causes the added delay to be 100ms ± 10ms with the next random element depending 25% on the last one. This isn't true statistical correlation, but an approximation.
+
+`sudo tc qdisc add dev s1-eth1 root netem delay 100ms 10ms 25%`

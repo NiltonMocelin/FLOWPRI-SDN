@@ -105,11 +105,15 @@
 ## Comandos úteis:
 
 * sempre rodar mininet clear antes de um teste:
+
 `sudo mn -c`
 
 * mostrar as regras meters, meter bands e status:
+
 `ovs-ofctl -O OpenFlow13 meter-features s1`
+
 `ovs-ofctl -O OpenFlow13 dump-meters s1`
+
 `ovs-ofctl -O OpenFlow13 meter-stats s1`
 
 * monitorar alteracoes nas tabelas de fluxo dos switches (com --stats mostra mais informações):
@@ -129,6 +133,10 @@
 ` sudo ovs-ofctl queue-stats s1`
 
 ` sudo ovs-appctl qos/show s1-eth1`
+
+`sudo ovs-ofctl queue-get-config s1 s1-eth1`
+
+`sudo ovs-ofctl queue-get-config s1`
 
 * listar configuracao qdisc de uma interface:
 
@@ -152,7 +160,7 @@
 
 `arp -n`
 
-* deletar filas usando ovs:
+* deletar filas usando ovs ( limpar antes de rodar uma topologia ):
 
 ` ovs-vsctl clear port s1-eth1 qos`
 
@@ -171,7 +179,9 @@ ou
 - Usar -O OpenFlow junto com o comando (ex.)  ovs-ofctl -O OpenFlow13 dump-meters s1
 
 * em caso de ter problema com tinyrpc -> 
+
  ` sudo pip uninstall tinyrpc`
+
  ` sudo pip install tinyrpc==0.8`
 
 
@@ -181,168 +191,242 @@ ou
 OBS: as acoes no vetor actions de uma mensagem de modificacao OpenFlow, ocorrem em ordem posicional do vetor - cuidado com a ordem das acoes
 
 -------------------------
-*** Controlador dominio 1 - - - c1_44.txt
+* Controlador dominio 1 - - - c1_44.txt
+
 - revisar o código [ok]
+
 - revisar os diagramas do algoritmo e definir alterações
 
 - verificar se as regras da tabela de encaminhamento estao sendo criadas corretamente.
-|- na conexão com os switches
+
+-- na conexão com os switches
 
 
-Tabela de Marcação/Classificação:
-#1 regras de marcação + enviar para tabela de encaminhamento (2) - criadas quando um fluxo é aceito (pacotes com match em contratos) 
-#2 regra encaminhar para a tabela (2)
+* Tabela de Marcação/Classificação:
 
-Tabela de Encaminhamento:
-#1 regras criadas para enviar pacotes com banda e filas específicas.
-#2 regra para encaminhar para o controlador
-#3 regra para pacotes ICMP 15 ser encaminhado ao controlador, desde que ip_src != ip_controlador #nao sera assim, pois no caso onde o ICMP inf. req. está no segundo domínio por ex., o end. origem != ip_controlador e seria encaminhada por cada switch para o controlador. -> para resolver isso, o pacote é analisado apenas no primeiro controlador e injetado no último switch da rota -- eu preferia uma forma aplicável na vida real e não essa "mágica"
-#4 regra para pacotes ICMP transitarem pelo canal de controle #as regras devem ser injetadas para serem postas na fila de controle.
-#5 regra para pacotes com destino o controlador, transitarem pelo canal de controle
+- 1 regras de marcação + enviar para tabela de encaminhamento (2) - criadas quando um fluxo é aceito (pacotes com match em contratos) 
 
-OBS: no entanto, no segundo domínio, cada switch vai encaminhar ao controlador, por isso,
-é preciso tratar essa situação. Uma solução é, o primeiro switch vai enviar o pacote ao
-controlador, e este responde com inf. reply por meio do switch que disparou o packet in. 
-Deste modo, o pacote inf. request vai ser reinjetado no último switch da borda próxima
-do destino, para que os switches do "meio" não precisem tratar este pacote. 
+- 2 regra encaminhar para a tabela (2)
+
+* Tabela de Encaminhamento:
+
+- 1 regras criadas para enviar pacotes com banda e filas específicas.
+
+- 2 regra para encaminhar para o controlador
+
+- 3 regra para pacotes ICMP 15 ser encaminhado ao controlador, desde que ip_src != ip_controlador #nao sera assim, pois no caso onde o ICMP inf. req. está no segundo domínio por ex., o end. origem != ip_controlador e seria encaminhada por cada switch para o controlador. -> para resolver isso, o pacote é analisado apenas no primeiro controlador e injetado no último switch da rota -- eu preferia uma forma aplicável na vida real e não essa "mágica"
+
+- 4 regra para pacotes ICMP transitarem pelo canal de controle #as regras devem ser injetadas para serem postas na fila de controle.
+
+- 5 regra para pacotes com destino o controlador, transitarem pelo canal de controle
+
+- OBS: no entanto, no segundo domínio, cada switch vai encaminhar ao controlador, por isso, é preciso tratar essa situação. Uma solução é, o primeiro switch vai enviar o pacote ao controlador, e este responde com inf. reply por meio do switch que disparou o packet in. Deste modo, o pacote inf. request vai ser reinjetado no último switch da borda próxima do destino, para que os switches do "meio" não precisem tratar este pacote. 
 Desta forma --> (recebe o inf. req.) s1 .... s4 (injetado o inf. req.)
 
 * sobre a prioridade (obs: sempre que um fluxo for direcionado para uma fila inexistente, ele é encaminhado para o padrao id0):
+
 - PARA o HTB: Menor valor é maior prioridade.
+
 - Para o framework (senso humano): Maior valor maior prioridade.
+
 - Ordem das filas e suas prioridades: 
+
 -- classe1 (tempo-real) -> id(prioridade) -> [q0(p10), q1(p5), q2(p2)]
+
 -- classe2 (dados) -> id(prioridade) -> [q3(p10), q4(p5), q5(p2)]
+
 -- classe3 (best-effort) -> id(prioridade) -> [q6(p10)]
+
 -- classe4 (controle) -> id(prioridade) -> [q7(p2)]
 
 
-#### Solução para multiplos encaminhamentos em ICMP 15/16 ---> escolher um switch como sendo 
-o "especial" para tratar esses tipos de solicitações, assim, garanto que apenas um faz o encaminhamento.
+#### Solução para multiplos encaminhamentos em ICMP 15/16 ---> escolher um switch como sendo o "especial" para tratar esses tipos de solicitações, assim, garanto que apenas um faz o encaminhamento.
 
 
-****** {SSH nos hosts
-****** [mininet] Aparentemente, os hosts fazem parte do mesmo processo e assim não podem rodar cada um uma aplicação firefox por exemplo.
-****** [mininet] no entanto, aparentemente se os hosts forem criados no espaço fora do ambiente mininet ( da mesma forma que o host root do controlador ), cada host vira um processo e assim podem cada um executar, por exemplo, um sshd.
-****** [mininet] NAAH errei, o que está escrito acima está errado - posso subir um sshd em cada host mesmo no ambiente mininet: "/usr/sbin/sshd -D &"
-****** [funcionou] AGR FUNCIONOU -- settar PermitRootLogin yes em /etc/sshd/sshd_config e definir a senha do root sudo passwd root, entao pode dar ssh ip
-****** }
+* SSH nos hosts
 
-************** [ir colhendo as contribuicoes]:
-------
+- [mininet] Aparentemente, os hosts fazem parte do mesmo processo e assim não podem rodar cada um uma aplicação firefox por exemplo.
 
+- [mininet] no entanto, aparentemente se os hosts forem criados no espaço fora do ambiente mininet ( da mesma forma que o host root do controlador ), cada host vira um processo e assim podem cada um executar, por exemplo, um sshd.
 
-################################################################################################################
-######################################## ERROS/SOLUCOES/TODO ###################################################
+- [mininet] NAAH errei, o que está escrito acima está errado - posso subir um sshd em cada host mesmo no ambiente mininet: "/usr/sbin/sshd -D &"
+
+- [funcionou] AGR FUNCIONOU -- settar PermitRootLogin yes em /etc/sshd/sshd_config e definir a senha do root sudo passwd root, entao pode dar ssh ip
+
+- }
 
 
-************* ARRUMAR ICMP/contratos - configurar o envio dos contratos para o controlador que responder
+##### ################################################################################################################
+##### ######################################## ERROS/SOLUCOES/TODO ###################################################
+
+
+* ARRUMAR ICMP/contratos - configurar o envio dos contratos para o controlador que responder
+
 - #enviar_contratos(host_ip, host_port, ip_dst_contrato)
-  # - host_ip e host_port (controlador que envia)
-  # - ip_dst_contrato #ip do host destino (deve estar nos dados do pacote icmp 16 recebido
-  #pegar os dados do pacote
-  #montar o json
-  #filtrar o ip_dst
-  #colocar em enviar contrato
+  
+  - host_ip e host_port (controlador que envia)
+  
+  - ip_dst_contrato #ip do host destino (deve estar nos dados do pacote icmp 16 recebido
+  
+  - pegar os dados do pacote
+  
+  - montar o json
+  
+  - filtrar o ip_dst
+  
+  - colocar em enviar contrato
 
-************* [foi amenizado com identificacao no packet_in se for comunicacao com controlador vai criar regra para fila de controle] Quando o root que quer enviar uma mensagem - por exemplo trocar contratos ou estabelecer uma conexao tcp é preciso já criar as regras com o controlador, caso contrario é gerado um packet_in e entao é gerado as regras:
+* [foi amenizado com identificacao no packet_in se for comunicacao com controlador vai criar regra para fila de controle] Quando o root que quer enviar uma mensagem - por exemplo trocar contratos ou estabelecer uma conexao tcp é preciso já criar as regras com o controlador, caso contrario é gerado um packet_in e entao é gerado as regras:
+
 - Na verdade acho que não há o que fazer, só se fosse possível prever a conexão de um host com o controlador ou se o tcp esperasse a criação das regras antes de aceitar a conexão
+
 - no entano é uma regra provisória que vai receber no máximo pacotes de handshake do lado root->host e então vai sumir devido ao idle_time 
+
 - aparentemente no mesmo momento que se aceita uma conexao ocorre o evento packet_in - melhor printar o tempo para ver se dentro do recebimento da conexao nao se pode ja criar as  regras , mas parece nao ter jeito
+
 - pq so depois de criar as regras que a conexao é aceita e o contrato é recebido.
+
 - nao tem importancia acho
+
+* Objetivos:
 
 {
 	- implementar o novo alocarGBAM [ok]
+
 	- testar as filas, como se comportam cheias - com toda a banda alocada [parece-tudoOK]
+
 	- testar a parte de emprestar banda [ok]
+
 	- comparar um cenario com o framework e um sem:
+
 		- questao de tempo para o primeiro pacote chegar no destino
+
 		- tempo entre o primeiro pacote e o segundo
+
 		- perda de pacotes quando uma aplicacao usa toda a banda e um novo fluxo prioritario necessita trafegar
+
 		- efeito que um switch best-effort causa, efeito que varios switches best-effort causam
+
 		- tempo de comunicacao entre controladores
+
 		- banda utilizada pela comunicacao entre controladores para o estabelecimento de um contrato e multiplos contratos
+
 		- efeito da priorizacao - comparar se uma fila com maior prioridade entrega com menor atraso que uma fila com menor prioridade.
+
 	- ver do novo mecanismo de emprestimo, mudar os campos tos para que as duas classes tenham tos equivalentes [ok]
 }
 
 
 
-************** ARRUMAR melhorar o contrato - inserir protoco: tcp ou udp, e porta destino:
+* ARRUMAR melhorar o contrato - inserir protoco: tcp ou udp, e porta destino:
+
 - adaptar o codigo
+
 -- que vai ter varios contratos por host, cada um valido para uma aplicacao/porta
 
-************* [ARRUMAR] USANDO PCAP::
+* [ARRUMAR] USANDO PCAP::
+
 - analisar o que está acontecendo nos hosts destino e origem
 
-************ ARRUMAR - criar mecanismo para remover contrato - um host pode querer que um fluxo passe a trafegar como best effort
+* ARRUMAR - criar mecanismo para remover contrato - um host pode querer que um fluxo passe a trafegar como best effort
 
-************** ARRUMAR - envio de contratos e expiraçao de contratos:
- x- [rejeitado] quando a regra de marcacao expira, remover o contrato? [NAO - ideia rejeitada]
- x- [rejeitado] modificar a remocao do controlador com timestamp, marcar os contratos e definir uma thread para observar os timestamps e remover [NAO - ideia melhorada]
+* ARRUMAR - envio de contratos e expiraçao de contratos:
+
+ - [rejeitado] quando a regra de marcacao expira, remover o contrato? [NAO - ideia rejeitada]
+ 
+ - [rejeitado] modificar a remocao do controlador com timestamp, marcar os contratos e definir uma thread para observar os timestamps e remover [NAO - ideia melhorada]
+
 -> [envio de contratos] no momento, sempre que ocorre um packet in, o contrato eh oferecido, os controladores respondem icmp 16 para receber o novo contrato, independente se ja possuem o mais atualizado
+
 [solucao] - modificar para que enviem o tos e as informacoes necessarias para identificar um contrato, como (ip e porta), ou no icmp 15 ou no 16, para que seja possivel identificar se eh necessario enviar/solicitar o contrato, ou se ja tem o mais atualizado
 
 -> [expiracao] no momento, os contratos sao permanentes:
+
 [solucao] - criar um timestamp que sempre que ocorrer um packet in, os contratos que passaram o timestamp sejam removidos.
 
-*************** ARRUMAR - só aceitar contratos de controladores que ja enviaram icmps 15 para o dominio:
+* ARRUMAR - só aceitar contratos de controladores que ja enviaram icmps 15 para o dominio:
+
 - salvar os enderecos ip dos controladores conhecidos e outro vetor com os enderecos ip dos controladores que enviaram icmps.
+
 - quando receber o contrato, remove do vetor o controlador que enviou
+
 - eh um tratamento fraco de seguranca
 
-   ################################################################################################################
-######################################  FEITO/ARRUMADO/RESOLVIDO #####################################################
+#####   ################################################################################################################
+#####   ################################  FEITO/ARRUMADO/RESOLVIDO #####################################################
 
-[FEITO EM V3] ::: {
-0- Mudar A configuração das filas (script); o alocarGBAM e meter bands são por fluxo, entao cada vez que se aceita um fluxo é necessário criar uma nova regra meter
+* [FEITO EM V3] ::: {
+
+- Mudar A configuração das filas (script); o alocarGBAM e meter bands são por fluxo, entao cada vez que se aceita um fluxo é necessário criar uma nova regra meter
+
 --> (Script): As filas de real-time e dados (classe 1 e 2), devem ter a largura de banda minima = soma da largura de banda das duas classes. Assim, controlando com o controlador é possível emprestar banda sem ter que mudar o dscp. Aloca o fluxo na fila original com o dscp original mas armazena na classe oposta, reduzindo sua largura de banda disponivel. Assim, a fila de best-effort nao consegue obter a largura de banda emprestada.
 
 -> alocarGBAM: mudar para que fluxos que emprestam banda mantenham o dscp original, tenham a flag emprestando, armazene na fila da classe que empresta.-- talvez precise mudar o algoritmo de remocao de regras apos isso 
 
 -> meter band: os switches precisam ter um vetor de regras meter
+
 - cada regra meter precisa ter um identificador unico - baseado nos ips origem e destino a principio tipo tira os pontos e concatena esse eh o id da meter
+
 - cada regra salva precisa ter o id de sua regra meter associada
+
 - quando uma regra é removida, sua meter tbm é removida junto, baseado no id- tanto na instancia do switch quanto na tabela ovs
+
 }
 
 
-************ [RESOLVIDO] - contrato sendo ignorado [NAO ERA ERRO] :  por algum motivo o contrato estabelecido com h1-c1 5000 1 1 não está sendo distribuido, verificar o pq - se for 1000 1 1 funciona... (só precisa funcionar o 5000 para o teste de drop) 
---- SOLUCAO: Na verdade a banda total é 10Mb, mas dividido para a classe que sobra 3.5Mb para classe 1 e 3.3Mb para classe 2, logo elas podem emprestar banda mas não podem "quebrar banda" nessa versão, não pode ter 2Mb em uma classe e 1Mb em outra... Por isso, o fluxo é descartado e o contrato não é enviado :) -- aumentar a banda do link para "caber" o fluxo resolveria a situação.
+* [RESOLVIDO] - contrato sendo ignorado [NAO ERA ERRO] :  por algum motivo o contrato estabelecido com h1-c1 5000 1 1 não está sendo distribuido, verificar o pq - se for 1000 1 1 funciona... (só precisa funcionar o 5000 para o teste de drop) 
+
+- SOLUCAO: Na verdade a banda total é 10Mb, mas dividido para a classe que sobra 3.5Mb para classe 1 e 3.3Mb para classe 2, logo elas podem emprestar banda mas não podem "quebrar banda" nessa versão, não pode ter 2Mb em uma classe e 1Mb em outra... Por isso, o fluxo é descartado e o contrato não é enviado :) -- aumentar a banda do link para "caber" o fluxo resolveria a situação.
 
 
+* [ARRUMADO] - ICMP inf. req. (15) :
 
-************ [ARRUMADO] - ICMP inf. req. (15) :
 - colocar nos dados o ip_src, que junto com o destino do pacote, formam o par origem e destino do contrato anunciado
+
 - assim, controladores ao longo da rota podem analisar se desejam o contrato e ainda solicitar exatamente o contrato referente ao ip_src, ip_dst, informando no campo de dados
+
 - pq, o controlador que responde com icmp inf. reply informa o ip_dst, assim, sao enviados todos os contratos referentes. No entanto, para cada novo fluxo
 eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrato, mesmo que tenha acabado de receber o contrato junto em um processo de troca de contratos anterior
 
 
-************** [FEITO] - no momento de enviar os contratos para um controlador que solicitou com icmp 16, as regras criadas nao sobem ou podem nao subir a tempo de se enviar os pacotes do contrato e vao gerar um packet_in:
+* [FEITO] - no momento de enviar os contratos para um controlador que solicitou com icmp 16, as regras criadas nao sobem ou podem nao subir a tempo de se enviar os pacotes do contrato e vao gerar um packet_in:
+
 - neste caso, se um packet in ocorrer, vai ser um pacote com origem um controlador e destino outro controlador, nao vai ter contrato para dar suporte ou comportamento especificado e vai ser definido como best-effort
+
 - [feito] modificar o comportamento para identificar quando eh um controlador, pois eh possivel saber que eh um controlador porcausa que esse ip ja gerou um icmp 16 recebido.
+
 - assim, se for um ip de controlador, na origem ou destino, definir que deve ser enviado pela fila de controle
+
 - [feito] o mesmo ocorre quando os pacotes do contrato passam entre dominios que ficam no caminho entre controladores, vai ter de ocorrer a comunicacao tcp (ida e volta) arrumar isso para quando receber o icmp 15 criar a volta tbm
 
 
-************** [FEITO] - otimizar trocas de contratos  :
+* [FEITO] - otimizar trocas de contratos  :
+
 - icmp 15 tem que ser capaz de informar os elementos identificadores do contrato (depende da versao do contrato implementada: ip_src,dst(que esta no destino do pacote, nao precisa ser nos dados),porta e tos)
+
 - icmp 16-reply informa o tos que o controlador possui, se nao tive tos (nao tem o contrato), responde com o campo vazio ou -1
+
 - quando o controlador recebe o icmp 16-reply, verifica se o tos eh o mesmo que ele possui, se for, nao envia, se nao for, entao envia
 
 
-************** [ARRUMADO] - controladores se comunicam pela interface lo entre si:
+* [ARRUMADO] - controladores se comunicam pela interface lo entre si:
+
 - comunicacao controladores-host acontece pela interface correta e dentro do ambiente mininet
+
 - comunicacao controlador-controlador acontecendo pelo loopback? Na vida real os controladores estariam em ambientes/computadores diferentes, e isso nao ocorreria, nao seria necessario tomar a acao abaixo...
-(a troca de icmps ocorria dentro do ambiente mininet pq sao pacotes INJETADOS (criados com o openflow) - nao sao pacotes com origem no ROOT/CONTROLADOR, mas os contratos tem origem no controlador e nesse caso ocorre um problema, pq vao por fora do mininet)
-(no caso seria necessario essa traducao apenas no caso onde os pacotes tem origem no controlador -> envio de contratos)
+
+- (a troca de icmps ocorria dentro do ambiente mininet pq sao pacotes INJETADOS (criados com o openflow) - nao sao pacotes com origem no ROOT/CONTROLADOR, mas os contratos tem origem no controlador e nesse caso ocorre um problema, pq vao por fora do mininet)
+
+- (no caso seria necessario essa traducao apenas no caso onde os pacotes tem origem no controlador -> envio de contratos)
 
 - [Verificar] tabelas route + arp (parece td certo e ainda nao encaminha corretamente (c1 ping 10.123.123.2 vai pelo lo))
+
 - [Verificar] ip tables e firewall (firewall nao se, mas ip tables esta limpo)
+
 - [outra ideia] verificar a possibilidade de criar hosts remotos, assim, os hosts root1 e root2 poderiam ser criados remotos como container, assim, cada um teria sua tabela de route
+
 - [IDEIA ESCOLHIDA] criar uma logica de remarcacao, com um ip que obriga a enviar pelo ambiente mininet: rotas para um ip inventado, com MAC do controlador destino, entao no switch remarca esse ip inventado pelo do controlador destino (meio que gambiarra):
+<div>
 [(essa parece a mais facil e rapida de implementar)]
 	|->> como todos os controladores estao fora do ambiente mininet, eles usam as mesmas tabelas de arp e route, assim definir uma interface destino para cada endereco nao vai ser possivel.
 	|->> criar um endereco ficticio para cada controlador e em cada codigo fazer com que quando um controlador tentar mandar um pacote para um controlador, usar esse endereco ficticio e criar uma regra de fluxo para alterar esse endereco no endereco correto.
@@ -352,70 +436,95 @@ eh gerado um novo icmp inf. req. que vai exigir o recebimento de um novo contrat
 	* em addRegra mas se o controaldor nao for o destino = nao precisa
 	* [aqui precisa com certeza == unico lugar onde o controlador/root precisa enviar pacotes para outro controlador a partir de sua interface] enviar contrato - mudar o ip destino na hora de enviar o contrato
 	* caso a remarcacao na origem ainda resulte em problemas, trafegar em todo o percurso com ip ficticio e apenas no destino-ultimo ip antes de chegar no controlador, fazer a traducao/remarcacao
+</div>
 
-[feito] Ao inves de toda aquelas modificacoes - apenas criar uma tabela de pre-marcacao, onde tudo que tem destino/origem o controlador, remarca para o ip ficticio.
-[agora funcionando c1_v2]: os contratos sao enviados pela rede mininet e nao por "fora" como no c1_v1 
+- [feito] Ao inves de toda aquelas modificacoes - apenas criar uma tabela de pre-marcacao, onde tudo que tem destino/origem o controlador, remarca para o ip ficticio.[agora funcionando c1_v2]: os contratos sao enviados pela rede mininet e nao por "fora" como no c1_v1 
 
-# para remarcar actions = [parser.OFPActionSetField(ip_dscp=ip_dscp)]
+- para remarcar actions = [parser.OFPActionSetField(ip_dscp=ip_dscp)]
 
-*** trafego bate na interface mas o root nao responde :::::: ver o que esta ocorrendo + pensar em outras solucoes
-(caso isso nao se resolva o tempo de trafego dos contratos nao sera corretamente calculado)
+* trafego bate na interface mas o root nao responde :::::: ver o que esta ocorrendo + pensar em outras solucoes
+
+- (caso isso nao se resolva o tempo de trafego dos contratos nao sera corretamente calculado)
+
 - provavelmente pq o socket tcp pega o endereco ip da origem para realizar o handshake, e no caso o endereco origem eh o endereco do controlador - e ai tem todo aquele problema - tentar mudar o endereco origem
+
 - mudar o endereco origem na hora de enviar os contratos...
-** solucao implementada (descrita lá embaixo): foi definido um ip ficticio para cada controlador- cada controlador possui um ip ficticio para outro controlador destino - pois todos os controladores utilizam a mesma tabela route e o ip definido na topologia eh levado como localhost
+
+- solucao implementada (descrita lá embaixo): foi definido um ip ficticio para cada controlador- cada controlador possui um ip ficticio para outro controlador destino - pois todos os controladores utilizam a mesma tabela route e o ip definido na topologia eh levado como localhost
+
 |-> foi criada uma tabela de pre-marcacao nos switches, que altera o ip origem para o ficticio quando se envia, e altera o ip destino ficticio para o original no recebimento - para que possa responder corretamente - assim, foi so adicionado uma tabela antes das que ja existiam marcacao/encaminhamento - o comportamento padrao eh enviar para a tabela de marcacao
 
 
 
-************** [FEITO] - no packet_in :: reinjetar o pacote fora do alocarGBAM
+* [FEITO] - no packet_in :: reinjetar o pacote fora do alocarGBAM
 
-************** [FEITO - nao testado completamente] além dos codigos dscp, verificar se as regras sao removidas corretamente
--obs: fluxos que estao emprestando, sao colocados no vetor de mesma prioridade so que na outra classe, no entanto, mantem os dados de classe, 
+* [FEITO - nao testado completamente] além dos codigos dscp, verificar se as regras sao removidas corretamente
+
+- obs: fluxos que estao emprestando, sao colocados no vetor de mesma prioridade so que na outra classe, no entanto, mantem os dados de classe, 
 prioridade, banda e tos iguais ao original, a ideia eh que ele seja colocado na fila original, mas seja descontado da largura de banda total,
  na fila emprestada - isso na verdade tem um problema, pq o htb vai entender que a fila que emprestou nao esta usando aquela parte da banda e
   vai distribuir para todas as outras filas, inclusive a de best effort - o melhor seria ter um tos equivalente e colocar na outra
   classe - por agr fica assim msm.
+
   -- solucao nao implementada: so emprestar largura de banda entre classe 1 e classe 2, nao permitir que a fila de best-effor emprestar banda, nem a de controle
+
   -- o melhor seria, colocar o fluxo que esta emprestando, na fila da classe a qual se empresta.
+
   - [solucao] - ter tos equivalentes nas duas classes e quando for emprestar, mantem os dados, mas muda o tos - assim, o fluxo vai para a fila correta, na qual se empresta
+
   Entao, para remover, remove pelos campos - ip, porta
   
 
-************** [FEITO opcao 2 - nao testado completamente] ou pensar sobre - so criar as regras se todos os switches da rota aceitarem os requisitos do contrato/fluxo?:
-- no momento, para cada switch eu aloco espaco (salvo no vetor da classe no controlador) e crio as 
-regras, caso algum deles nao aceite, os outros switches vao ter de esperar a regra criada expirar para entao liberar 
-espaco. - por agora fica assim mesmo, ou entao salvo a saida de cada alocarGBAM e entao se nenhum recursar, ai sim criar as regras
+* [FEITO opcao 2 - nao testado completamente] ou pensar sobre - so criar as regras se todos os switches da rota aceitarem os requisitos do contrato/fluxo?:
 
-[desenvolvimento]
+- no momento, para cada switch eu aloco espaco (salvo no vetor da classe no controlador) e crio as regras, caso algum deles nao aceite, os outros switches vao ter de esperar a regra criada expirar para entao liberar espaco. - por agora fica assim mesmo, ou entao salvo a saida de cada alocarGBAM e entao se nenhum recursar, ai sim criar as regras
+
+* [desenvolvimento]
+
  ---> duas opcoes:
-(1 - primeira) fazer a verificacao se existe espaco para alocar o fluxo em cada switch e caso um nao aceite, rejeitar - passando todos os processos de:
+
+- (1 - primeira) fazer a verificacao se existe espaco para alocar o fluxo em cada switch e caso um nao aceite, rejeitar - passando todos os processos de:
+
 		1-tem espaco suficiente na classe?
+
 		2-tem fluxos suficientes emprestando, para remover ?
+
 		3-tem espaco na outra classe?
+
 		4-tem fluxos de menor prioridade na classe original?
+
 	E entao se todos os switches retornarem positivo para essas perguntas, repetir os processos para entao alocar - no caso, eh preciso repetir para saber quais regras de fluxos sao necessarias remocao
+
 	|->Um alocarGBAM que nao cria regras, so para ver se tem espaco + um alocarGBAM para alocar
 
-(2- segunda) durante a verificacao, salvar a acao que deve ser tomada para cada switch - por exemplo - s1, deletar [regra1,regra2,regra3], s1,alocar [regra1] classe 1,p1,emprestando=0
+- (2- segunda) durante a verificacao, salvar a acao que deve ser tomada para cada switch - por exemplo - s1, deletar [regra1,regra2,regra3], s1,alocar [regra1] classe 1,p1,emprestando=0
+
 E entao, se todos os switches retornarem positivo para a verificacao, comecar a aplicar as acoes.
+
  Teria que ser tipo uma classe, com o nome do switch, int codigo, vetor de regras - algo assim
+
 	- se a verificacao for positiva (todos aceitam o fluxo) - chamar a funcao porta.delRegra(origem, destino, tos) em cada switch - para nao aceitar regras
 	repetidas - remover antes eh util se a regra que estou tentando alocar ja existe, entao eh melhor remover antes que tenho ctz que vou conseguir colocar a nova.
+	
 	|-> so um alocarGBAM que retorna as regras para remover e criar de cada switch, que sao armazenas em formas de acoes (uma classe) e:
+		
 		- se todos os switches retornarem acoes: executar todas as acoes (criar e remover as regras corretamente)
+	
 		- se algum switch retornar um vetor de acoes vazio, quer dizer que nao eh possivel alocar o fluxo, entao, nenhuma acao eh tomada (nenhuma regra criada), e o fluxo vai ser descartado.
 
 	- acoes do alocarGBAM:
+
 		- se tiver espaco suficiente na classe original - alocar o fluxo e criar as regras
 
-		- obter os fluxos que estao emprestando largura de banda na classe original, verificar se eles fornecem banda suficiente - remover os fluxos, alocar o novo e criar a nova regra
+		- obter os fluxos que estao emprestando largura de banda na classe original, verificar se eles fornecem banda suficiente - remover os fluxos, alocar o novo e scriar a nova regra
 
 		- se tiver espaco suficiente na outra classe - alocar o fluxo e criar as regras
 
 		- verificar na classe original se existem fluxos com menor prioridade o suficiente - remover essas regras
-		}}
 
-************** [FEITO] criar novos codigos dscp:
+		}
+
+* [FEITO] criar novos codigos dscp:
 - no momento, quando se quer emprestar largura de banda da outra classe (ex classe2), a regra é criada para a fila da classe
 original, mas é salva no vetor da fila que emprestou, na classe do switch no controlador.
 No entanto, na pratica, esse fluxo estará na fila original, que já está sem banda disponível, assim utilizando mais largura
@@ -423,50 +532,69 @@ de banda do que é garantido pela fila orinal dele, utilizando a largura de band
 Mesmo o controlador garantindo que a banda foi emprestada e a fila que emprestou não utiliza essa partição, na prática, o htb
 distribui essa banda entre as outras filas que solicitam, de forma que a fila de best-effort e a fila da classe que emprestou 
 estarão competindo por essa banda e não transferindo para a fila que solicitou o emprestimo.
+
 - Para resolver, é proposto estender os códigos dscp para que cubram as duas classes e que os fluxos tenham códigos equivalentes 
 para seus requisitos entre as duas classes. Assim, não é necessário colocar na classe do switch que emprestou no controlador e no 
 ovs colocar na fila original, pois eh so trocar o dscp pelo equivalente e colocar na fila em que emprestou.
+
 --- o explicacao confusa ... melhorar
--[solucao] duplicar os códigos dscp e criar as regras para a fila que emprestou, com a meter correta equivalente - classe e prioridade ficam iguais o original, mas o tos fica o equivalente
+
+- [solucao] duplicar os códigos dscp e criar as regras para a fila que emprestou, com a meter correta equivalente - classe e prioridade ficam iguais o original, mas o tos fica o equivalente
 
 
-************** [FEITO] Novo delRegras:
+* [FEITO] Novo delRegras:
+
 - como agr um fluxo pode estar emprestando e armazenado no vetor da outra classe, entao um fluxo de prioridade 1, classe 1 originalmente, pode estar armazenado com prioridade 1, classe 2 emprestando
+
 - entao, para remover um fluxo eh preciso testar nas duas filas, p1c1 e p1c2
 
-************** [FEITO] Quando receber um contraot, poderia so enviar a mensagem de deletar regras nos switches caso essa regra esteja ativa (exista nos vetores da classe switch):
+* [FEITO] Quando receber um contraot, poderia so enviar a mensagem de deletar regras nos switches caso essa regra esteja ativa (exista nos vetores da classe switch):
+
 - verificar o retorno do delRegra - que se encontrar a regra nos vetores, retorna positivo - assim, caso o retorno for positivo - remover no switch.
 
-************* [FEITO] CRIAR um mecanismo para modificar configurações de contrato:
+* [FEITO] CRIAR um mecanismo para modificar configurações de contrato:
+
 [implementado no momento]
+
 - cada host determina pelo contrato os requisitos de seus fluxos para que a emissão seja com QoS
+
 - no entanto,o host que recebe os dados nao define os requisitos para receber.
+
 - neste caso, se o host precisa dos dados com maior urgencia é preciso um mecanismo para que ele possa editar o contrato de
 emissão que configura o fluxo que recebe.
+
 - pode ser feito modificando o campo de dados do pacote icmp - informando que quer modificar o campo de prioridade do
 contrato e so ocorre se o end. ip for igual ao end. destino do contrato e tals.
+
 - [solucao] foi implementado um mecanismo que verifica se ja existe um contrato com os mesmos campos de ips e 
 porta (no momento porta nao foi implementado), se existe, remove e adiciona o novo - que tbm se configura como
 um mecanismo de modificar contratos.
 
-************ [Arrumado] VERIFICAR se o remover regra do switch esta funcionando !!!
+* [Arrumado] VERIFICAR se o remover regra do switch esta funcionando !!!
 - agora estah
 
-************* [ARRUMADO] Deletar regras na tabela de classificacao/marcacao:
+* [ARRUMADO] Deletar regras na tabela de classificacao/marcacao:
+
 - quando se define um novo contrato, alem de deletar as regras dos switches referentes a encaminhamento, no primeiro switch da rota tbm eh preciso deletar a regra de 
 marcacao, pois uma nova sera criada
+
 - implementar para a funcao que escuta os hosts e para a que escuta os controladores
 
 
-************* [ARRUMAdo] alocaGBAM criando regras repetidas ?:
+* [ARRUMAdo] alocaGBAM criando regras repetidas ?:
+
 - verificar pq nao esta bloqueando ou removendo regras antigas, antes de criar uma nova - tinha sido implementado
+
 - [testar isso] foi arrumado: antes quando chegava um novo contrato, se verificava se existiam regras com os mesmos ips e prioridade nas duas
 classes, pq pode estar emprestando - mas, caso chegue um contrato que tenha os mesmos ips mas com prioridade diferente e classe
 é necessario que remova uma regra igual mas que esta em outro vetor, por assim dizer.
+
 - para resolver - agora eh verificado em cada vetor, onde achar a regra, remove, independente da classe e prioridade
+
 - assim, pode armazenar a nova regra onde precisar.
 
 - na verdade, precisa checar antes de aceitar o contrato - se nao tiver contratos repetidos, nao tenho regras repetidas.
+
 - alem disso, remover o contrato anterior, a regra na classe switch e no switch ovs.
 
 -- o tos nao vai dar match pcausa daquele tratamento que o ovs faz - converte o tos 5 pra 21 por exemplo - tem que adaptar
@@ -475,54 +603,67 @@ a constante correta agr eth_type=ether_types.ETH_TYPE_IP
 
 - [solucao] quando chega um contrato - eh verificado se existe um outro ja salvo com os mesmos campos, no momento ip_src e ip_dst, e remover 
 o contrato e as regras associadas - na classe switch e na tabela do ovs (de marcacao e encaminhamento).
+
 - isso tambem ja serve para o processo de atualizar contrato - so teria que ter um mecanismo de seguranca para permitir que apenas os autorizados modificassem um contrato.
 
 --- esta funcionando mas precisa adaptar para quando utilizarmos portas nos contratos...(remove todas as regras -em todas as tabelas- referentes ao ip_src e ip_dst informado)
 
 
-************* [Feito - talvez precise dar mais uma olhada] Conexoes ficando abertas - O processo de envio e recebimento de contratos para fechar a conexao apos receber:
+* [Feito - talvez precise dar mais uma olhada] Conexoes ficando abertas - O processo de envio e recebimento de contratos para fechar a conexao apos receber:
+
 - enviar tbm a quantidade de contratos
+
 - assim, apos receber a quantidade definida, encerrar a conexão
+
 - so precisa fazer no envio de contratos entre controladores, pq os hosts sao limitados a enviar um por vez, no momento
  
-************* [ARRUMADO] O send contratos está concatenando vários contratos em um pacote e enviando:
+* [ARRUMADO] O send contratos está concatenando vários contratos em um pacote e enviando:
+
 - ou dividir os contratos em um por pacote, ou dar um jeito de separar esses contratos do outro lado
 
 
-************* [ARRUMADO] enviar contratos do controlador nao envia multiplos contratos, ou nao recebe multiplos contratos:
+* [ARRUMADO] enviar contratos do controlador nao envia multiplos contratos, ou nao recebe multiplos contratos:
+
 - quando envia, diz que esta enviando varios contratos, mas quando chega, chega so um...
 
 ------>>>  [resolvido] icmp dando erro ?? - "struct.error: required argument is not an integer"
+
 - não estava dando erro antes.... resolver --- aparentemente a porta de saida deveria ser int e estava chegando str
-[arrumado] >> foi alterado a forma de salvar as rotas, agr a porta é um inteiro
+
+- [arrumado] >> foi alterado a forma de salvar as rotas, agr a porta é um inteiro
 
 
 ------>>> [resolvido] addRegraC não funcionando ?? TypeError: unsuported operand types.... >>> provalvemente é problema com [resolvido]
 o tipo de dados do tos. Na definição diz um inteiro de 8bits e estou usando como inteiro.
+
 - na verdade acusa erro no match?
+
 [corrigido - foi preciso definir que o tipo de pacote era tcp]
 
 ------>>> [resolvido] addRegraC não está dando erro, mas não cria a regra de fluxo ?? erro ou no actions (deve ser nw_dscp algo assim na remarcação, ao inves de ip_dscp) ou no instructionsactions
+
 -substituindo para nw_tos a regra é criada, mas não foi testado. Deve estar funcionando
 
 ------->>>> [resolvido] addRegraF não está dando erro, mas não cria a regra de fluxo ?? pode ser que o ip_dscp tenha que alterar para nw_tos
+
 -- aparentemente o problema está na parte de incluir o meter_id
 
 ------>>>> talvez seja necessário armazenar os contratos que estão ativos:
+
 -- regras de marcação ativas são baseadas nos contratos ativos. No entanto, quando um novo contrato deve 
 reescrever essas regras é preciso que as regras de marcação sejam substituidas - ou seja, um contrato deve deixar
 de estar ativo para que outro o substitua - e o controle teria de saber qual contrato está ativo e quais regras de
 marcação estão ativas ---- pensar mais um pouco sobre
 
 
- *************** [feito/nao testado] O alocarGBAM - onde colocar as regras que emprestam e seu tos ---- regras que precisam emprestar, nao devem alterar seu tos. As regras emprestam largura de banda da classe e é salva na fila dessa classe, mas a regra 
+ ** [feito/nao testado] O alocarGBAM - onde colocar as regras que emprestam e seu tos ---- regras que precisam emprestar, nao devem alterar seu tos. As regras emprestam largura de banda da classe e é salva na fila dessa classe, mas a regra 
 de criação no switch ovs deve ser para a classe original. Isso faz com que o emprestimo seja garantido e que os requisitos do fluxo sejam garantidos. Pois, classes diferentes possuem
 tos diferentes que podem ser incompativeis. Ex: existe um tos para classe 1 com 1000kb de banda, prioridade 1, mas não existe na classe 2. Assim se emprestar, não tem um tos na classe 2
 equivalente. A solucão foi manter o tos, mas salvar na fila da classe da qual se empresta com uma tag emprestando, criando a regra como se fosse na classe original. MAS NAO FOI ARRUMADO NA IMPLEMENTACAO AINDA.
 
 - além disso, é preciso criar as funcoes de remover regras nos switches, quando for necessário substituir fluxos.
 
-*************** [feito/nao testado] alocarGBAM - não criar regras repetidas ---- Quando um packet_in ocorre e uma regra de fluxo é criada, é adicionada a cópia na classe do switch no controlador. Quando as regras nos switches expiram, as regras são removidas 
+** [feito/nao testado] alocarGBAM - não criar regras repetidas ---- Quando um packet_in ocorre e uma regra de fluxo é criada, é adicionada a cópia na classe do switch no controlador. Quando as regras nos switches expiram, as regras são removidas 
 nos switches e avisadas ao controlador para remover da classe switch. No entanto, pode ocorrer de alguns switches removerem antes de outros e se ocorrer outro packet in com criação de regras nesse meio tempo
 pode ser que duas regras iguais sejam criadas na classe do switch do controlador, fazendo com que consuma duas vezes a largura de banda.
 -- Solução, antes de adicionar uma regra nova em cada switch ovs da rota, verificar se ela ainda não existe, caso exista, apenas criar a regra no switch ovs. -- Obs: talvez nem fosse necessario criar a regra nesses switches,
@@ -530,7 +671,7 @@ pois é como se ela ainda existisse.;; optando por não criar a regra nestes cas
 [resolvido, antes de alocar um fluxo ele é testado no delRegra da porta, assim se já existir uma regra de fluxo, ela é removida e realocada -- PODE NAO SER A MELHOR SOLUCAO]
 
 
-************** [feito/não testado] ICMP/contratos - encaminhamento de ICMP 15 e 16 com regras (criar regras):
+* [feito/não testado] ICMP/contratos - encaminhamento de ICMP 15 e 16 com regras (criar regras):
 --->>>quando um ICMP inf. request chega no domínio, o primeiro switch analisa o pacote e encaminha para o controlador.
 - o controlador analisa quem enviou e responde com um ICMP inf. reply. 
 [precisa criar as regras para receber os contratos vindos da origem pelo caminho de switches até o switch que 
@@ -596,18 +737,18 @@ rota e assim fazer os processos alí mesmo, sem depender de packet in:
 - no entanto, com o contrato atual, nao se pode enviar o icmp, pois o controlador nao conhece o endereco MAC do destino, que seria o host final.
 - o que se pode fazer eh inventar um endereco mac, pois a ideia eh que o pacote seja aproveitado pelos controladores da rota, mas seja descartado pelo host final.
 
-************** [feito] ip_dscp na regra de encaminhamento fica 28, mas na de marcação fica 112 ?
+* [feito] ip_dscp na regra de encaminhamento fica 28, mas na de marcação fica 112 ?
 [corrigido - ip_dscp adiciona os bits nos primeiros, [000000]00, fazendo com que seja interpretado errado
 - usando nw_tos os bits são adicionados nos últimos 00[000000]]
 - a funcao de modificacao de set_field trata ip_dscp de uma forma diferente da funçao match. No entanto, tratam
 de forma igual o nw_tos, assim esse é usado.
 
-************** [feito] revisar a criacão de regras, pois não está ocorrendo match na regra de encaminhamento !!!
+* [feito] revisar a criacão de regras, pois não está ocorrendo match na regra de encaminhamento !!!
 -- eh pq eu estava colocando match apenas com pacotes tcp, e estava testando com pacotes ICMP.
 -- com tcp é importante para testar portas, que é o foco do contrato (ip_src, ip_dst e porta).
 - foi alterado para não limitar ao tipo tcp no match
 
-************** [ARRUMADO] regras de encaminhamento (tabela 2) com meter_id, não estão sendo criadas !!
+* [ARRUMADO] regras de encaminhamento (tabela 2) com meter_id, não estão sendo criadas !!
 - rever a criacao das meter_bands
 - [solucao] Foi utilizada a maquina virtual do mininet tutorial com ovs 2.13.1 - aparentemente a versão ovs que eu compilei
 na vm ubuntu server estava incorreta mas o ovs da vm do mininet foi compilado corretamente.
@@ -615,7 +756,7 @@ na vm ubuntu server estava incorreta mas o ovs da vm do mininet foi compilado co
 
 
 
-************** [RESOLVIDO - ver PROBLEMA host fora do namespace mininet não responde pacotes]
+* [RESOLVIDO - ver PROBLEMA host fora do namespace mininet não responde pacotes]
 		{
 		****** ARRUMAR -- codigo python para configurar/enviar um contrato entre host e controlador funciona, mas:
 			- tem que ver as rotas nos roots
@@ -625,14 +766,14 @@ na vm ubuntu server estava incorreta mas o ovs da vm do mininet foi compilado co
 			-- criar em todos os switches, rotas para o root (controlador) do dominio
 			- Regras de encaminhamento pela classe de controle - sem marcacao pq se o destino eh o controlador, entao a classe eh de controle
 			------ As regras estao criadas e enviam os pacotes para o host, mas o host está ignorando os pacotes
-			************** [ARRUMADO][ARRUMAR Código de adicionar/tratar contratos pelos hosts morreu, só funciona fora do ambiente mininet:
+			* [ARRUMADO][ARRUMAR Código de adicionar/tratar contratos pelos hosts morreu, só funciona fora do ambiente mininet:
 - estava funcionando na antiga VM, mas na mininetVM bugou.
 		}
 
 
 
 
-************** [FEITO] Atualmente pacotes que são enviados via packet in para o controlador não são renjetados no switch (são perdidos):
+* [FEITO] Atualmente pacotes que são enviados via packet in para o controlador não são renjetados no switch (são perdidos):
 	- após criar as regras reinjetar os pacotes no switch.
 	- os icmps inf. req. e inf. reply já estão sendo reinjetados.
 	- foi criada uma funcao que eh chamada no AlocarGBAM -
@@ -657,27 +798,42 @@ tratamento de pacotes em geral (toda a parte de verificar contrato, alocar banda
 -- quando o switch fosse acessado, seria mostrado as regras criadas de cada fila e a banda total utilizada (no momento as regras para as filas de controle e best-effort nao sao armazenadas, mas poderia mudar)
 -- pensar sobre - deixar mais para o final caso seja interessante.
 
-######################################################################################################
-############################################## TESTES ################################################
+#### ######################################################################################################
+#### ############################################## TESTES ################################################
 
 - [ok] testar se as regras são salvas na classe switch do controlador
+
 - [ok] testar se as regras adicionadas diminuem a quantidade de largura de banda disponível corretamente
+
 - [ok] testar se as regras são atualizadas/removidas corretamente conforme a label
+
 - [ok] testar se eh possivel colocar o endereco ip_dst do host no icmp inf. reply.
+
 - [ok] testar se eh possivel recuperar o endereco ip_dst do host no icmp inf. reply no controlador destino do reply
+
 - [ok-vm mininet] se em outra vm existente, o código das meter table não estava funcionando - observar a versão do ovs
+
 - [ok] armazenar regras corretamente
+
 - [ok] atualizar o controlador com as regras removidas nos switches
+
 - [ok] se o controlador consegue remover as regras nos switches (alocarGBAM: caso de remover regras q estao emprestando ou possuem menor prioridade )
+
 - [ok] regras de marcação corretas
+
 - [ok] regras de encaminhamento corretas (nao precisa ter testado se a meter esta funcionando)
+
 - [ok] regras de encaminhamento de pacotes icmp/contratos pela fila de controle
+
 - [ok] troca de contratos entre controladores estar funcionando corretamente
+
 - [ok-nao precisou na vm-mininet] arrumar as regras meter (adaptar para tc-flow/tc-flower ?)
+
 - [ok] testar se eh possivel enviar pacotes utilizando datapaths salvos dos switches
 
 
 - [ok] testar se as regras de emprestimo são criadas corretamente
+
 - [verificar] testar se eh possivel gerar tráfego com wireshark/tshark conforme as bases de dados
 
 
@@ -733,7 +889,7 @@ caminho para tratar esse único pacote.
 
 *********** [resolvido] PROBLEMA host fora do namespace mininet não responde pacotes direcionados para ele; ou; nao alcançavel; ou ; da ping mas nao responde:
 *********** [resolvido] PROBLEMA host fora do namespace usando interface errada para se comunicar:
- ************** [resolvido] Código de adicionar/tratar contratos pelos hosts morreu, só funciona fora do ambiente mininet:
+ * [resolvido] Código de adicionar/tratar contratos pelos hosts morreu, só funciona fora do ambiente mininet:
 	- os dois problemas acima possuem a mesma solucao: revisar as tabelas de route e arp
 	- primeiro problema: nao responde o pacote, mas ele chega na interface - end. MAC errado - arrumar a tabela arp no emissor
 	- primeiro problema: nao alcancavel - revisar as regras de encaminhamento e as tabelas arp/route
@@ -809,7 +965,7 @@ nao funcionou ainda  -- apenas o drop esta funcionando
  ********* Boas informações sobre como lidar com interfaces de rede virtuais e tratar qual interface deve responder cada ip:
  - https://unix.stackexchange.com/questions/589048/server-does-not-respond-to-ping-icmp-is-received-and-nothing-happens
  
- *************************** VERSÃO DO OVS DA VM MININET (VM DO TUTORIAL) FUNCIONAM AS METER:
+ * VERSÃO DO OVS DA VM MININET (VM DO TUTORIAL) FUNCIONAM AS METER:
  - VM MININET -> OVS 2.13.1 ; ryu: 4.34
  - na VM que eu compilei e não funcionavam as regras meter -> OVS 2.13.4 ; ryu 4.34
  - AS solucões trazidas em cima são interessantes e também devem resolver o problema, mas por agilidade, será testado
@@ -900,9 +1056,9 @@ não utilizada. Isso torna os recursos mais flexiveis, mas disponíveis priorita
 
 
 
-##############################################################################################################
-#						LOGICA DE ENDERECOS IP FICTICIOS - 2 controladores:
-				###################################################################
+### ##############################################################################################################
+###						LOGICA DE ENDERECOS IP FICTICIOS - 2 controladores:
+###				###################################################################
 
 
 	* os enderecos ficticios serao usados dentro do mininet como sendo os enderecos reais
@@ -911,48 +1067,69 @@ não utilizada. Isso torna os recursos mais flexiveis, mas disponíveis priorita
 	host: root1-c1 root2-c2
 
 	root1-C1
+	
 	TC['10.123.123.1']='10.10.10.1'
+	
 	TC['10.123.123.2']='10.10.10.2'
 	
+
 	root2-C2
+	
 	TC['10.123.123.1']='10.10.10.1'
+	
 	TC['10.123.123.2']='10.10.10.2'
 	
+
 	route table
 		dst			 dev
 	10.10.10.1		root2-eth0 (c2->c1)
 	10.10.10.2		root1-eth0 (c1->c2)
 
-#unico momento que usa eh para envio de contratos
-ip_dst tem que ser trocado e remarcado no primeiro switch, na ida
-ip_src tem que ser trocado e remarcado na chegada
-#tem que criar as rotas para esse endereco ficticio, como se fosse o ip do controlador mesmo - um ip ficticio eh o ip do controlador dentro do ambiente mininet
+- único momento que usa eh para envio de contratos
 
-	[algoritmo]
+- ip_dst tem que ser trocado e remarcado no primeiro switch, na ida
+
+- ip_src tem que ser trocado e remarcado na chegada
+
+- tem que criar as rotas para esse endereco ficticio, como se fosse o ip do controlador mesmo - um ip ficticio eh o ip do controlador dentro do ambiente mininet
+
+*	[algoritmo]
+
 -> root1-c1 recebe um icmp 16 -> enviar os contratos
-enviar_contratos(src=10.10.10.1, dest=10.10.10.2)
+
+:enviar_contratos(src=10.10.10.1, dest=10.10.10.2)
 
 s1 (mais proximo de root1) -> match ip_src=10.10.10.1, ip_dst=10.10.10.2 trocar ip_dst 10.10.10.2 para 10.123.123.2 (para que root2 possa responder)
 s1 (mais proximo de root1) -> match ip_src=10.123.123.2, ip_dst=10.10.10.1, trocar ip_dst 10.10.10.1 para 10.123.123.1 (para que root1 possa responder)
 
 
-**** PARA 3 controladores (nao vai dar tempo de implementar e testar isso, ao menos para o AINA)
+* PARA 3 controladores (nao vai dar tempo de implementar e testar isso, ao menos para o AINA)
 
 host: root1-c1 root2-c2 root3-c3
 
 	root1-C1
+
+
 	##TC['10.123.123.1']='10.10.10.1' (esse nao precisa pq nao se envia para si mesmo)
+
 	TC['10.123.123.2']='10.10.10.4'
+
 	TC['10.123.123.3']='10.10.10.3'
 
 	root2-C2
+
 	TC['10.123.123.1']='10.10.10.1'
+
 	TC['10.123.123.3']='10.10.10.2'
 
+
 	root3-C3
+
 	TC['10.123.123.1']='10.10.10.5'
+
 	TC['10.123.123.2']='10.10.10.6'
-	
+
+
 	route table
 		dest		dev
 	10.10.10.1 		root2-eth0 (c2->c1)

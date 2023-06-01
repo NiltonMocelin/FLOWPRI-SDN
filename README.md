@@ -45,3 +45,4 @@
 
 - Implementar mecanismo de priorização (buscar outra abordagem)
 
+- Modelo de garantia de qos fim-a-fim.

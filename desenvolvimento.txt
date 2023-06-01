@@ -1,6 +1,14 @@
 #Permanente 
 
-31/05 ACA (validação de artigo) -> como validar o artigo --> imprimir o artigo e juntamente com o certificado de apresentação.
+* 31/05 ACA (validação de artigo) -> como validar o artigo --> imprimir o artigo e juntamente com o certificado de apresentação.
+
+* CNSM chamada aberta -> 26/junho + metricas e resultados
+
+* Journal Netsoft -> setembro - aqui com a classificação já
+
+* Ir na programação do sbrc - artigos de classificação de tráfego - pequisar depois em sbcopenlib - só anais sbrc estendidos
+
+-----------------------------------------
 
 
 -> [explorar em algum momento] Obs: existe uma versão mininet docker (container tem melhor performance que vm) - Pode ser bem mais fácil de configurar que uma vm+mininet : https://containernet.github.io/
@@ -12,21 +20,20 @@
 -> abrir mais uma porta no flowpri para ouvir configurações a partir de arquivos json. (isso vai tornar o controlador programável por administradores e faz sentido pois um domínio pode conter diversos controladores.
 
 -> preciso de uma estratégia para atualizar rotas no FLOWPRI-> algo do tipo roteamento dinâmico + políticas de encaminhamento do domínio (rotas desejadas e indesejadas).
+
 -> tenho que ser capaz de modificar as políticas de encaminhamento de fora do controlador (sem que seja necessário re-lançar o processo -> pois assim se perdem os estados dos switches armazenados).
 
 -> obs: [segurança] no hello todas as regras de fluxo e meter devem ser removidas dos switches ovs.
--> achar um modo de mandar as configurações de filas usando o openflow -> parece que pode usando regras EXPERIMENTER 
--> achar um modo de os switches ovs utilizarem a rede interna do mininet.
 
+-> achar um modo de mandar as configurações de filas usando o openflow -> parece que pode usando regras EXPERIMENTER 
+
+-> achar um modo de os switches ovs utilizarem a rede interna do mininet.
 
 -> poderia implementar o suporte a gbam de subredes: um prefixo de rede ou vlan,seria limitado em largura de banda para uma porção da largura de banda real do lin e usaria gbam para consumir a largura de banda - isso não poderia ser feito no best-effort - até poderia ser criada uma regra meter para limitar o uso de banda na classe mas teria pouco impacto (mas seria bom criar msm assim). - poderia ser implementado como um vetor de regras especiais, caso exista uma regra especial de limitação gbam para o prefixo, então não segue o fluxo padrão mas do gbam modificado
 
-
 -> pensar em como habilitar suporte a nat e melhorar o processo de estabelecimento de contrato na parte do cliente-controlador principalmente
 
-
 -> obs: sobre os multiplos controladores no ambiente linux, é possível usar regras TC: pacotes com origem localhost e porta tcp X, encaminhar para a interface Ix. Essa porta TCP x seria a porta que o controlador está ouvindo. 
-
 
 -> V4 resolveu o problema das traduções de endereços.
 
@@ -38,14 +45,19 @@ No entanto, as configurações não trafegam como mensagens dentro da rede. (na 
 -> ieee access : journal a ser tentado
 
 --> EM SI: desenvolvimento artigo comparando métodos ML em batch vs streaming para classificação de tráfego em tempo real.
+
 -> talvez seja possivel uma públicação.
 
 
 -> [como aplicar priorização com classificação de fluxos] Priorizar fluxos mais regulares (para o mesmo destino, mesmo qos ...)
+
 -> artigo de comparação de metodos de ML streaming vs batch para classificação de tráfego em aplicações e requisitos de QoS.
+
 ->: usando ML de streaming o qos dos fluxos precisa ser testado periodicamente para ir ajustando.
+
 ->: periodicamente precisa verificar o qos fim-a-fim. OU, definir uma janela de tempo baseado no tempo medio que se
 leva para identificar um fluxo corretamente - testa uma vez no tempo 0, e após um tempo x, ajusta o qos e verifica o fim-a-fim.[
+
 -> a parte fim-a-fim ainda não está implementada.
 
 ->: quantos fluxos ao mesmo tempo consigo testar?
@@ -55,25 +67,98 @@ leva para identificar um fluxo corretamente - testa uma vez no tempo 0, e após 
 -> Uma forma de verificar a garantia fim-a-fim{
 
 	- controlador C1 mais próximo da borda {
+		
 		- ASSUME-SE QUE: Um fluxo foi aceito e todos os domínios intermediários que utilizam FLOWPRI alocaram os recursos necessários.
+		
 		- TR1: traceroute do C1 para o host origem de um fluxo.
+		
 		- TR2: traceroute do C1 para o host destino de um fluxo.
+		
 		- Com o TR1 consigo saber se o host emissor está conectado no domínio de C1 - sei que não existe um domínio intermediario entre eles.
+		
 		- Com o TR2 consigo saber quantos saltos entre o switch que conecta o host emissor até o host destino.
+		
 		- Pergunto quantos saltos cada domínio intermediário planeja para o fluxo (quantos switches o fluxo deve passar).
+		
 		- Se os valores forem compatíveis, então tenho qos fim-a-fim.
+	
 	}
+
 }
+
+-> Configurar Filas {
+	
+	- remover a configuração tc root
+	
+	- remover configurações anteriores de filas htb usando ovs-vsctl
+	
+	- criar as filas usando ovs-vsctl
+	
+	- adicionar as configurações nas filas utilizando tc netem.
+	
+	- ver readme de testeDemonstracaoFilas.
+
+	- tutorial netem https://www.cs.unm.edu/~crandall/netsfall13/TCtutorial.pdf
+
+}
+
+OBS: Em caso de duvida mandar e-mail para os caras do ryu/ovs.
 
 #UPDATES do DIA
 
+#31/05
+
+* Verificar a relação entre fila criada pelo ovs-vsctl e a fila htb tc class 
+{
+	
+	- As configurações iniciais são removidas usando ovs-vsctl clear qos e tcc qdisc del dev root
+
+	- As filas customizadas são criadas usando ovs-vsctl set qos 
+
+	- Modificar uma das filas usando tc
+
+	- com ovs-vsctl e ovs-appctl show/qos não é possível identificar a alteração, apenas com tc qdisc/class show - pois não é um comando que atualiza as tabelas do ovsdb
+
+	- talvez utilizar uma função que atualize as tabelas ovsdb seja uma alternativa melhor.
+
+	- testar se a modificação tc causa efeito na fila do switch, mesmo ovs-appctl mostrando uma configuração desatualizada.
+
+	- criar as filas e depois modificar a prioridade:
+
+	`
+	queues = [{'min-rate': '10000', 'max-rate': '100000', 'priority': '5'},{'min-rate':'500000', 'priority': '10'}]
+	print(ovs_bridge.set_qos(interface, type='linux-htb', max_rate="15000000", queues=queues))
+	`
+
+	`sudo tc class change dev s1-eth1 parent 1:fffe classid 1:1 htb rate 10000000 prio 10`
+
+	- [falhou] CONCLUSAO: ou errei em algo, ou alterando a fila/classe htb usando tc, não tem influencia na fila já configurada pelo ovs - mesmo que teoricamente o ovs utilize a fila configurada pelo kernel usando tc.
+
+	- [funciona] alterar propriedades de filas usando o vsctl tem efeito na prática - problema precisa saber todo o hash identificador da fila:
+	
+	`sudo ovs-vsctl set queue 1aba212e-b584-4608-8c5c-9cadb3601cf1  other-config=priority=20`
+
+	- Aparece tanto no tc quanto no ovs-vsctl/appctl como modificado, mas na prática não respeita tbm (ex limitar a fila não funciona)
+}
+
 #30/05
+
 - verificar se so com o clear de filas usando ovs-vsctl já limpa as configurações realmente ou tem que usar tc msm.
+
 	|-> testar usando o v3, iperf e iftop.
+
 	|-> Funciona, mas os links de 15Mbps pegam apenas 12.8Mbps em média no iperf udp
 
+	|-> Ver o readme do testeDemonstracaoFilas
+
+	|-> Só se cria filas usando ovs-vsctl se remover o tc root 
+	
+	|-> removendo o tc root configurações netem definidas na topologia, tbm são removidos
+	
+	|-> usar o comando (por ex.) tc qdisc add dev s1-eth1 delay 50ms 20ms distribution normal.
 
 -- arrumar a parte do prefixo na funcao  -> getPortaSaida(self, ip_dst)
+
 192.168.0.0/24
 
 255.255.0.0
