@@ -34,8 +34,8 @@ CONF.register_opts([
 
 interface = "s1-eth1"
 
-p = subprocess.Popen("echo mininet | sudo -S tc qdisc del dev s1-eth1 root", stdout=subprocess.PIPE, shell=True)
-
+#echo mininet pois a senha root é mininet
+# p = subprocess.Popen("echo mininet | sudo -S tc qdisc del dev s1-eth1 root", stdout=subprocess.PIPE, shell=True)
 
 p = subprocess.Popen("echo mininet | sudo -S tc qdisc del dev " + interface + " root", stdout=subprocess.PIPE, shell=True)
 
@@ -114,6 +114,35 @@ print(command)
 
 # ovs-vsctl set interface s1-eth1 -- --id=@newqos create qos type=linux-htb other-config:max-rate=15000000 queues=0=@q0 -- --id=@q0 create queue other-config:min-rate=10200000 other-config:max-rate=10250000 other-config:priority=10
 
-command = vsctl.VSCtlCommand('set', ('Interface', 's1-eth1', '--', 'Id=@newqos', 'create', 'qos', 'type=linux-htb', 'other-config:max-rate=15000000', 'queues=0=@q0', '--', 'Id=@q0', 'create', 'queue', 'other-config:min-rate=10200000', 'other-config:max-rate=10250000', 'other-config:priority=10' ))
-ovs_vsctl.run_command([command])
-print(command)
+# command = vsctl.VSCtlCommand('set', ('Interface', 's1-eth1', '--', 'Id=@newqos', 'create', 'qos', 'type=linux-htb', 'other-config:max-rate=15000000', 'queues=0=@q0', '--', 'Id=@q0', 'create', 'queue', 'other-config:min-rate=10200000', 'other-config:max-rate=10250000', 'other-config:priority=10' ))
+# ovs_vsctl.run_command([command])
+# print(command)
+
+banda_maxima = 15000000
+banda_class1 = int(banda_maxima*0.33)
+banda_class2 = int(banda_maxima*0.35)
+banda_class3 = int(banda_maxima*0.25)
+banda_class4 = int(banda_maxima*0.07)
+
+script_qos = f"sudo ovs-vsctl -- set port {interface} qos=@newqos -- \
+                        --id=@newqos create qos type=linux-htb other-config:max-rate={str(banda_maxima)} \
+                        queues=0=@q0,1=@q1,2=@q2,3=@q3,4=@q4,5=@q5,6=@q6,7=@q7 -- \
+                        --id=@q0 create queue other-config:min-rate={str(banda_class1+banda_class2)} other-config:max-rate={str(banda_class1+banda_class2+100)} other-config:priority=10 -- \
+                        --id=@q1 create queue other-config:min-rate={str(banda_class1+banda_class2)} other-config:max-rate={str(banda_class1+banda_class2+100)} other-config:priority=5 -- \
+                        --id=@q2 create queue other-config:min-rate={str(banda_class1+banda_class2)} other-config:max-rate={str(banda_class1+banda_class2+100)} other-config:priority=2 -- \
+                        --id=@q3 create queue other-config:min-rate={str(banda_class1+banda_class2)} other-config:max-rate={str(banda_class1+banda_class2+100)} other-config:priority=10 -- \
+                        --id=@q4 create queue other-config:min-rate={str(banda_class1+banda_class2)} other-config:max-rate={str(banda_class1+banda_class2+100)} other-config:priority=5 -- \
+                        --id=@q5 create queue other-config:min-rate={str(banda_class1+banda_class2)} other-config:max-rate={str(banda_class1+banda_class2+100)} other-config:priority=2 -- \
+                        --id=@q6 create queue other-config:min-rate={str(banda_class3)} other-config:max-rate={str(banda_maxima)} other-config:priority=10 -- \
+                        --id=@q7 create queue other-config:min-rate={str(banda_class4)} other-config:max-rate={str(banda_class4+100)} other-config:priority=2"
+
+print(script_qos)
+
+#aplicando o script aqui
+p = subprocess.Popen(f"echo mininet | {script_qos}", stdout=subprocess.PIPE, shell=True)
+
+if(p.errors == None):
+    print("Sucesso")
+else:
+    print("Falha")
+    

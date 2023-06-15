@@ -533,22 +533,28 @@ def tratador_addswitch(addswitch_json):
             #criar as novas filas
             lbandatotal = int(largura_porta)
             #classe tempo-real ids=[0,1,2]
-            lbandaclasse1 = lbandatotal * 0.25
+            lbandaclasse1 = int(lbandatotal * 0.33)
             #classe nao-tempo-real/dados ids=[3,4,5]
-            lbandaclasse2 = lbandatotal * 0.25
+            lbandaclasse2 = int(lbandatotal * 0.35)
             #classe best-effort id = 6
-            lbandaclasse3 = lbandatotal * 0.25
+            lbandaclasse3 = int(lbandatotal * 0.25)
             #classe controle id = 7
-            lbandaclasse4 = lbandatotal * 0.25
+            lbandaclasse4 = int(lbandatotal * 0.07)
 
-            #limpar antes as configuracoes existentes de qos
+            #limpar antes as configuracoes existentes de qos de fila tc
             # comando -> echo mininet | sudo -S tc qdisc del dev s1-eth1 root
             p = subprocess.Popen("echo mininet | sudo -S tc qdisc del dev " + interface + " root", stdout=subprocess.PIPE, shell=True)
+
+            if(p.errors == None):
+                print(f"[new_switch_handler] SUCESSO - filas anteriores removidas {interface}\n{script_qos}")
+            else:
+                print(f"[new_switch_handler] FALHA - Erro em remover filas anteriores {interface}\n{script_qos}")
 
             #tentar com apenas a configuracao ovs-vsctl - sem limpar o tcqdisc ---> nao funciona
             #ovs-vsctl clear port s1-eth4 qos
 
-            #critico - tem que saber o endereco para o ovsdb
+            #critico - tem que saber o endereco para o ovsdb]
+            #limpar entradas de qos anterior do ovsdb para  porta
             OVSDB_ADDR = 'tcp:127.0.0.1:6640'
             ovs_vsctl = vsctl.VSCtl(OVSDB_ADDR)
 
@@ -561,10 +567,32 @@ def tratador_addswitch(addswitch_json):
             # command.result[0] is a list of return values
             #deu certo?
             print(command.result[0])
+            print(f"[new_switch_handler]Entradas de qos anteriores foram removidas do ovsdb para a porta {nome_porta}")
 
-            queues = [{'min-rate': '10000', 'max-rate': '100000', 'priority': '5'},{'min-rate':'500000'}]
-            ovs_bridge.set_qos(interface, type='linux-htb', max_rate="15000000", queues=queues)
-            #deu certo?
+            # queues = [{'min-rate': '10000', 'max-rate': '100000', 'priority': '5'},{'min-rate':'500000'}]
+            # ovs_bridge.set_qos(interface, type='linux-htb', max_rate="15000000", queues=queues)
+            # #deu certo?
+
+            script_qos = f"sudo ovs-vsctl -- set port {interface} qos=@newqos -- \
+                                    --id=@newqos create qos type=linux-htb other-config:max-rate={str(lbandatotal)} \
+                                    queues=0=@q0,1=@q1,2=@q2,3=@q3,4=@q4,5=@q5,6=@q6,7=@q7 -- \
+                                    --id=@q0 create queue other-config:min-rate={str(lbandaclasse1+lbandaclasse2)} other-config:max-rate={str(lbandaclasse1+lbandaclasse2+100)} other-config:priority=10 -- \
+                                    --id=@q1 create queue other-config:min-rate={str(lbandaclasse1+lbandaclasse2)} other-config:max-rate={str(lbandaclasse1+lbandaclasse2+100)} other-config:priority=5 -- \
+                                    --id=@q2 create queue other-config:min-rate={str(lbandaclasse1+lbandaclasse2)} other-config:max-rate={str(lbandaclasse1+lbandaclasse2+100)} other-config:priority=2 -- \
+                                    --id=@q3 create queue other-config:min-rate={str(lbandaclasse1+lbandaclasse2)} other-config:max-rate={str(lbandaclasse1+lbandaclasse2+100)} other-config:priority=10 -- \
+                                    --id=@q4 create queue other-config:min-rate={str(lbandaclasse1+lbandaclasse2)} other-config:max-rate={str(lbandaclasse1+lbandaclasse2+100)} other-config:priority=5 -- \
+                                    --id=@q5 create queue other-config:min-rate={str(lbandaclasse1+lbandaclasse2)} other-config:max-rate={str(lbandaclasse1+lbandaclasse2+100)} other-config:priority=2 -- \
+                                    --id=@q6 create queue other-config:min-rate={str(lbandaclasse3)} other-config:max-rate={str(lbandatotal)} other-config:priority=10 -- \
+                                    --id=@q7 create queue other-config:min-rate={str(lbandaclasse4)} other-config:max-rate={str(lbandaclasse4+100)} other-config:priority=2"
+
+            #aplicando o script aqui
+            p = subprocess.Popen(f"echo mininet | {script_qos}", stdout=subprocess.PIPE, shell=True)
+
+            if(p.errors == None):
+                print(f"[new_switch_handler] SUCESSO - Novas configuracoes de filas foram estabelecidas porta {interface}\n{script_qos}")
+            else:
+                print(f"[new_switch_handler] FALHA - Erro em novas configuracoes de filas porta {interface}\n{script_qos}")
+    
 
 def tratador_novasrotas(novasrotas_json):
 

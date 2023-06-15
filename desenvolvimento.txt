@@ -6,7 +6,12 @@
 
 * Journal Netsoft -> setembro - aqui com a classificação já
 
+-> ieee access : journal a ser tentado
+
 * Ir na programação do sbrc - artigos de classificação de tráfego - pequisar depois em sbcopenlib - só anais sbrc estendidos
+
+
+--> EM SI: desenvolvimento artigo comparando métodos ML em batch vs streaming para classificação de tráfego em tempo real.
 
 -----------------------------------------
 
@@ -17,7 +22,7 @@
 
 -> [obs: gui só web se não é perda de tempo] caso eu queira implementar a parte gráfica do FLOWPRI em docker e exportar para o servidor gráfico xorg fora do containerhttps://www.howtogeek.com/devops/how-to-run-gui-applications-in-a-docker-container/
 
--> abrir mais uma porta no flowpri para ouvir configurações a partir de arquivos json. (isso vai tornar o controlador programável por administradores e faz sentido pois um domínio pode conter diversos controladores.
+-> [feito] abrir mais uma porta no flowpri para ouvir configurações a partir de arquivos json. (isso vai tornar o controlador programável por administradores e faz sentido pois um domínio pode conter diversos controladores.
 
 -> preciso de uma estratégia para atualizar rotas no FLOWPRI-> algo do tipo roteamento dinâmico + políticas de encaminhamento do domínio (rotas desejadas e indesejadas).
 
@@ -33,21 +38,12 @@
 
 -> pensar em como habilitar suporte a nat e melhorar o processo de estabelecimento de contrato na parte do cliente-controlador principalmente
 
--> obs: sobre os multiplos controladores no ambiente linux, é possível usar regras TC: pacotes com origem localhost e porta tcp X, encaminhar para a interface Ix. Essa porta TCP x seria a porta que o controlador está ouvindo. 
-
--> V4 resolveu o problema das traduções de endereços.
+-> [resolvido -> V4 resolveu o problema das traduções de endereços.] obs: sobre os multiplos controladores no ambiente linux, é possível usar regras TC: pacotes com origem localhost e porta tcp X, encaminhar para a interface Ix. Essa porta TCP x seria a porta que o controlador está ouvindo. 
 
 -> Trabalho semelhante -- comparar  https://github.com/amirashoori7/sdn_qos/tree/main (tem artigo)
 
 -> como configurar filas utilizando o ryu e o ovsdb  https://ryu.readthedocs.io/en/latest/library_ovsdb.html#ryu.lib.ovs.bridge.OVSBridge.set_qos
 No entanto, as configurações não trafegam como mensagens dentro da rede. (na verdade as outras mensagens openflow tbm nao faziam isso, entao ok).
-
--> ieee access : journal a ser tentado
-
---> EM SI: desenvolvimento artigo comparando métodos ML em batch vs streaming para classificação de tráfego em tempo real.
-
--> talvez seja possivel uma públicação.
-
 
 -> [como aplicar priorização com classificação de fluxos] Priorizar fluxos mais regulares (para o mesmo destino, mesmo qos ...)
 
@@ -106,6 +102,10 @@ OBS: Em caso de duvida mandar e-mail para os caras do ryu/ovs.
 
 #UPDATES do DIA
 
+#15/06
+
+- [feito] Terminar a configuração de filas no controlador.
+
 #31/05
 
 * Verificar a relação entre fila criada pelo ovs-vsctl e a fila htb tc class 
@@ -156,6 +156,8 @@ OBS: Em caso de duvida mandar e-mail para os caras do ryu/ovs.
 	|-> removendo o tc root configurações netem definidas na topologia, tbm são removidos
 	
 	|-> usar o comando (por ex.) tc qdisc add dev s1-eth1 delay 50ms 20ms distribution normal.
+
+	|-> tem que usar tc aparentemente ( precisa alterar a fila root )
 
 -- arrumar a parte do prefixo na funcao  -> getPortaSaida(self, ip_dst)
 
