@@ -105,6 +105,15 @@ OBS: Em caso de duvida mandar e-mail para os caras do ryu/ovs.
 #15/06
 
 - [feito] Terminar a configuração de filas no controlador.
+- observado sobre wsgi web socket -- criar uma gui web para o controlador ?
+
+-- se a parte de rotas não encomodar --- fazer os testes!!
+
+-- em paralelo: escrita de artigo para disciplina SI e continuidade de pesquisa sobre classificação de tráfego.
+--     ||:  escrita de artigo para publicar em CNSM
+
+- Adicionar protocolo e porta no contrato - para permitir multiplos fluxos por hosts
+-- não utilizar mais DSCP
 
 #31/05
 
