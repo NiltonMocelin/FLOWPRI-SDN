@@ -41,16 +41,18 @@ contrato = {
         "contrato":{
             "ip_origem":sys.argv[2],
             "ip_destino":sys.argv[3],
-            "banda":sys.argv[4],
-            "prioridade":sys.argv[5],
-            "classe":sys.argv[6]
+            "dst_port":sys.argv[4],
+            "ip_proto:":sys.argv[5],
+            "ip_ver:":sys.argv[6],
+            "banda":sys.argv[7],
+            "prioridade":sys.argv[8],
+            "classe":sys.argv[9]
             }
         }
 contrato_json=json.dumps(contrato).encode('utf-8')
 print(contrato_json)
 
 qtdBytes = struct.pack('<i',len(contrato_json))
-
 
 #with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

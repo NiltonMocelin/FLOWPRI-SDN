@@ -10,7 +10,6 @@
 
 * Ir na programação do sbrc - artigos de classificação de tráfego - pequisar depois em sbcopenlib - só anais sbrc estendidos
 
-
 --> EM SI: desenvolvimento artigo comparando métodos ML em batch vs streaming para classificação de tráfego em tempo real.
 
 -----------------------------------------
@@ -101,6 +100,31 @@ leva para identificar um fluxo corretamente - testa uma vez no tempo 0, e após 
 OBS: Em caso de duvida mandar e-mail para os caras do ryu/ovs.
 
 #UPDATES do DIA
+
+
+#21/06
+- adicionar porta e protocolo no contrato
+- ajustar a configuracao de criação de regras de fluxo utilizando porta e protocolo
+
+- funcoes para alterar {
+	- servidor_socket_controladores
+	- servidor_socket_hosts
+	- delContratoERegras
+	- alocarGBAM
+	- addRegraC
+	- addRegraF
+	- classe Regra __init__
+	- Porta addRegra
+	- Porta delRegra
+	- delRegraT
+	- Acao executar
+	- encontrarMatchContratos
+
+}
+
+-- OBS: caso o TREX nao funcione direito - simulação de aplicações na rede pode ser realizada criando codigo python-scapy 
+-- modificar arquivos.pcap para os campos de ip do cenário mininet e enviar pacotes com a ferramenta scapy.
+-- Nos hosts, um código simula o cliente e outro o servidor, enviando e recebendo pacotes conforme um arquivo pcap 
 
 #15/06
 

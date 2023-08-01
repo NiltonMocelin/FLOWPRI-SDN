@@ -237,6 +237,11 @@ def servidor_socket_hosts():
         cip_src = contrato['contrato']['ip_origem']
         cip_dst = contrato['contrato']['ip_destino']
 
+        cip_dport = contrato['contrato']['dst_port']
+        cip_proto = contrato['contrato']['ip_proto']
+
+        cip_ver = contrato['contrato']['ip_ver']
+
         banda = contrato['contrato']['banda']
         prioridade =  contrato['contrato']['prioridade']
         classe =  contrato['contrato']['classe']
@@ -254,13 +259,13 @@ def servidor_socket_hosts():
         switches_rota = SwitchOVS.getRota(None, cip_dst)
 
         if switches_rota == None:
-            print("[%s] Rota nao encontrada entre src:%s dst:%s \nRegras nao criadas - ICMP nao enviado" % (datetime.datetime.now().time(), cip_src, cip_dst))
+            print("[%s] Rota nao encontrada entre src:%s dst:%s dport:%s\nRegras nao criadas - ICMP nao enviado" % (datetime.datetime.now().time(), cip_src, cip_dst,cip_dport))
             print("[%s] servidor_socket host - fim:\n" % (datetime.datetime.now().time()))
             conn.close()
 
         #deletando o contrato anterior e as regras a ele associadas
-        delContratoERegras(switches_rota, cip_src, cip_dst)
-
+        delContratoERegras(switches_rota, cip_src, cip_dst, cip_proto, cip_dport)
+ 
         #print]("contrato salvo \n")
         contratos.append(contrato)      
 
@@ -274,7 +279,7 @@ def servidor_socket_hosts():
         #nao precisa injetar o pacote,pois era um contrato para este controlador
         for s in switches_rota:
             out_port = s.getPortaSaida(cip_dst)
-            acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
+            acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, cip_proto, cip_dport, banda, prioridade, classe)
 
             #retorno vazio = nao tem espaco para alocar o fluxo
             if len(acoes_aux)==0:
@@ -309,7 +314,7 @@ def servidor_socket_hosts():
         for a in acoes:
             if(a.nome_switch == switches_rota[0].nome and a.codigo == CRIAR):
                 #criando a regra de marcacao - switch mais da borda emissora
-                switches_rota[0].addRegraC(cip_src, cip_dst, a.regra.tos)
+                switches_rota[0].addRegraC(cip_src, cip_dst, cip_proto, cip_dport, a.regra.tos)
                 break
 
         #enviando o icmp 15 ---- obs nao posso enviar o icmp 15, pois o controlador nao  conhece o end MAC do destino
@@ -386,6 +391,11 @@ def servidor_socket_controladores():
             cip_src = contrato['contrato']['ip_origem']
             cip_dst = contrato['contrato']['ip_destino']
 
+            cip_dport = contrato['contrato']['dst_port']
+            cip_proto = contrato['contrato']['ip_proto']
+
+            cip_ver = contrato['contrato']['ip_ver']
+
             banda = contrato['contrato']['banda']
             prioridade =  contrato['contrato']['prioridade']
             classe =  contrato['contrato']['classe']
@@ -399,7 +409,7 @@ def servidor_socket_controladores():
                 conn.close()
 
             #deletando o contrato anterior e as regras a ele associadas
-            delContratoERegras(switches_rota, cip_src, cip_dst)
+            delContratoERegras(switches_rota, cip_src, cip_dst, cip_proto, cip_dport)
 
             #print]("contrato salvo \n")
             contratos.append(contrato)
@@ -456,7 +466,7 @@ def servidor_socket_controladores():
         print("[%s] servidor_socket controlador - fim:\n" % (datetime.datetime.now().time()))
     
 #remove um contrato e as regras associadas a ele nos switches da rota entre ip_src, ip_dst
-def delContratoERegras(switches_rota, cip_src, cip_dst):
+def delContratoERegras(switches_rota, cip_src, cip_dst, cip_proto, cip_dport):
     ##checar se ja existe um contrato e remover --- isso ocorre antes de adicionar o novo contrato, por isso consigo pegar o contrato antigo
     for i in contratos:
         if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_destino']==cip_dst:
@@ -1021,7 +1031,7 @@ class SwitchOVS:
         #print("[getPorta] porta inexistente: %s\n" % (nomePorta))
         return None
 
-    def alocarGBAM(self, nomePorta, origem, destino, banda, prioridade, classe):
+    def alocarGBAM(self, nomePorta, origem, destino, proto, dport, banda, prioridade, classe):
 
         banda = int(banda)
         prioridade = int(prioridade)
