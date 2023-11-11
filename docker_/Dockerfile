@@ -11,6 +11,9 @@ RUN apk add --no-cache build-base bash python3 pkgconfig gcc openldap libcurl py
 
 RUN apk add --no-cache py3-pip
 
+#eh importante para instalacoes python modernas
+RUN pip install wheel
+
 RUN pip install netaddr
 RUN pip install routes
 RUN pip install setuptools
@@ -25,6 +28,9 @@ RUN pip install networkx
 
 #instalar ryu
 RUN pip install ryu
+
+#install netifaces para obter ip local usando python
+RUN pip install netifaces
 
 #porta para receber contratos de hosts
 EXPOSE 4444
