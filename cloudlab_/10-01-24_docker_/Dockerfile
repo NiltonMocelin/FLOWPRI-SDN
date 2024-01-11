@@ -38,8 +38,14 @@ EXPOSE 4444
 EXPOSE 8888
 #porta alcancavel pelos switches
 EXPOSE 8000
+#porta para interface web
+EXPOSE 7000
 #porta para o controlador receber programacao?
 
+#incluindo o framework
 ADD flowpri.py flowpri.py
+
+#incluindo a interface web
+ADD wsgiWebSocket wsgiWebSocket
 
 ENTRYPOINT ["ryu-manager", "flowpri.py", "--ofp-tcp-listen-port", "8000"]

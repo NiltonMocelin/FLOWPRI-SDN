@@ -16,7 +16,8 @@ import random
 PORTA_WEBS_RCV = 9998 #porta para receber solicitacoes de informacoes JSON para a interface WEB
 PORTA_WEBS_SND = 9997 #porta para enviar informacoes JSON para a interface WEB
 PORTA_ACCESS_WEB = 7000
-
+__IP = '172.17.0.2'
+#__IP='localhost'
 def _websocket_rcv(json_request):
     """ Socket para receber solicitacoes a interface websocket """
     
@@ -60,22 +61,21 @@ def dispatch(environ, start_response):
         return handle(environ, start_response)
     else:
         start_response('200 OK', [('content-type', 'text/html')])
-        return [open(os.path.join(
-                    #  os.path.dirname(__file__),
-                     'zzz.html')).read()]
+        print('Host conectado')
+        return [open('wsgiWebSocket/index.html').read()]
 
 def lancar_wsgi():
     print("lancando wsgi ...")
-    listener = eventlet.listen(('localhost', PORTA_ACCESS_WEB))
-    print("\nVisit http://localhost:%s/ in your websocket-capable browser.\n" % (PORTA_ACCESS_WEB))
+    listener = eventlet.listen((__IP, PORTA_ACCESS_WEB))
+    print("\nVisit http://%s:%s/ in your websocket-capable browser.\n" % (__IP,PORTA_ACCESS_WEB))
     wsgi.server(listener, dispatch)
 
     print('Feito ...')
 
 
 
-# if __name__ == "__main__":
-#     # run an example app from the command line
+#if __name__ == "__main__":
+     # run an example app from the command line
 
 #     t3 = Thread(target=lancar_wsgi)
 #     t3.start()

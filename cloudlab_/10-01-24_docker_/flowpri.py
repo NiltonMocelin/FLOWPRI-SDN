@@ -46,7 +46,7 @@ import datetime
 import logging
 
 # importar o tratador da interface web
-import interface_web
+import wsgiWebSocket.interface_web as iwb
 
 ############################################
 # informacoes armazenadas pelo controlador #
@@ -697,7 +697,7 @@ t3 = Thread(target=tratador_configuracoes)
 t3.start()
 
 ### iniciar o servidor web aqui
-t4 = Thread(target=lancar_wsgi)
+t4 = Thread(target=iwb.lancar_wsgi)
 t4.start()
 
 #t1.join()
