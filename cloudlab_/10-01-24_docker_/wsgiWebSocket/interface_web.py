@@ -17,6 +17,40 @@ PORTA_WEBS_RCV = 9998 #porta para receber solicitacoes de informacoes JSON para 
 PORTA_WEBS_SND = 9997 #porta para enviar informacoes JSON para a interface WEB
 PORTA_ACCESS_WEB = 7000
 __IP = '172.17.0.2'
+
+
+dados_json = ''
+
+import psutil 
+import json
+
+def pc_status():
+    """Obtem a carga de cpu atual e a ram utilizada e monta um json"""
+    # Getting all memory using os.popen()
+    # print(os.popen('free -t -m'))
+
+    total_memory, used_memory, free_memory = os.popen('free -m').readlines()[-1].split()[1:]
+
+    cpu_utilization = psutil.cpu_percent()
+
+    status_js = """{
+                "controller_stats":[ {
+                        "total_memory":%s
+                    },
+                    {
+                        "used_memory":%s
+                    },
+                    {
+                        "free_memory":%s
+                    },
+                    {
+                        "cpu_utilization":%s
+                    }
+                ]}""" % (total_memory, used_memory, free_memory, cpu_utilization)
+
+    return status_js
+
+
 #__IP='localhost'
 def _websocket_rcv(json_request):
     """ Socket para receber solicitacoes a interface websocket """
@@ -30,18 +64,19 @@ def _websocket_rcv(json_request):
 
     return json_reply
 
-def _websocket_snd(list_dados, tipo_dados):
+def _websocket_snd(ws, dados_json):
     """ Socket para enviar informacoes a interface websocket """
 
-    json_reply = """{"reply":"aa"}"""
+    ws.send(dados_json)
 
-    return json_reply
 ###################################
 
 @websocket.WebSocketWSGI
 def handle(ws):
     """  This is the websocket handler function.  Note that we
     can dispatch based on path in here, too."""
+    print('entrou no handle: ', ws.path)
+
     if ws.path == '/echo':
         while True:
             m = ws.wait()
@@ -49,16 +84,25 @@ def handle(ws):
                 break
             ws.send(m)
 
-    elif ws.path == '/data':
-        for i in six.moves.range(10000):
-            ws.send("0 %s %s\n" % (i, random.random()))
-            eventlet.sleep(0.1)
+def send_dados():
+
+    # dados_json2 = dados_json
+
+    #limpar os antigos dados
+    # dados_json = ''
+
+    return pc_status()
+
 
 def dispatch(environ, start_response):
     """ This resolves to the web page or the websocket depending on
     the path."""
-    if environ['PATH_INFO'] == '/data':
-        return handle(environ, start_response)
+
+    print(environ['PATH_INFO'])
+    if environ['PATH_INFO'] == '/dados':
+        start_response('200 OK', [('content-type', 'text/html')])
+        print('AAAAA')
+        return send_dados()
     else:
         start_response('200 OK', [('content-type', 'text/html')])
         print('Host conectado')

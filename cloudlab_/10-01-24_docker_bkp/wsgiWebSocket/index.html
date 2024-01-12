@@ -1,0 +1,35 @@
+<HTML>
+    <HEAD>
+      <TITLE> Controller WEB Interface </TITLE>
+  
+    </HEAD>
+  
+   <BODY>
+
+    <h2> Switches Conectados </h2>
+
+    <!-- lista de switches -->
+    <div id="switch_list"></div>
+
+    <!-- canvas com o grafo da rede -->
+    <div id="network_graph"></div>
+
+    <!-- grafo com redes virtuais -->
+    <div id="virtual_network_graph"></div>
+
+    <!-- *que mais??* -->
+
+    <!-- informacoes sobre uso de recursos do controlador (cpu, ram, taxa de packet_in/s) -->
+    <div id="controller_stats"></div>
+
+    <script>
+      // recuperar do controlador todas as informacoes e jogar nas div
+
+      var io = require('socket.io')(http);
+
+
+    </script>
+
+   </BODY>
+   </HTML>
+   

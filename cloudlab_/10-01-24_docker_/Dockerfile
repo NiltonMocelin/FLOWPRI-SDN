@@ -26,6 +26,9 @@ RUN pip install six
 RUN pip install pbr
 RUN pip install networkx
 
+#para monitorar carga no controlador...
+RUN pip install psutil 
+
 #instalar ryu
 RUN pip install ryu
 
@@ -43,9 +46,9 @@ EXPOSE 7000
 #porta para o controlador receber programacao?
 
 #incluindo o framework
-ADD flowpri.py flowpri.py
+ADD flowpri_ flowpri_
 
 #incluindo a interface web
 ADD wsgiWebSocket wsgiWebSocket
 
-ENTRYPOINT ["ryu-manager", "flowpri.py", "--ofp-tcp-listen-port", "8000"]
+ENTRYPOINT ["ryu-manager", "flowpri_/fp_controller.py", "--ofp-tcp-listen-port", "8000"]
