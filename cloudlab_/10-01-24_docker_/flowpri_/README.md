@@ -17,3 +17,25 @@
  * Aplicacao no host informando QoS dos seus fluxos
 
  * Suporte a redes virtuais --- por último....
+
+## Ordem de desenvolvimento{
+
+* --- Algumas coisas já são existentes só colocar para ficar mais funcional
+
+*  #Resolver a parte de configuracao manual
+
+* #Implementar DHCPv4 e v6
+
+* #Resolver a parte básica de roteamento.... (descoberta de topologia)
+
+* #Resolver a parte de suporte a IPv6.
+
+* #Resolver a parte de classificacao
+
+* #Resolver a parte de garantia de QoS.
+
+* #Resolver a parte de monitoramento de QoS.
+
+* #Resolver a parte de QoS as a Service.
+
+}

@@ -105,9 +105,9 @@ def getController():
 #     raise SystemExit(f"Faltando o modulo {e.name}. Rodar 'pip install {e.name}'")
 
 
-#dicionario para encontrar a rota, em uma situacao real, o controlador sabe quais sao os hosts conectados ao seu dominio, seja pre-configurado ou por aprendizado em packet-in
-#LISTA_HOSTS[ip]=switch_dpid
-LISTA_HOSTS = {}
+#dicionario para utilizar com o dhcp
+LISTA_HOSTSv4 = {}
+LISTA_HOSTSv6 = {}
 
 arpList = {}
 contratos = []
@@ -327,22 +327,13 @@ t4.start()
 
 ############# send_icmp TORNADO GLOBAL EM 06/10 - para ser aproveitado em server socket ###################
 #https://ryu-devel.narkive.com/1CxrzoTs/create-icmp-pkt-in-the-controller
-#se o ip dest for de um controlador, tem que traduzir o ip para um ficticio para que seja encaminhado pela interface correta, caso contrario esta indo pelo loopback
 def send_icmp(datapath, srcMac, srcIp, dstMac, dstIp, outPort, seq, data, id=1, type=8, ttl=64):
-    #print]("[send-icmp] type:%d, src:%s, ip_src:%s, dst:%s, ip_dst:%s, psaida %d\n" % (type, srcMac, srcIp, dstMac,dstIp, outPort))
 
     e = ethernet.ethernet(dst=dstMac, src=srcMac, ethertype=ether.ETH_TYPE_IP)
 
     iph = ipv4.ipv4(4, 5, 0, 0, 0, 2, 0, ttl, 1, 0, srcIp, dstIp)
 
     actions = [datapath.ofproto_parser.OFPActionSetQueue(FILA_CONTROLE), datapath.ofproto_parser.OFPActionOutput(outPort)] #no fim tem que ir na fila de controle
-
-    #se o ip destino for de um controlador, fazer o pacote ser enviado para um ip ficticio e remarcado com o ip correto no switch.
-    #se mostrou desnecessario pois eh um pacote injetado, nao originado pela interface do root
-    #if dst_controlador == True:
-    #    dstIp_traduzido = TC[dstIp]
-    #    iph = ipv4.ipv4(4, 5, 0, 0, 0, 2, 0, ttl, 1, 0, srcIp, dstIp_traduzido)
-    #    actions = [datapath.ofproto_parser.OFPActionSetField(ipv4_dst=dstIp), datapath.ofproto_parser.OFPActionSetQueue(FILA_CONTROLE), datapath.ofproto_parser.OFPActionOutput(outPort)] #no fim tem que ir na fila de controle
 
     icmph = icmp.icmp(type, 0, 0, data=data)#pode enviar os dados que quiser, mas tem que ser um vetor binario
         
@@ -358,9 +349,6 @@ def send_icmp(datapath, srcMac, srcIp, dstMac, dstIp, outPort, seq, data, id=1, 
     in_port=100,
     actions=actions,
     data=p.data)
-    #print]("[icmp-enviado]: ")
-    #print](out)
-    #print]("\n")
 
     datapath.send_msg(out)
     return 0
@@ -381,8 +369,6 @@ def checkControladorConhecido(ip):
             return 1
     #desconhecido
     return 0
-
-
 
 class Dinamico(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]

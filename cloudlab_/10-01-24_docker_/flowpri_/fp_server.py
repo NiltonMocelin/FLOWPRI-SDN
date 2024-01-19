@@ -309,8 +309,8 @@ def tratador_configuracoes():
         if "addswitch" in cfg:
             tratador_addswitch(cfg['addswitch'])
             
-        if "novasrotas" in cfg:
-            tratador_novasrotas(cfg['novasrotas'])
+        if "addrota" in cfg:
+            tratador_novasrotas(cfg['addrota'])
 
         #printando o json recebido
         print(cfg)
