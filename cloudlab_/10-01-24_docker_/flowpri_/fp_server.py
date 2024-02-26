@@ -311,6 +311,9 @@ def tratador_configuracoes():
             
         if "addrota" in cfg:
             tratador_novasrotas(cfg['addrota'])
+        
+        if "addregra" in cfg:
+            tratador_novasregras(cfg['addregra'])
 
         #printando o json recebido
         print(cfg)

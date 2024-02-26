@@ -305,6 +305,10 @@ def tratador_novasrotas(novasrotas_json):
 
         switch.addRede(prefixo, int (porta_saida))
 
+def tratador_novasregras(novasregras_json):
+    #   *Nao implementado*
+    return None
+
 
 #################
 #   INICIANDO SOCKET - RECEBER CONTRATOS (hosts e controladores)
