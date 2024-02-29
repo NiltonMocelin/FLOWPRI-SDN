@@ -19,6 +19,15 @@ PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
 PORTAC_X = 9999 #porta para receber arquivos de configuracao json do administrador
 
+IPV4 = '4'
+IPV6 = '41'
+ICMPV4 = '1'
+ICMPV6 = '58'
+TCP = '6'
+UDP = '17'
+EGP = '8'
+IGP = '9'
+
 FILA_C1P1=0
 FILA_C1P2=1
 FILA_C1P3=2

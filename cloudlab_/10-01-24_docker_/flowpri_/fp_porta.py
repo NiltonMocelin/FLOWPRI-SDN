@@ -34,32 +34,32 @@ class Porta:
         self.next = proximoSwitch
         #nao eh preciso armazenar informacoes sobre as filas de best-effort e controle de rede
 
-    def addRegra(self, ip_src, ip_dst, banda, prioridade, classe, tos, emprestando, porta_dst): #porta = nome da porta
+    def addRegra(self, ip_src, ip_dst, src_port, dst_port, proto, porta_saida, banda, prioridade, classe, tos, emprestando): #porta = nome da porta
 #adicionar regra na fila correta da classe switch no controlador
 
         if classe == 1:
             self.c1U += int(banda)
 
-            if prioridade == 1:
-                self.p1c1rules.append(Regra(ip_src, ip_dst, porta_dst, tos, banda, prioridade, classe, emprestando))
+            if prioridade == 1:             
+                self.p1c1rules.append(Regra(ip_src, ip_dst, src_port, dst_port, proto, porta_saida, tos, banda, prioridade, classe, emprestando))
             elif prioridade ==2:
-                self.p2c1rules.append(Regra(ip_src, ip_dst, porta_dst, tos, banda, prioridade, classe, emprestando))
+                self.p2c1rules.append(Regra(ip_src, ip_dst, src_port, dst_port, proto, porta_saida, tos, banda, prioridade, classe, emprestando))
             else: #prioridade ==3
-                self.p3c1rules.append(Regra(ip_src, ip_dst, porta_dst, tos, banda, prioridade, classe, emprestando))
+                self.p3c1rules.append(Regra(ip_src, ip_dst, src_port, dst_port, proto, porta_saida, tos, banda, prioridade, classe, emprestando))
         else: #classe ==2
             self.c2U += int(banda)
 
             if prioridade == 1:
-                self.p1c2rules.append(Regra(ip_src, ip_dst, porta_dst, tos, banda, prioridade, classe, emprestando))
+                self.p1c2rules.append(Regra(ip_src, ip_dst, src_port, dst_port, proto, porta_saida, tos, banda, prioridade, classe, emprestando))
             elif prioridade ==2:
-                self.p2c2rules.append(Regra(ip_src, ip_dst, porta_dst, tos, banda, prioridade, classe, emprestando))
+                self.p2c2rules.append(Regra(ip_src, ip_dst, src_port, dst_port, proto, porta_saida, tos, banda, prioridade, classe, emprestando))
             else: #prioridade ==3
-                self.p3c2rules.append(Regra(ip_src, ip_dst, porta_dst, tos, banda, prioridade, classe, emprestando))
+                self.p3c2rules.append(Regra(ip_src, ip_dst, src_port, dst_port, proto, porta_saida, tos, banda, prioridade, classe, emprestando))
 
         return 0
 
     
-    def delRegra(self, ip_src, ip_dst, tos):
+    def delRegra(self, ip_src, ip_dst, src_port, dst_port, proto, tos):
         #retorna 1, caso a regra tenha sido removida na classe 1, e 2 caso tenha sido removida na classe 2
         #print]("[delRegra] porta: %s, src:%s, dst:%s, tos: %d\n" % (self.nome, ip_src, ip_dst, int(tos)))
         #tos eh inteiro no dict
@@ -86,39 +86,39 @@ class Porta:
         
         if prioridade == 1:
             for i in self.p1c1rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst: #and i.tos == tos:
+                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.src_port == src_port and i.dst_port == dst_port and i.proto == proto: #and i.tos == tos:
                     self.c1U -= int(i.banda)
                     self.p1c1rules.remove(i)
                     return 1 #tos da classe 1, prioridade 1
 
             for i in self.p1c2rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst: # and i.tos == tos:
+                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.src_port == src_port and i.dst_port == dst_port and i.proto == proto:
                     self.c2U -= int(i.banda)
                     self.p1c2rules.remove(i)
                     return 2 #tos da classe 2, prioridade 1
 
         elif prioridade == 2:
             for i in self.p2c1rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst: # and i.tos == tos:
+                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.src_port == src_port and i.dst_port == dst_port and i.proto == proto:
                     self.c1U -= int(i.banda)
                     self.p2c1rules.remove(i)
                     return 1
 
             for i in self.p2c2rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst: # and i.tos == tos:
+                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.src_port == src_port and i.dst_port == dst_port and i.proto == proto:
                     self.c2U -= int(i.banda)
                     self.p2c2rules.remove(i)
                     return 2
 
         else: #prioridade ==3
             for i in self.p3c1rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst: # and i.tos == tos:
+                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.src_port == src_port and i.dst_port == dst_port and i.proto == proto:
                     self.c1U -= int(i.banda)
                     self.p3c1rules.remove(i)
                     return 1
 
             for i in self.p3c2rules:
-                if i.ip_src == ip_src and i.ip_dst == ip_dst: # and i.tos == tos:
+                if i.ip_src == ip_src and i.ip_dst == ip_dst and i.src_port == src_port and i.dst_port == dst_port and i.proto == proto:
                     self.c2U -= int(i.banda)
                     self.p3c2rules.remove(i)
                     return 2

@@ -81,11 +81,14 @@ from fp_constants import CPT, ALL_TABLES, FILA_CONTROLE
 try:
     from fp_switch import SwitchOVS
 except ImportError:
-    print('')
+    print('Erro de importacao')
 
 from fp_constants import IPC, MACC, PORTAC_C, CRIAR, CPF
 
 from fp_server import servidor_socket_controladores,servidor_socket_hosts,tratador_configuracoes, enviar_contratos
+
+import fp_acao
+import fp_regra
 
 
 controller_singleton = None
@@ -123,10 +126,11 @@ switches = [] #switches administrados pelo controlador
 #MB['']
 
 #remove um contrato e as regras associadas a ele nos switches da rota entre ip_src, ip_dst
-def delContratoERegras(switches_rota, cip_src, cip_dst, cip_proto, cip_dport):
+def delContratoERegras(switches_rota, cip_src, cip_dst, cip_proto, cip_dport, cip_sport):
     ##checar se ja existe um contrato e remover --- isso ocorre antes de adicionar o novo contrato, por isso consigo pegar o contrato antigo
+    
     for i in contratos:
-        if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_destino']==cip_dst:
+        if i['contrato']['ip_src']==cip_src and i['contrato']['ip_src']==cip_dst and i['contrato']['port_src']==cip_dport and i['contrato']['port_dst']==cip_sport and i['contrato']['proto']==cip_proto:
 
             #deletar as regras antigas em cada classe switch e no ovs - pegar as informacoes antigas e obter o tos, para entao conseguir remover o contrato/regras antigas
             classe_antiga = i['contrato']['classe']
@@ -140,7 +144,7 @@ def delContratoERegras(switches_rota, cip_src, cip_dst, cip_proto, cip_dport):
                 #deletando na classe switch (de algum dos vetores)
 #verificando - o alocar gbam ja remove a regra - ver como ele esta fazendo o del regra e o tos que esta sendo usado - esta usando o tos passado na funcao, ou seja, evita que tenha duas regras iguais
 #eh necessario remover aqui a regra que tem os ips iguais mas o tos diferente
-                out_port = s.getPortaSaida(cip_dst)
+                out_port = s.getPortaSaida(cip_dst) #inteiro
                 porta = s.getPorta(out_port)
                 #deletando a regra referente ao contrato antigo - pq nao vale mais, ele foi removido
                 #se a regra estava ativa, ela sera removida dos switches tbm
@@ -153,15 +157,13 @@ def delContratoERegras(switches_rota, cip_src, cip_dst, cip_proto, cip_dport):
                     #regra ativa
                     s.delRegraT(cip_src, cip_dst, tos_aux, ALL_TABLES)
             
-            # aqui fica mais dificil checar se a regra esta ativa - mas eh uma mensagem apenas (aguns pacotes entre controlador e switch de borda)
-            # foi alterado novamente para que delRegraT remova a regra em todas as tabelas
-            # no primeiro switch remover a regra de marcacao
-            #switches_rota[0].delRegraT(cip_src, cip_dst, int(tos_antigo), CLASSIFICATION_TABLE)
-            # como nao pode ter mais de um contrato, ja pode retornar
+
+                fp_acao.Acao(s,porta,fp_acao.REMOVER, fp_regra.Regra(cip_src,cip_dst,cip_src, cip_dport, cip_proto, out_port,None, None, None, None, None)).executar()
+     
             return
 
 
-def tratador_addswitch(addswitch_json):
+def tratador_addSwitch(addswitch_json):
 
     print("Adicionando configuracao de switch")
     for i in addswitch_json:
@@ -231,6 +233,8 @@ def tratador_addswitch(addswitch_json):
 
             # ovs_vsctl.run_command([command])
             # print(command)
+
+            #obs desse jeito so funciona em rede local!!! --- se o switch estiver em outro pc nao rola -- tem que utilizar a conexao com ovsdb sei la
             p = subprocess.Popen("echo mininet | sudo ovs-vsctl clear port s1-eth4 qos", stdout=subprocess.PIPE, shell=True)
 
             print("[new_switch_handler]Entradas de qos anteriores foram removidas do ovsdb para a porta {}".format(nome_porta))
@@ -281,16 +285,32 @@ def tratador_addswitch(addswitch_json):
             else:
                 print("[new_switch_handler] FALHA - Erro em novas configuracoes de filas porta {}\n{}".format(interface,script_qos))
  
+def tratador_delSwitch(switch_cfg):
 
-def tratador_novasrotas(novasrotas_json):
+    nome_switch = switch_cfg['nome']
+
+    for switch in switches:
+        if switch.nome == nome_switch:
+            switches.remove(switch)
+            break
+
+    print('Switch removido: %s' % (nome_switch))
+
+
+def tratador_rotas(novasrotas_json):
 
     print("Adicionando novas rotas:")
     for rota in novasrotas_json:
         print(rota)
 
-        nome_switch = rota['switch']
-        prefixo = rota['prefixo']
-        porta_saida = rota['porta']
+        #poderia obter uma lista de switches e ir em cada um adicinoando a rota
+
+        nome_switch = rota['switch_id']
+        prefixo = rota['prefixo_rede']
+        mascara = rota['mascara_rede']
+        tipo = rota['tipo'] # adicionar rota/remover rota
+
+        porta_saida = rota['porta_saida']
 
         switch = None
 
@@ -298,15 +318,65 @@ def tratador_novasrotas(novasrotas_json):
         for i in switches:
             if str(i.nome) == str(nome_switch):
                 switch = i
+                break
     
         if(switch == None):
             print("Switch S%s, nao encontrado no dominio - configuracao rejeitada\n" % str(nome_switch))
             continue
 
-        switch.addRede(prefixo, int (porta_saida))
+        if tipo == 'adicionar':
+            switch.addRede(prefixo, int (porta_saida))
+        else:
+            switch.delRede(prefixo, int (porta_saida))
 
-def tratador_novasregras(novasregras_json):
+def tratador_regras(novasregras_json):
     #   *Nao implementado*
+    # -> encontrar o switch onde as regras devem ser instaladas
+    # tipos de regras possiveis
+    # - delete e add
+    # - regras marcacao
+    # - regras meter (classes com qos -> gbam)
+    # - regra de encaminhamento (best-effort)
+
+    for regra in novasregras_json:
+
+        print(regra)
+
+        nome_switch = regra['switch']
+        switch_obj = None
+        
+        #encontrar o switch
+        for switch in switches:
+            if switch.nome == nome_switch:
+                switch_obj = switch
+                break
+        
+        if switch_obj == None:
+            print("Regra falhou!!")
+            #tentar a proxima regra
+            continue
+
+        tipo_regra = regra['tipo_regra'] #(add/delete)
+        ip_src = regra['ip_src']
+        ip_dst = regra['ip_dst']
+        porta_switch = regra['porta_switch']
+        porta_destino = regra['porta_destino']
+        porta_origem = regra['porta_origem']
+        proto = regra['proto']
+        #isso vai ser modificado outro momento
+        classe = regra['classe']
+        prioridade = regra['prioridade']
+        banda = regra['banda']
+
+        if tipo_regra == 'delete':
+            #se for uma regra GBAM deletar aqui
+            if not switch_obj.delRegraGBAM(ip_src, ip_dst, porta_switch, classe, prioridade, banda):
+                #se for uma regra best-effort remover aqui
+                switch_obj.delRegraT(ip_src, ip_dst, None)
+
+        elif tipo_regra == 'add':
+            switch_obj.alocarGBAM(porta_switch, ip_src, ip_dst, proto, porta_destino, banda, prioridade, classe)
+
     return None
 
 
@@ -586,6 +656,9 @@ class Dinamico(app_manager.RyuApp):
         ip_src = None
         ip_dst = None
         tos = None
+        porta_src = None
+        porta_dst = None
+        proto = None
         if 'ipv4_dst' in msg.match:
             ip_dst = msg.match['ipv4_dst']
         if 'ipv4_src' in msg.match:
@@ -608,9 +681,12 @@ class Dinamico(app_manager.RyuApp):
         if switch != None:
             # switch.updateRegras(ip_src, ip_dst, tos) # essa funcao nao faz nada, eh de uma versao antiga --- se tiver tempo, remove-la
             porta_nome = switch.getPortaSaida(ip_dst)
-            switch.getPorta(porta_nome).delRegra(ip_src, ip_dst, tos)
 
-            switch.delRegraM(meter_id)
+            #versao mais elegante
+            fp_acao.Acao(switch,porta_nome,fp_acao.REMOVER, fp_regra.Regra(ip_src,ip_dst,porta_nome,tos, None, None, None, None)).executar()
+
+            # switch.getPorta(porta_nome).delRegra(ip_src, ip_dst, tos)
+            # switch.delRegraM(meter_id)
 
         return 0
 

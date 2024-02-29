@@ -4,9 +4,9 @@ from fp_constants import IPC, PORTAC_C, MACC, PORTAC_H, PORTAC_X, CRIAR
 from fp_switch import SwitchOVS
 
 try:
-    from fp_controller import contratos, delContratoERegras, send_icmp, tratador_addswitch, tratador_configuracoes, tratador_novasrotas
+    from main_controller import contratos, delContratoERegras, tratador_regras, send_icmp, tratador_addSwitch, tratador_delSwitch, tratador_configuracoes, tratador_rotas
 except ImportError:
-    print('')
+    print('erro de importacao')
     
 import json, struct, time, datetime
 
@@ -307,13 +307,16 @@ def tratador_configuracoes():
         #descobrir qual o tipo de operacao da configuracao
         #realizar as operacoes modificando os switches
         if "addswitch" in cfg:
-            tratador_addswitch(cfg['addswitch'])
+            tratador_addSwitch(cfg['addswitch'])
+        
+        if "delswitch" in cfg:
+            tratador_addSwitch(cfg['delswitch'])
             
         if "addrota" in cfg:
-            tratador_novasrotas(cfg['addrota'])
+            tratador_rotas(cfg['rotas'])
         
         if "addregra" in cfg:
-            tratador_novasregras(cfg['addregra'])
+            tratador_regras(cfg['regras'])
 
         #printando o json recebido
         print(cfg)
