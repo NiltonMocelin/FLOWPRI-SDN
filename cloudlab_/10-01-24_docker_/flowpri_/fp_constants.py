@@ -18,6 +18,7 @@ print("Controlador MAC - {}".format(MACC))
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
 PORTAC_X = 9999 #porta para receber arquivos de configuracao json do administrador
+PORTAC_ICMP = 1111
 
 IPV4 = '4'
 IPV6 = '41'
@@ -40,6 +41,8 @@ FILA_CONTROLE=7
 #codigos das acoes
 CRIAR=0
 REMOVER=1
+EMPRESTANDO=1
+NAOEMPRESTANDO=0
 
 CLASSIFICATION_TABLE = 0 #tabela para marcacao de pacotes
 FORWARD_TABLE = 1 #tabela para encaminhar a porta destino

@@ -11,7 +11,7 @@ except ImportError:
 #codigo - (int) identificar a acao 0-CRIAR, 1-REMOVER
 #regra - (Regra) uma regra - com as informacoes suficientes para criar ou remover a regra
 class Acao:
-    def __init__(self, switch_obj, porta, codigo, regra):
+    def __init__(self, switch_obj : SwitchOVS, porta : int, codigo : int, regra):
         self.switch_obj=switch_obj
         self.porta = porta #int
         self.codigo = codigo

@@ -33,7 +33,7 @@ from ryu.lib.packet import ethernet
 #
 # from ryu.lib.packet import in_proto
 # from ryu.lib.packet import ether_types
-from ryu.lib.packet import ipv4, arp, icmp
+from ryu.lib.packet import ipv4, arp, icmp, udp, tcp
 
 # from ryu.topology import event
 
@@ -90,6 +90,8 @@ from fp_server import servidor_socket_controladores,servidor_socket_hosts,tratad
 import fp_acao
 import fp_regra
 
+from fp_contrato import Contrato
+
 
 controller_singleton = None
 
@@ -125,41 +127,61 @@ switches = [] #switches administrados pelo controlador
 #BM - banda = meter_id
 #MB['']
 
+def buscarContrato(id: int):
+    for i in contratos:
+        if i.id == id:
+            return i
+        
+    return None
+
+def buscarContrato(ip_ver: str, ip_src: str, ip_dst: str, src_port: str, dst_port: str, proto: str):
+    for i in contratos:
+        if i.ip_ver == ip_ver and i.ip_src == ip_src and i.ip_dst == ip_dst and i.src_port == src_port and i.dst_port == dst_port and i.proto == proto:
+            return i
+        
+    return None
+
+def buscarConflitoContrato(contrato: Contrato):
+    
+    contratos_conflitantes = []
+    contratos_conflitantes.append(contrato)
+
+    for i in contratos:
+        if i.ip_src == contrato.ip_src and i.ip_dst == contrato.ip_dst and i.src_port == contrato.src_port and i.dst_port == contrato.dst_port and i.proto == contrato.proto:
+            if i.ip_ver != contrato.ip_ver or i.proto != contrato.proto:
+                contratos_conflitantes.append(i) 
+        
+    return contratos_conflitantes
+
 #remove um contrato e as regras associadas a ele nos switches da rota entre ip_src, ip_dst
-def delContratoERegras(switches_rota, cip_src, cip_dst, cip_proto, cip_dport, cip_sport):
+def delContratoERegras(switches_rota, contrato: Contrato):
     ##checar se ja existe um contrato e remover --- isso ocorre antes de adicionar o novo contrato, por isso consigo pegar o contrato antigo
     
-    for i in contratos:
-        if i['contrato']['ip_src']==cip_src and i['contrato']['ip_src']==cip_dst and i['contrato']['port_src']==cip_dport and i['contrato']['port_dst']==cip_sport and i['contrato']['proto']==cip_proto:
+    contratos_conflitantes = buscarConflitoContrato(contrato)
 
-            #deletar as regras antigas em cada classe switch e no ovs - pegar as informacoes antigas e obter o tos, para entao conseguir remover o contrato/regras antigas
-            classe_antiga = i['contrato']['classe']
-            prioridade_antiga=i['contrato']['prioridade']
-            banda_antiga=i['contrato']['banda']
-            tos_antigo = CPT[(classe_antiga, prioridade_antiga, banda_antiga)]
-            #print]("[removendo-contrato-antigo] - ip_src:%s; ip_dst:%s; tos:%s\n" % (cip_src, cip_dst,tos_antigo))
+    if len(contratos_conflitantes) < 2:
+        print("[delContratosRegras] Nada a fazer!")
+        return
+
+    #quero manter apenas o novo - entao o removo da lista
+    contratos_conflitantes.pop(0)
+
+    for i in contratos_conflitantes:
+
+        #contrato exatamente igual ao que estamos incluindo ?
+        # if i.ip_src==contrato.ip_src and i.ip_dst==contrato.ip_dst and i.src_port==contrato.src_port and i.dst_port==contrato.dst_port and i.proto==contrato.proto and contrato.banda == i.banda and contrato.classe == i.classe and contrato.prioridade == i.prioridade:
+        contratos.remove(i)
+
+        for s in switches_rota:
+            out_port = s.getPortaSaida(i.ip_dst) #inteiro
+            porta = s.getPorta(out_port)
+            
+            #deletando a regra referente ao contrato antigo - pq nao vale mais, ele foi removido
+            #se a regra estava ativa, ela sera removida dos switches tbm
+            fp_acao.Acao(s,porta,fp_acao.REMOVER, fp_regra.Regra(i.ip_src,i.ip_dst,i.src_port, i.dst_port, i.proto, out_port,i.dscp, i.banda, i.prioridade, i.classe, 0)).executar()
 
             contratos.remove(i)
-            for s in switches_rota:
-                #deletando na classe switch (de algum dos vetores)
-#verificando - o alocar gbam ja remove a regra - ver como ele esta fazendo o del regra e o tos que esta sendo usado - esta usando o tos passado na funcao, ou seja, evita que tenha duas regras iguais
-#eh necessario remover aqui a regra que tem os ips iguais mas o tos diferente
-                out_port = s.getPortaSaida(cip_dst) #inteiro
-                porta = s.getPorta(out_port)
-                #deletando a regra referente ao contrato antigo - pq nao vale mais, ele foi removido
-                #se a regra estava ativa, ela sera removida dos switches tbm
-
-                #de qual classe a regra foi removida? classe 1, classe 2, ou -1 regra nao removida
-                classe_removida = porta.delRegra(cip_src, cip_dst, tos_antigo)
-                #print]("classe removida: %d\n" % (classe_removida))
-                if(classe_removida>0):
-                    tos_aux = CPT[(str(classe_removida), str(prioridade_antiga), str(banda_antiga))] 
-                    #regra ativa
-                    s.delRegraT(cip_src, cip_dst, tos_aux, ALL_TABLES)
-            
-
-                fp_acao.Acao(s,porta,fp_acao.REMOVER, fp_regra.Regra(cip_src,cip_dst,cip_src, cip_dport, cip_proto, out_port,None, None, None, None, None)).executar()
-     
+ 
             return
 
 
@@ -200,7 +222,6 @@ def tratador_addSwitch(addswitch_json):
             switch.addPorta(nome_porta, int(largura_porta), int(prox_porta))
 
             interface = "s" + str(nome_switch) + "-eth"+ str(nome_porta)
-
 ###
             #criar as novas filas
             lbandatotal = int(largura_porta)
@@ -342,7 +363,7 @@ def tratador_regras(novasregras_json):
 
         print(regra)
 
-        nome_switch = regra['switch']
+        nome_switch = regra['switch_id']
         switch_obj = None
         
         #encontrar o switch
@@ -359,9 +380,9 @@ def tratador_regras(novasregras_json):
         tipo_regra = regra['tipo_regra'] #(add/delete)
         ip_src = regra['ip_src']
         ip_dst = regra['ip_dst']
-        porta_switch = regra['porta_switch']
-        porta_destino = regra['porta_destino']
-        porta_origem = regra['porta_origem']
+        porta_saida = regra['porta_saida']
+        src_port = regra['src_port']
+        dst_port = regra['dst_port']
         proto = regra['proto']
         #isso vai ser modificado outro momento
         classe = regra['classe']
@@ -370,12 +391,12 @@ def tratador_regras(novasregras_json):
 
         if tipo_regra == 'delete':
             #se for uma regra GBAM deletar aqui
-            if not switch_obj.delRegraGBAM(ip_src, ip_dst, porta_switch, classe, prioridade, banda):
+            if not switch_obj.alocarGBAM(ip_src = ip_src, ip_dst = ip_dst, proto=proto, dst_port = dst_port, src_port= src_port, porta_saida = porta_saida, banda=banda, prioridade=prioridade, classe=classe):
                 #se for uma regra best-effort remover aqui
-                switch_obj.delRegraT(ip_src, ip_dst, None)
+                switch_obj.delRegraT(ip_src=ip_src, ip_dst=ip_dst,src_port=src_port, dst_port=dst_port, proto=proto,ip_dscp=None)
 
         elif tipo_regra == 'add':
-            switch_obj.alocarGBAM(porta_switch, ip_src, ip_dst, proto, porta_destino, banda, prioridade, classe)
+            switch_obj.alocarGBAM(ip_src = ip_src, ip_dst = ip_dst, proto=proto, dst_port = dst_port, src_port= src_port, porta_saida = porta_saida, banda=banda, prioridade=prioridade, classe=classe)
 
     return None
 
@@ -456,6 +477,7 @@ class Dinamico(app_manager.RyuApp):
         # #contratos.append(contrato)
         # _websocket_snd(pc_status())
 
+        global controller_singleton
         controller_singleton = self
 
         #procurar em todos os switches do controlador, qual gerou um packet in de um host - ou seja - o host esta mais proximo de qual switch
@@ -638,6 +660,7 @@ class Dinamico(app_manager.RyuApp):
     #Quando um fluxo eh removido ou expirou, chama essa funcao. OBJ --> atualizar quais fluxos nao estao mais utilizando banda e remover do switch     
     @set_ev_cls(ofp_event.EventOFPFlowRemoved, MAIN_DISPATCHER)
     def flow_removed_handler(self, ev):
+
         msg = ev.msg
         dp = msg.datapath
         ofp = dp.ofproto
@@ -656,15 +679,22 @@ class Dinamico(app_manager.RyuApp):
         ip_src = None
         ip_dst = None
         tos = None
-        porta_src = None
-        porta_dst = None
+        src_port = None
+        dst_port = None
         proto = None
         if 'ipv4_dst' in msg.match:
             ip_dst = msg.match['ipv4_dst']
-        if 'ipv4_src' in msg.match:
             ip_src = msg.match['ipv4_src']
         if 'ip_dscp' in msg.match:
             tos= msg.match['ip_dscp']
+        if 'tcp_src' in msg.match:
+            src_port = msg.match['tcp_src']
+            dst_port = msg.match['tcp_dst']
+            proto='tcp'
+        if 'udp_src' in msg.match:
+            src_port = msg.match['udp_src']
+            dst_port = msg.match['udp_dst']
+            proto='udp'
        
         if ip_src == None or ip_dst == None or tos == None:
             #print("Algo deu errado - ip ou tos nao reconhecido\n")
@@ -683,31 +713,28 @@ class Dinamico(app_manager.RyuApp):
             porta_nome = switch.getPortaSaida(ip_dst)
 
             #versao mais elegante
-            fp_acao.Acao(switch,porta_nome,fp_acao.REMOVER, fp_regra.Regra(ip_src,ip_dst,porta_nome,tos, None, None, None, None)).executar()
+            fp_acao.Acao(switch_obj = switch,porta = porta_nome,codigo = fp_acao.REMOVER, regra= fp_regra.Regra(ip_src=ip_src,ip_dst=ip_dst,src_port=src_port, dst_port=dst_port, proto=proto, porta_saida = porta_nome, tos=tos, banda=None, prioridade=None, classe=None, emprestando=None)).executar()
 
             # switch.getPorta(porta_nome).delRegra(ip_src, ip_dst, tos)
             # switch.delRegraM(meter_id)
 
         return 0
 
-    def encontrarMatchContratos(self, ip_src, ip_dst):
+    def encontrarMatchContratos(self, ip_src, ip_dst, src_port, dst_port, proto):
         
         #encontrou
         for i in contratos:
-            ii = i #json.loads(i)
-            cip_src = ii['contrato']['ip_origem']
-            cip_dst = ii['contrato']['ip_destino']
-
-            if cip_src == ip_src and cip_dst == ip_dst:
-                banda = ii['contrato']['banda']
-                prioridade =  ii['contrato']['prioridade']
-                classe =  ii['contrato']['classe']
+            if i.ip_src == ip_src and i.ip_dst == ip_dst and i.src_port == src_port and i.dst_port == dst_port and i.proto == proto:
+                banda = i.banda
+                prioridade =  i.prioridade
+                classe =  i.classe
                 
                 return banda, prioridade, classe
 
-
         #nao encontrou
         return None, None, None
+
+#arrumando ate aqui
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def packet_in_handler(self, ev):
@@ -745,6 +772,13 @@ class Dinamico(app_manager.RyuApp):
         ip_src = None
         ip_dst = None
 
+        #portas udp ou tcp
+        src_port = None
+        dst_port = None
+
+        #protocolo ip de transporte utilizado
+        proto = None
+
         #tipo pacote
         pkt_type = pkt_eth.ethertype
 
@@ -753,6 +787,28 @@ class Dinamico(app_manager.RyuApp):
             #print("\nPacote IPv4: ")
             ip_src = pkt_ipv4.src
             ip_dst = pkt_ipv4.dst
+
+        # if 'ip_dscp' in msg.match:
+        #     tos= msg.match['ip_dscp']
+        if 'tcp_src' in msg.match:
+            src_port = msg.match['tcp_src']
+            dst_port = msg.match['tcp_dst']
+            proto='tcp'
+        if 'udp_src' in msg.match:
+            src_port = msg.match['udp_src']
+            dst_port = msg.match['udp_dst']
+            proto='udp'
+
+        #se o de cima nao funcionar tentar..
+        # pkt_udp = pkt.get_protocol(udp.udp)
+        # if pkt_udp:
+        #     src_port = pkt_udp.src_port
+        #     dst_port = pkt.udp.dst_port
+
+        # pkt_tcp = pkt.get_protocol(tcp.tcp)
+        # if pkt_udp:
+        #     src_port = pkt_tcp.src_port
+        #     dst_port = pkt.tcp.dst_port
 
         print("[%s] pkt_in ip_src: %s; ip_dst: %s\n" % (datetime.datetime.now().time(), ip_src, ip_dst))
 
@@ -820,16 +876,21 @@ class Dinamico(app_manager.RyuApp):
                 addControladorConhecido(ip_src)
 
                 #verificar se ja tenho o contrato e enviar o tos que tenho, caso for o mesmo tos que ja recebi, nao vou receber resposta
+                cip_ver = json.loads(pkt_icmp.data)['ip_ver']
                 cip_src = json.loads(pkt_icmp.data)['ip_src']
-                cip_dst = ip_dst
-                dscp = -1
-                #procurando  nos contratos o dscp
-                for i in contratos:
-                    if i['contrato']['ip_origem']==cip_src and i['contrato']['ip_destino']==cip_dst:
-                        dscp = CPT[(i['contrato']['classe'], i['contrato']['prioridade'], i['contrato']['banda'])]
-                        break
+                cip_dst = json.loads(pkt_icmp.data)['ip_dst']
+                csrc_port = json.loads(pkt_icmp.data)['src_port']
+                cdst_port = json.loads(pkt_icmp.data)['dst_port']
+                cproto = json.loads(pkt_icmp.data)['proto']
+                # cip_dst = ip_dst
+                cdscp = -1
 
-                data = {"ip_dst":ip_dst,"ip_src":cip_src,"dscp":dscp}
+                ##***************************************#
+                #procurando  nos contratos o dscp
+                contrato = buscarContrato(ip_ver=cip_ver, ip_src=cip_src, ip_dst=cip_dst, src_port=csrc_port, dst_port=cdst_port, proto=cproto):
+                cdscp = CPT[(contrato.classe , contrato.prioridade, contrato.banda)]
+                
+                data = {"ip_ver": cip_ver, "ip_dst":cip_dst, "ip_src":cip_src, "src_port": csrc_port, "dst_port": cdst_port, "proto": cproto,"dscp":cdscp}
                 data = json.dumps(data)#.encode()
                 #print("[ICMP-15] contrato desejado:%s\n" % (data))  
 
@@ -839,10 +900,14 @@ class Dinamico(app_manager.RyuApp):
                 send_icmp(dp,MACC, IPC, src, ip_src, in_port,0,data,1,16,64) # se mostrou desnecessario, mas deixei a implementacao de qualquer forma, dst_controlador=True)
                 #print("[ICMP-15] ICMP Information Request -> Replied\n")
 
+
+###############3
+                ########### AAAAQUUUUI AQUI AQUI ####
+
                 #as regras de vinda dos pacotes de contrato ja existem, pq sao para este controlador
                 #no entanto as regras de volta (tcp-handshake) nao existem e sao do tipo controle tbm, entao criar 
                 switches_rota = self.getRota(str(dpid), IPC)
-                switches_rota[-1].addRegraC(IPC, ip_src, 61)
+                switches_rota[-1].addRegraC(ip_src=IPC, ip_dst=ip_src, src_port=1111, dst_port=1111, proto='icmp', ip_dscp= 61)
                 for s in switches_rota:
                     #porta de saida
                     out_port = s.getPortaSaida(ip_src)

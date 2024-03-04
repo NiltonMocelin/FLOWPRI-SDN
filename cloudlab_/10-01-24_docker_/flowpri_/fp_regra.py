@@ -1,6 +1,6 @@
 
 class Regra:
-    def __init__(self, ip_src, ip_dst, src_port, dst_port, proto, porta_saida, tos, banda, prioridade, classe, emprestando):
+    def __init__(self, ip_src : str, ip_dst : str, src_port : str, dst_port : str, proto : str, porta_saida: int, tos: int, banda: str, prioridade: str, classe: str, emprestando: int):
         self.ip_src = ip_src
         self.ip_dst = ip_dst
         self.porta_saida = porta_saida

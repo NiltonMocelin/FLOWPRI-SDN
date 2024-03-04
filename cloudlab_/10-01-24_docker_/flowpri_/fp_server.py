@@ -1,7 +1,8 @@
 import socket
-from fp_constants import IPC, PORTAC_C, MACC, PORTAC_H, PORTAC_X, CRIAR
+from fp_constants import IPC, PORTAC_C, MACC, PORTAC_H, PORTAC_X, CRIAR, CPT
 
 from fp_switch import SwitchOVS
+from fp_contrato import Contrato
 
 try:
     from main_controller import contratos, delContratoERegras, tratador_regras, send_icmp, tratador_addSwitch, tratador_delSwitch, tratador_configuracoes, tratador_rotas
@@ -39,119 +40,117 @@ def servidor_socket_hosts():
         qtdBytes = struct.unpack('<i',data)[0]
 
         data = conn.recv(qtdBytes)
+
+        #recebeu um contrato fecha a conexao, se o host quiser enviar mais, que inicie outra
+        conn.close()
+        
         #print](data)
-        contrato = json.loads(data.encode('utf-8'))
+        contratos = json.loads(data.encode('utf-8'))
 
+        for contrato in contratos['contratos']:
 
-        #criar as regras de marcacao e encaminhamento nos switches da entre ip_src e ip_dst
-#enviar um icmp 15 ja perguntando se existem controladores interessados em receber o contrato
-        #pegar os dados do contrato
-        cip_src = contrato['contrato']['ip_origem']
-        cip_dst = contrato['contrato']['ip_destino']
+            #criar as regras de marcacao e encaminhamento nos switches da entre ip_src e ip_dst
+            #enviar um icmp 15 ja perguntando se existem controladores interessados em receber o contrato
+            #pegar os dados do contrato
+            cip_src = contrato['ip_src']
+            cip_dst = contrato['ip_dst']
 
-        cip_dport = contrato['contrato']['dst_port']
-        cip_proto = contrato['contrato']['ip_proto']
+            cip_dport = contrato['dst_port']
+            cip_sport = contrato['src_port']
+            cip_proto = contrato['ip_proto']
 
-        cip_ver = contrato['contrato']['ip_ver']
+            cip_ver = contrato['ip_ver']
 
-        banda = contrato['contrato']['banda']
-        prioridade =  contrato['contrato']['prioridade']
-        classe =  contrato['contrato']['classe']
+            banda = contrato['banda']
+            prioridade =  contrato['prioridade']
+            classe =  contrato['classe']
 
-        #verificar se ja nao existe um contrato identico - nao recriar
-        # no entanto isso nao permite que contratos sejam "renovados"  - deixar quieto
-        #for cc in contratos:
-        #    if cc['contrato']['ip_origem'] == cip_src and cc['contrato']['ip_destino'] == cip_dst and cc['contrato']['banda'] == banda and cc['contrato']['prioridade'] == prioridade and cc['contrato']['classe'] == classe:
-        #        #print]("contrato recebido eh identico a um jah salvo - nada a fazer")
-        #        return
+            contrato_obj = Contrato(cip_ver, cip_src, cip_dst, cip_sport, cip_dport, cip_proto, CPT[(classe, prioridade, banda)], classe, prioridade, banda)
 
-#### OBS -- Implementar : garantir que exista apenas um contrato com match para ip_src, ip_dst - e mais campos se forem usar - que se outro contrato vier com esse match, substituir o que ja existe 
-#OBS - os contratos sao armazenados como string, entao para acessa-los como json, eh preciso carregar como json: json.loads(contrato)['contrato']['ip_origem']
-        #pegar os switches da rota
-        switches_rota = SwitchOVS.getRota(None, cip_dst)
+            #### OBS -- Implementar : garantir que exista apenas um contrato com match para ip_src, ip_dst - e mais campos se forem usar - que se outro contrato vier com esse match, substituir o que ja existe 
+            #OBS - os contratos sao armazenados como string, entao para acessa-los como json, eh preciso carregar como json: json.loads(contrato)['contrato']['ip_origem']
+            #pegar os switches da rota
+            switches_rota = SwitchOVS.getRota(None, cip_dst)
 
-        if switches_rota == None:
-            print("[%s] Rota nao encontrada entre src:%s dst:%s dport:%s\nRegras nao criadas - ICMP nao enviado" % (datetime.datetime.now().time(), cip_src, cip_dst,cip_dport))
-            print("[%s] servidor_socket host - fim:\n" % (datetime.datetime.now().time()))
-            conn.close()
+            if switches_rota == None:
+                print("[%s] Rota nao encontrada entre src:%s dst:%s dport:%s\nRegras nao criadas - ICMP nao enviado" % (datetime.datetime.now().time(), cip_src, cip_dst,cip_dport))
+                print("[%s] servidor_socket host - fim:\n" % (datetime.datetime.now().time()))
 
-        #deletando o contrato anterior e as regras a ele associadas
-        delContratoERegras(switches_rota, cip_src, cip_dst, cip_proto, cip_dport)
- 
-        #print]("contrato salvo \n")
-        contratos.append(contrato)      
+            #deletando o contrato anterior e as regras a ele associadas
+            delContratoERegras(switches_rota, contrato)
+    
+            #print]("contrato salvo \n")
+            contratos.append(contrato)      
 
-        print("[%s] servidor_socket host - contrato recebido:\n" % (datetime.datetime.now().time()))
-        print(contrato)
+            print("[%s] servidor_socket host - contrato recebido:\n" % (datetime.datetime.now().time()))
+            print(contrato)
 
-        #pegando as acoes do alocarGBAM
-        acoes = []
+            #pegando as acoes do alocarGBAM
+            acoes = []
 
-        #em todos os switches da rota - criar regras de encaminhamento
-        #nao precisa injetar o pacote,pois era um contrato para este controlador
-        for s in switches_rota:
-            out_port = s.getPortaSaida(cip_dst)
-            acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, cip_proto, cip_dport, banda, prioridade, classe)
+            #em todos os switches da rota - criar regras de encaminhamento
+            #nao precisa injetar o pacote,pois era um contrato para este controlador
+            for s in switches_rota:
+                out_port = s.getPortaSaida(cip_dst)
+                acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, cip_proto, cip_dport, banda, prioridade, classe)
+
+                #retorno vazio = nao tem espaco para alocar o fluxo
+                if len(acoes_aux)==0:
+                    #rejeitar o fluxo
+                    #print]("Fluxo rejeitado!\n")
+                    break
+                
+                #adicionando as acoes
+                for a in acoes_aux:
+                    acoes.append(a)
 
             #retorno vazio = nao tem espaco para alocar o fluxo
             if len(acoes_aux)==0:
                 #rejeitar o fluxo
-                #print]("Fluxo rejeitado!\n")
-                break
-            
-            #adicionando as acoes
-            for a in acoes_aux:
-                acoes.append(a)
+                continue
 
-        #retorno vazio = nao tem espaco para alocar o fluxo
-        if len(acoes_aux)==0:
-            #rejeitar o fluxo
-            continue
+            #chegou ate aqui, entao todos os switches possuem espaco para alocar o fluxo
+            #executar cada acao de criar/remover regras\
+            #print]("Executar acoes: \n")
+            for a in acoes:
+                a.executar()
 
-        #chegou ate aqui, entao todos os switches possuem espaco para alocar o fluxo
-        #executar cada acao de criar/remover regras\
-        #print]("Executar acoes: \n")
-        for a in acoes:
-            a.executar()
-        
-        #verificar as regras alocadas
-        for s in switches_rota:
-            s.listarRegras()
+            #verificar as regras alocadas
+            for s in switches_rota:
+                s.listarRegras()
 
-        #1 criar regra de marcacao/classificacao - switch mais da borda = que disparou o packet_in
-        #encontrar qual tos foi definido para a criacao da regra no switch de borda mais proximo do emissor
-        #pq pegar o tos da regra definida na acao e nao o tos baseado na classe, prioridade e banda do
-        # contrato? - pq a regra pode estar emprestando banda, nesse caso, a classe esta diferente da original, e consequentemente o tos tbm esta
+            #1 criar regra de marcacao/classificacao - switch mais da borda = que disparou o packet_in
+            #encontrar qual tos foi definido para a criacao da regra no switch de borda mais proximo do emissor
+            #pq pegar o tos da regra definida na acao e nao o tos baseado na classe, prioridade e banda do
+            # contrato? - pq a regra pode estar emprestando banda, nesse caso, a classe esta diferente da original, e consequentemente o tos tbm esta
 
-        for a in acoes:
-            if(a.nome_switch == switches_rota[0].nome and a.codigo == CRIAR):
-                #criando a regra de marcacao - switch mais da borda emissora
-                switches_rota[0].addRegraC(cip_src, cip_dst, cip_proto, cip_dport, a.regra.tos)
-                break
+            for a in acoes:
+                if(a.nome_switch == switches_rota[0].nome and a.codigo == CRIAR):
+                    #criando a regra de marcacao - switch mais da borda emissora
+                    switches_rota[0].addRegraC(cip_src, cip_dst, cip_proto, cip_dport, a.regra.tos)
+                    break
 
-        #enviando o icmp 15 ---- obs nao posso enviar o icmp 15, pois o controlador nao  conhece o end MAC do destino
-        # o melhor jeito seria inserir isso no contrato PENSAR
-        # como o endereco mac nao importa nesses switches l2 e a ideia eh que o pacote seja aproveitado pelos controladores da rota e nao do host final
-        # o host final deve descartar ou ignorar esse pacote
-        # assim, eh possivel 'inventar' um endereco MAC e rotear apenas com o endereco IP
-        #deve ser enviado pelo switch mais proximo do destino (da borda) - se nao cada switch vai precisar tratar esse pacote
-        switch_ultimo = switches_rota[-1]
-        switch_ultimo_dp = switch_ultimo.getDP()
-        out_port = switch_ultimo.getPortaSaida(cip_dst)
+            #enviando o icmp 15 ---- obs nao posso enviar o icmp 15, pois o controlador nao  conhece o end MAC do destino
+            # o melhor jeito seria inserir isso no contrato PENSAR
+            # como o endereco mac nao importa nesses switches l2 e a ideia eh que o pacote seja aproveitado pelos controladores da rota e nao do host final
+            # o host final deve descartar ou ignorar esse pacote
+            # assim, eh possivel 'inventar' um endereco MAC e rotear apenas com o endereco IP
+            #deve ser enviado pelo switch mais proximo do destino (da borda) - se nao cada switch vai precisar tratar esse pacote
+            switch_ultimo = switches_rota[-1]
+            switch_ultimo_dp = switch_ultimo.getDP()
+            out_port = switch_ultimo.getPortaSaida(cip_dst)
 
-        #print]("Porta SAIDA: %d\n" % (out_port))
-        
-        #enviar os identificadores do contrato (v2: ip origem/destino sao os identificadores - origem vai em dados, destino vai no destino do icmp ) 
-        data = {"ip_src":cip_src}
-        data = json.dumps(data)
+            #print]("Porta SAIDA: %d\n" % (out_port))
 
-        send_icmp(switch_ultimo_dp, MACC, IPC, MACC, cip_dst, out_port, 0, data, 1, 15,64)        
+            #enviar os identificadores do contrato (v2: ip origem/destino sao os identificadores - origem vai em dados, destino vai no destino do icmp ) 
+            data = {"ip_src":cip_src}
+            data = json.dumps(data)
 
-        # logging.info('[server-host] fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))        
+            send_icmp(switch_ultimo_dp, MACC, IPC, MACC, cip_dst, out_port, 0, data, 1, 15,64)        
 
-        #recebeu um contrato fecha a conexao, se o host quiser enviar mais, que inicie outra
-        conn.close()
-        print("[%s] servidor_socket host - fim:\n" % (datetime.datetime.now().time()))
+            # logging.info('[server-host] fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))        
+
+            print("[%s] servidor_socket host - fim:\n" % (datetime.datetime.now().time()))
 
 #servidor para escutar controladores - mesmo que o de hosts, mas o controlador que recebe um contrato nao gera um icmp inf. req.
 def servidor_socket_controladores():

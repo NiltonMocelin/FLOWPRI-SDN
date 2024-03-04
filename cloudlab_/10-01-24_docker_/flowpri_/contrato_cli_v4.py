@@ -50,16 +50,20 @@ print("Enviando contrato para -> HOST:%s, PORT: %d\n" % (HOST,PORT))
 
 
 contrato = {
-        "contrato":{
-            "ip_origem":sys.argv[2],
-            "ip_destino":sys.argv[3],
-            "dst_port":sys.argv[4],
-            "ip_proto:":sys.argv[5],
-            "ip_ver:":sys.argv[6],
-            "banda":sys.argv[7],
-            "prioridade":sys.argv[8],
-            "classe":sys.argv[9]
-            }
+        "contratos":
+            [   
+                {
+                "ip_ver":sys.argv[1],
+                "ip_proto":sys.argv[2],
+                "ip_src":sys.argv[3],
+                "ip_dst":sys.argv[4],
+                "src_port":sys.argv[5],
+                "dst_port":sys.argv[6],
+                "banda":sys.argv[7],
+                "prioridade":sys.argv[8],
+                "classe":sys.argv[9]
+                }
+            ]
         }
 contrato_json=json.dumps(contrato).encode('utf-8')
 print(contrato_json)

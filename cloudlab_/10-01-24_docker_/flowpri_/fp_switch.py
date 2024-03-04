@@ -55,7 +55,7 @@ class SwitchOVS:
         return None
 
 #porta_switch antes era dport -> eh a porta onde a regra vai ser salva -> porta de saida do switch
-    def alocarGBAM(self, nomePorta, origem, destino, proto, dst_port, src_port,porta_switch, banda, prioridade, classe):
+    def alocarGBAM(self, ip_src: str, ip_dst: str, src_port:str, dst_port:str,  proto:str, porta_saida:str, banda:str, prioridade:str, classe:str):
 
         banda = int(banda)
         prioridade = int(prioridade)
@@ -74,20 +74,20 @@ class SwitchOVS:
 #principalmente no switch que gerou o packet in ou no ultimo switch da rota
 #Mas ha casos em que as regras precisam ser criadas nos switches da rota e ser injetado apenas no ultimo, assim, precisa fazer o tratamento
 
-        porta = self.getPorta(str(nomePorta))
+        porta_obj = self.getPorta(str(porta_saida))
  
-        print("[alocarGBAM-S%s] porta %s, src: %s, dst: %s, banda: %d, prioridade: %d, classe: %d \n" % (self.nome, str(nomePorta), origem, destino,banda, prioridade, classe))
+        print("[alocarGBAM-S%s] porta %s, src: %s, dst: %s, banda: %d, prioridade: %d, classe: %d \n" % (self.nome, str(porta_saida), ip_src, ip_dst,banda, prioridade, classe))
 
         #caso seja classe de controle ou best-effort, nao tem BAM, mas precisa criar regras da mesma forma
         #best-effort
         if classe == 3:
-            self.addRegraF(origem,destino, 60, porta_switch, src_port, dst_port, proto, 6,None,0, hardtime=10)
+            self.addRegraF(ip_src,ip_dst, 60, porta_saida, src_port, dst_port, proto, 6,None,0, hardtime=10)
                
             return acoes
 
         #controle
         if classe == 4:
-            self.addRegraF(origem,destino, 61, porta_switch, src_port, dst_port, proto, 7,None,0)
+            self.addRegraF(ip_src,ip_dst, 61, porta_saida, src_port, dst_port, proto, 7,None,0)
             
             return acoes
 
@@ -97,7 +97,7 @@ class SwitchOVS:
             outraClasse=2
 
         #banda usada e total na classe original
-        cU, cT = Porta.getUT(porta, classe)
+        cU, cT = Porta.getUT(porta_obj, classe)
 
         # print("[antes de alocar] banda usada: %d, banda total: %d \n" % ( cU, cT)) 
 
@@ -106,7 +106,7 @@ class SwitchOVS:
         # self.delRegraGBAM(self, origem, destino, porta, str(classe), str(prioridade), str(banda))
         # correto eh utilizar Acoes -- e evitar criar regras repetidas (que removem e criam a mesma)
         # se GBAM falhar, as acoes nao ocorrem !!
-        acoes.append( Acao(self.controller.getSwitchByName(self.nome), porta_switch, REMOVER, Regra(origem,destino,src_port, dst_port, porta_switch,tos,banda,prioridade,classe,0)))   
+        acoes.append( Acao(self.controller.getSwitchByName(self.nome), porta_saida, REMOVER, Regra(ip_src,ip_dst,src_port, dst_port, porta_saida,tos,banda,prioridade,classe,0)))   
 
         #testando na classe original
         if int(banda) <= cT - cU: #Total - usado > banda necessaria
@@ -115,7 +115,7 @@ class SwitchOVS:
             tos = CPT[(str(classe), str(prioridade), str(banda))] #obter do vetor CPT - sei a classe a prioridade e a banda = tos
 
             #nova acao: criar regra: ip_src: origem, ip_dst: destino, porta de saida: nomePorta, tos: tos, banda:banda, prioridade:prioridade, classe:classe, emprestando: nao
-            acoes.append( Acao(self.controller.getSwitchByName(self.nome), nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,classe,0)))   
+            acoes.append( Acao(self.controller.getSwitchByName(self.nome), porta_saida, CRIAR, Regra(ip_src,ip_dst,src_port, dst_port, proto, porta_saida,tos,banda,prioridade,classe,0)))   
 
             return acoes #retornando as acoes
 
@@ -126,15 +126,15 @@ class SwitchOVS:
 
             #sim: somar os fluxos que estao emprestando e ver se a banda eh suficiente para alocar este fluxo 
 
-            for i in Porta.getRules(porta, classe, 1):
+            for i in Porta.getRules(porta_obj, classe, 1):
                 if i.emprestando == 1:
                     emprestando.append(i)
 
-            for i in Porta.getRules(porta, classe, 2):
+            for i in Porta.getRules(porta_obj, classe, 2):
                 if i.emprestando ==1:
                     emprestando.append(i)
 
-            for i in Porta.getRules(porta, classe, 3):
+            for i in Porta.getRules(porta_obj, classe, 3):
                 if i.emprestando ==1:
                     emprestando.append(i)
 
@@ -149,12 +149,12 @@ class SwitchOVS:
             #se as regras que estao emprestando representam largura de banda suficiente para que removendo-as, posso alocar o novo fluxo, entao:
             if cT - cU + bandaE >= int(banda):
                 for i in range(contadorE): #criando as acoes para remover as regras que estao emprestando
-                    acoes.append( Acao(self.controller.getSwitchByName(self.nome), nomePorta, REMOVER, Regra(emprestando[i].ip_src,emprestando[i].ip_dst,nomePorta,emprestando[i].tos,emprestando[i].banda,emprestando[i].prioridade,emprestando[i].classe,emprestando[i].emprestando)))   
+                    acoes.append( Acao(self.controller.getSwitchByName(self.nome), porta_saida, REMOVER, Regra(emprestando[i].ip_src,emprestando[i].ip_dst,porta_saida,emprestando[i].tos,emprestando[i].banda,emprestando[i].prioridade,emprestando[i].classe,emprestando[i].emprestando)))   
                 
                 tos = CPT[(str(classe), str(prioridade), str(banda))] #obter do vetor CPT - sei a classe a prioridade e a banda = tos
                 
                 #criando a acao  para criar a regra do fluxo, depois de remover as regras selecionadas que emprestam.
-                acoes.append( Acao(self.controller.getSwitchByName(self.nome), nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,classe,0)))   
+                acoes.append( Acao(self.controller.getSwitchByName(self.nome), porta_saida, CRIAR, Regra(ip_src,ip_dst,porta_saida,tos,banda,prioridade,classe,0)))   
                 return acoes
                 
             else:       #nao: testa o nao
@@ -163,7 +163,7 @@ class SwitchOVS:
                 #emprestando.clear()
 
                 #banda usada e total na outra classe
-                cOU, cOT = Porta.getUT(porta, outraClasse)
+                cOU, cOT = Porta.getUT(porta_obj, outraClasse)
                 if int(banda) <= cOT - cOU:
 
                     #calcular o tos - neste switch o fluxo o tos permanece o mesmo, a regra eh criada no vetor da classe que empresta mas no switch deve ser criada na classe original - isso pode pois todas as filas compartilham da mesma banda e sao limitadas com o controlador
@@ -172,7 +172,7 @@ class SwitchOVS:
                     #sim: alocar este fluxo - emprestando = 1 na classe em que empresta - na fila correspondente
                     
                     # # # # # salvo com o tos original mas na fila que empresto # # # # #
-                    acoes.append( Acao(self.controller.getSwitchByName(self.nome), nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,outraClasse,1)))   
+                    acoes.append( Acao(self.controller.getSwitchByName(self.nome), porta_saida, CRIAR, Regra(ip_src,ip_dst,porta_saida,tos,banda,prioridade,outraClasse,1)))   
                     
                     return acoes
 
@@ -185,7 +185,7 @@ class SwitchOVS:
                     #sim: remove eles e aloca este
                     if prioridade > 1:
     
-                        for i in Porta.getRules(porta, classe, 1):
+                        for i in Porta.getRules(porta_obj, classe, 1):
                             bandaP += int(i.banda)
                             remover.append(i)
 
@@ -194,7 +194,7 @@ class SwitchOVS:
                         
                     if prioridade > 2:
                         if cT - cU + bandaP < int(banda):
-                            for i in Porta.getRules(porta, classe, 2):
+                            for i in Porta.getRules(porta_obj, classe, 2):
                                 bandaP += int(i.banda)
                                 remover.append(i)
 
@@ -203,12 +203,12 @@ class SwitchOVS:
 
                     if cT - cU + bandaP >= int(banda):
                         for i in remover:
-                            acoes.append( Acao(self.controller.getSwitchByName(self.nome), nomePorta, REMOVER, Regra(i.ip_src,i.ip_dst,nomePorta,i.tos,i.banda,i.prioridade,i.classe,i.emprestando)))   
+                            acoes.append( Acao(self.controller.getSwitchByName(self.nome), porta_saida, REMOVER, Regra(i.ip_src,i.ip_dst,porta_saida,i.tos,i.banda,i.prioridade,i.classe,i.emprestando)))   
                 
                         #adiciona na classe original
                         tos = CPT[(str(classe), str(prioridade), str(banda))] #obter do vetor CPT - sei a classe a prioridade e a banda = tos
                         
-                        acoes.append( Acao(self.controller.getSwitchByName(self.nome), nomePorta, CRIAR, Regra(origem,destino,nomePorta,tos,banda,prioridade,classe,0)))   
+                        acoes.append( Acao(self.controller.getSwitchByName(self.nome), porta_saida, CRIAR, Regra(ip_src,ip_dst,porta_saida,tos,banda,prioridade,classe,0)))   
                         
                         return acoes
 
@@ -222,11 +222,11 @@ class SwitchOVS:
         #algum erro ocorreu 
         return acoes
 
-    def delRegraGBAM(self, ip_src, ip_dst, proto, src_port, dst_port, porta_saida_obj, classe, prioridade, banda):
+    def delRegraGBAM(self, ip_src:str, ip_dst:str, src_port:str, dst_port:str, proto:str, porta_saida_obj: Porta, classe: str, prioridade: str, banda: str):
         
         #tem que remover por tupla: ip_src, ip_dst, porta_src, porta_dst, proto
 
-        tos = CPT[(str(classe), str(prioridade), str(banda))] 
+        tos = CPT[(classe, prioridade, banda)] 
 
         #obtenho a classe onde a regra estava (1 ou 2, -1 == falha)
         classe_removida = porta_saida_obj.delRegra(ip_src, ip_dst, tos)
@@ -244,7 +244,7 @@ class SwitchOVS:
         return False
 
     #criar uma mensagem para remover uma regra de fluxo no ovsswitch
-    def delRegraT(self, ip_src, ip_dst, src_port, dst_port, proto, ip_dscp, tabela=ALL_TABLES):
+    def delRegraT(self, ip_src:str, ip_dst:str, src_port:str, dst_port:str, proto:str, ip_dscp:int, tabela=ALL_TABLES):
 
         #tabela = 255 = ofproto.OFPTT_ALL = todas as tabelas
         #print("Deletando regra - ipsrc: %s, ipdst: %s, tos: %d, tabela: %d\n" % (ip_src, ip_dst, tos, tabela))
@@ -301,7 +301,7 @@ class SwitchOVS:
         datapath.send_msg(out)
 
 #add regra tabela FORWARD
-    def addRegraF(self, ip_src, ip_dst, ip_dscp, out_port, src_port, dst_port, proto, fila, meter_id, flag, hardtime=None):
+    def addRegraF(self, ip_src: str, ip_dst: str, ip_dscp: int, out_port, src_port, dst_port, proto, fila, meter_id, flag, hardtime=None):
         #https://ryu.readthedocs.io/en/latest/ofproto_v1_3_ref.html#flow-instruction-structures
 # hardtimeout = 5 segundos # isso eh para evitar problemas com pacotes que sao marcados como best-effort por um contrato nao ter chego a tempo. Assim vou garantir que daqui 5s o controlador possa identifica-lo. PROBLEMA: fluxos geralmente nao duram 5s, mas eh uma abordagem.
         
