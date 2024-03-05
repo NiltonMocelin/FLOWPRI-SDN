@@ -810,7 +810,7 @@ class Dinamico(app_manager.RyuApp):
         #     src_port = pkt_tcp.src_port
         #     dst_port = pkt.tcp.dst_port
 
-        print("[%s] pkt_in ip_src: %s; ip_dst: %s\n" % (datetime.datetime.now().time(), ip_src, ip_dst))
+        print("[%s] pkt_in ip_src: %s; ip_dst: %s; src_port: %s; dst_port: %s; proto: %s\n" % (datetime.datetime.now().time(), ip_src, ip_dst, src_port, dst_port, proto))
 
         #obter porta de entrada qual o switch recebeu o pacote
         in_port = msg.match['in_port']
@@ -887,7 +887,12 @@ class Dinamico(app_manager.RyuApp):
 
                 ##***************************************#
                 #procurando  nos contratos o dscp
-                contrato = buscarContrato(ip_ver=cip_ver, ip_src=cip_src, ip_dst=cip_dst, src_port=csrc_port, dst_port=cdst_port, proto=cproto):
+                contrato = buscarContrato(ip_ver=cip_ver, ip_src=cip_src, ip_dst=cip_dst, src_port=csrc_port, dst_port=cdst_port, proto=cproto)
+
+                if contrato == None:
+                    print("[icmp-15] Falhou - contrato nao identificado para a quintupla ip_ver: %s; ip_src: %s; ip_dst: %s; src_port: %s; dst_port: %s; proto: %s" % (cip_ver, cip_src, cip_dst, csrc_port, csrc_port, cproto))
+                    #ignorar ou responder vazio?
+                    return
                 cdscp = CPT[(contrato.classe , contrato.prioridade, contrato.banda)]
                 
                 data = {"ip_ver": cip_ver, "ip_dst":cip_dst, "ip_src":cip_src, "src_port": csrc_port, "dst_port": cdst_port, "proto": cproto,"dscp":cdscp}
@@ -907,12 +912,12 @@ class Dinamico(app_manager.RyuApp):
                 #as regras de vinda dos pacotes de contrato ja existem, pq sao para este controlador
                 #no entanto as regras de volta (tcp-handshake) nao existem e sao do tipo controle tbm, entao criar 
                 switches_rota = self.getRota(str(dpid), IPC)
-                switches_rota[-1].addRegraC(ip_src=IPC, ip_dst=ip_src, src_port=1111, dst_port=1111, proto='icmp', ip_dscp= 61)
+                switches_rota[-1].addRegraC(ip_src=IPC, ip_dst=ip_src, src_port=1111, dst_port=1111, proto='icmp-15', ip_dscp= 61)
                 for s in switches_rota:
                     #porta de saida
                     out_port = s.getPortaSaida(ip_src)
                     #ida
-                    s.alocarGBAM(out_port, IPC, ip_src, '1000', 2, 4)
+                    s.alocarGBAM(out_port, ip_src=IPC, ip_src, '1000', 2, 4)
 ######### etapa 4 - suprimida - movida para o switch_feature_handler
             #     #preparar para receber os contratos                
             #     #criar as regras nos switches da rota que leva ao controlador,
