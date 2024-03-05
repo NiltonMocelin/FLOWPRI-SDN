@@ -33,9 +33,10 @@ from ryu.lib.packet import ethernet
 #
 # from ryu.lib.packet import in_proto
 # from ryu.lib.packet import ether_types
-from ryu.lib.packet import ipv4, arp, icmp, udp, tcp
+from ryu.lib.packet import ipv4, arp, icmp, udp, tcp, lldp
 
-# from ryu.topology import event
+#se der pau eh aqui
+from ryu.topology import event
 
 #para configuracoes de queues
 # from ryu.lib.ovs import bridge
@@ -44,7 +45,7 @@ import subprocess
 
 #montar grafo da rede
 # import networkx as nx
-# import copy
+# import copy                                      s
 
 #socket e thread
 from threading import Thread
@@ -75,9 +76,8 @@ sys.path.append( os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+"/w
 # import wsgiWebSocket.interface_web as iwb
 from interface_web import lancar_wsgi, _websocket_rcv, _websocket_snd, dados_json
 
-
 ########3 importacoes de dependecias de refatoracao de codigo
-from fp_constants import CPT, ALL_TABLES, FILA_CONTROLE
+from fp_constants import CPT, ALL_TABLES, FILA_CONTROLE, PORTAC_ICMP15, PORTAC_ICMP16, SC_REAL, SC_NONREAL, SC_BEST_EFFORT, SC_CONTROL
 try:
     from fp_switch import SwitchOVS
 except ImportError:
@@ -92,6 +92,7 @@ import fp_regra
 
 from fp_contrato import Contrato
 
+from fp_topology_discovery import handler_switch_enter, handler_switch_leave
 
 controller_singleton = None
 
@@ -629,6 +630,17 @@ class Dinamico(app_manager.RyuApp):
                                   data=data)
         datapath.send_msg(out)
 
+### Descoberta de topologia
+    #tratador eventos onde um switch se conecta
+    @set_ev_cls(event.EventSwitchEnter)
+    def _handler_switch_enter(self, ev):
+        handler_switch_enter(self, ev)
+
+    #tratador de eventos onde um switch se desconecta
+    @set_ev_cls(event.EventSwitchLeave)
+    def _handler_switch_leave(self, ev):
+        handler_switch_leave(self, ev)
+
 #tratador de eventos de modificacao de portas nos switcches
     @set_ev_cls(ofp_event.EventOFPPortStatus, MAIN_DISPATCHER)
     def port_status_handler(self, ev):
@@ -912,12 +924,13 @@ class Dinamico(app_manager.RyuApp):
                 #as regras de vinda dos pacotes de contrato ja existem, pq sao para este controlador
                 #no entanto as regras de volta (tcp-handshake) nao existem e sao do tipo controle tbm, entao criar 
                 switches_rota = self.getRota(str(dpid), IPC)
-                switches_rota[-1].addRegraC(ip_src=IPC, ip_dst=ip_src, src_port=1111, dst_port=1111, proto='icmp-15', ip_dscp= 61)
+                switches_rota[-1].addRegraC(ip_src=IPC, ip_dst=ip_src, src_port=PORTAC_ICMP15, dst_port=PORTAC_ICMP15, proto='icmp-15', ip_dscp= 61)
                 for s in switches_rota:
                     #porta de saida
                     out_port = s.getPortaSaida(ip_src)
                     #ida
-                    s.alocarGBAM(out_port, ip_src=IPC, ip_src, '1000', 2, 4)
+                    s.alocarGBAM(ip_src=IPC, ip_dst = ip_src, src_port = PORTAC_ICMP15, dst_port = PORTAC_ICMP15, proto = 'icmp-15', ip_dscp = 61, porta_saida = out_port, banda = '1000', prioridade = str(2), classe = str(SC_CONTROL))
+
 ######### etapa 4 - suprimida - movida para o switch_feature_handler
             #     #preparar para receber os contratos                
             #     #criar as regras nos switches da rota que leva ao controlador,
@@ -954,7 +967,7 @@ class Dinamico(app_manager.RyuApp):
 
                 return 
                 
-    ############################3
+    ############################
     #### OUTRO CASO: RECEBI UM INF. REPLY: solicitando que envie os contratos referentes a um determinado host destino
     #### DOIS COMPORTAMENTOS: (i) sou o controlador destino ;; (ii) nao sou o controlador destino
     #### (i): criar as regras na rota entre controlador e destino (switches do dominio)- de marcacao no switch mais proximo do controlador e de encaminhamento nos demais

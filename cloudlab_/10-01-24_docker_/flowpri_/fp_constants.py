@@ -18,7 +18,8 @@ print("Controlador MAC - {}".format(MACC))
 PORTAC_H = 4444 #porta para receber contratos de hosts
 PORTAC_C = 8888 #porta para receber contratos de controladores
 PORTAC_X = 9999 #porta para receber arquivos de configuracao json do administrador
-PORTAC_ICMP = 1111
+PORTAC_ICMP15 = 1115
+PORTAC_ICMP16 = 1116
 
 IPV4 = '4'
 IPV6 = '41'
@@ -28,6 +29,13 @@ TCP = '6'
 UDP = '17'
 EGP = '8'
 IGP = '9'
+
+#service classes
+SC_REAL = 1
+SC_NONREAL = 2
+SC_BEST_EFFORT = 3
+SC_CONTROL = 4
+
 
 FILA_C1P1=0
 FILA_C1P2=1

@@ -22,7 +22,6 @@ HOST = sys.argv[1]
 print("Enviando contrato para -> HOST:%s, PORT: %d\n" % (HOST,PORT))
 
 
-
 #n = int(sys.argv[1]) #obtem o primeiro parametro da entrada
 #
 #Contrato json - tem que ir melhorando esse contrato, se usar a porta origem e destino fica mais -preciso- pq nao generaliza um contrato para um ip mas para um ip+porta. - aqui eh um teste, por isso nao usa portas -

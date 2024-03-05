@@ -1,10 +1,24 @@
 # Nao testado
 
+* Poderia ter um servidor intermediario para a parte de descoberta de serviços utilizando o esquema de contratos. Apenas para IPv6
+* Quando um contrato chega em um domínio, este contrato deve subir ao servidor regional
+* quando um pacote chega em um domínio, este deve enviar um icmp inf request para o servidor regional, solicitando um contrato, se existir! (melhor que pedir ao domínio de origem, pois o fluxo pode ser encaminhado por outra rota!!!)
+
+
+---> arrumar a parte de icmp 15 e 16 no packet_in -- as funcoes foram modificadas
+-> implementar a parte gui
+-> implemetar bgp e a parte de roteamento dinamico
+
+-> criar a versão com trocas de contratos utilizando um servidor terceiro (regional como falei)
+-> comparar as versoes em termos de atraso
+-> escrever artigo!
+
+
 ## Refatorando 
 
 # Funcionalidades a implementar
 
- * Burlar NAT: Identificador único para fluxos baseado em conteúdo de pacote
+ * Burlar NAT: Identificador único para fluxos baseado em conteúdo de pacote -> IPv6 é o jeito mais fácil e rápido!!
 
  * Substituir esse DSCP por um classificador --- sei la como que vamos fazer isso agora
 
