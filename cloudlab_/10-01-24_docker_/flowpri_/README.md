@@ -1,5 +1,18 @@
 # Nao testado
 
+* poderia propor uma forma de simular filas utilizando meter rules
+{
+    * poderia controlar divisoes de banda para cada classe utilizando regras meter para emprestar banda entre as classes prioritárias - da forma como ja se faz, praticamente
+
+    * E o best-effort, que seria a problemática neste caso, poderia se criar uma regra meter-group do tamanho da classe, e agrupar os fluxos que utilizariam a mesma meter (pq se duas regras utilizam a mesma meter ==> utilizam a mesma partição-mesmo contador)
+
+    * Em casos onde nao se pode configurar -> poderia se fazer dessa forma
+
+}
+
+* alocarGBAM, addregraf, addregrac, delregrafc --> todos levam ip_ver agora
+* arrumar todos os matchings openflow para levar em consideracao a versao do fluxo e as portas 
+
 * Poderia ter um servidor intermediario para a parte de descoberta de serviços utilizando o esquema de contratos. Apenas para IPv6
 * Quando um contrato chega em um domínio, este contrato deve subir ao servidor regional
 * quando um pacote chega em um domínio, este deve enviar um icmp inf request para o servidor regional, solicitando um contrato, se existir! (melhor que pedir ao domínio de origem, pois o fluxo pode ser encaminhado por outra rota!!!)

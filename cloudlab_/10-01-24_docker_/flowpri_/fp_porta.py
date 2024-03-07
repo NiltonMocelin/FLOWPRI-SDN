@@ -59,7 +59,7 @@ class Porta:
         return 0
 
     
-    def delRegra(self, ip_src: str, ip_dst: str, src_port: str, dst_port: str, proto: str, tos):
+    def delRegra(self, ip_ver:str, ip_src: str, ip_dst: str, src_port: str, dst_port: str, proto: str, tos):
         #retorna 1, caso a regra tenha sido removida na classe 1, e 2 caso tenha sido removida na classe 2
         #print]("[delRegra] porta: %s, src:%s, dst:%s, tos: %d\n" % (self.nome, ip_src, ip_dst, int(tos)))
         #tos eh inteiro no dict

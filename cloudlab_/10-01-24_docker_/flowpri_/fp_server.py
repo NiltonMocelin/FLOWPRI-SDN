@@ -92,7 +92,7 @@ def servidor_socket_hosts():
             #nao precisa injetar o pacote,pois era um contrato para este controlador
             for s in switches_rota:
                 out_port = s.getPortaSaida(cip_dst)
-                acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, cip_proto, cip_dport, banda, prioridade, classe)
+                acoes_aux = s.alocarGBAM(ip_ver=cip_ver, porta_saida=out_port, ip_src=cip_src,ip_dst= cip_dst,proto= cip_proto, src_port= cip_sport, dst_port=cip_dport, banda= banda, prioridade = prioridade, classe=classe)
 
                 #retorno vazio = nao tem espaco para alocar o fluxo
                 if len(acoes_aux)==0:
@@ -127,6 +127,8 @@ def servidor_socket_hosts():
             for a in acoes:
                 if(a.nome_switch == switches_rota[0].nome and a.codigo == CRIAR):
                     #criando a regra de marcacao - switch mais da borda emissora
+
+                    ############### aqui ##########
                     switches_rota[0].addRegraC(cip_src, cip_dst, cip_proto, cip_dport, a.regra.tos)
                     break
 
@@ -326,7 +328,6 @@ def tratador_configuracoes():
     return
 
 
-
 def enviar_contratos(host_ip, host_port, ip_dst_contrato):
     #print]("[enviar-contratos] p/ ip_dst: %s, port_dst: %s" %(host_ip, host_port))
     tempo_i = round(time.monotonic()*1000)
@@ -335,13 +336,13 @@ def enviar_contratos(host_ip, host_port, ip_dst_contrato):
  
     print("[%s] enviar contrato p/ %s\n" % (datetime.datetime.now().time(), host_ip))
 
- #teste envio [ok]
-#    tcp.connect(("10.123.123.2", host_port))
+    #teste envio [ok]
+    #tcp.connect(("10.123.123.2", host_port))
 
     contratos_contador = 0
     #contar quantos contratos enviar
     for i in contratos:
-        if i['contrato']['ip_destino'] == ip_dst_contrato:
+        if i.ip_dst == ip_dst_contrato:
             contratos_contador = contratos_contador+1
             
     #enviar quantos contratos serao enviados
@@ -350,14 +351,14 @@ def enviar_contratos(host_ip, host_port, ip_dst_contrato):
     #para cada contrato, antes de enviar, verificar o size e enviar o size do vetor de bytes a ser enviado
     #encontrar os contratos que se referem ao ip_dst informado e enviar para o host_ip:host_port
     for i in contratos:
-        if i['contrato']['ip_destino'] == ip_dst_contrato:
+        if i.ip_dst == ip_dst_contrato:
             #print]("enviando->%s" % (json.dumps(i)))
             vetorbytes = json.dumps(i).encode('utf-8')
             qtdBytes = struct.pack('<i',len(vetorbytes))
             tcp.send(qtdBytes)
             tcp.send(vetorbytes)
 
-            print(i)
+            print(i.toString())
             #usar send
             # tcp.send(json.dumps(i).encode('utf-8'))
 
