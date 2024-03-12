@@ -1,5 +1,7 @@
 # Nao testado
 
+erro em fp_switch -- revisar todo o código
+
 * ! foi implementado dhcp == funcionando --> mas precisa mudar para que uma classe rede agrupe os switches participantes + a informacao host(mac+ip) deve ser armazenada com os switches, para saber onde os hosts estao (no caso de cenários sem movimento de hosts)
 
 

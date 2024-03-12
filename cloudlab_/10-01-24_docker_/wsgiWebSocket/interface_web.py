@@ -21,7 +21,11 @@ __IP = '172.17.0.2'
 
 dados_json = ''
 
-import psutil 
+try :
+    import psutil 
+except ImportError:
+    print("instalar psutil")
+    
 import json
 
 def pc_status():

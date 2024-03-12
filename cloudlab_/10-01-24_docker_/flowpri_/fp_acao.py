@@ -27,7 +27,8 @@ class Acao:
             porta = self.switch_obj.getPorta(self.porta)
             
             #criando a regra no vetor
-            porta.addRegra(self.regra.ip_src, self.regra.ip_dst, self.regra.banda, self.regra.prioridade, self.regra.classe, self.regra.tos, self.regra.emprestando, self.regra.porta_dst)
+            #### aqui ta errado arrumar 
+            porta.addRegra(self.regra.ip_ver, self.regra.ip_src, self.regra.ip_dst, self.regra.proto, self.regra.banda, self.regra.prioridade, self.regra.classe, self.regra.tos, self.regra.emprestando, self.regra.porta_dst)
             
             fila = CPF[(self.regra.classe,self.regra.prioridade)] #com o tos obter a fila = classe + prioridade
             
@@ -37,7 +38,7 @@ class Acao:
             print("criando regra meter: meter_id: %d, banda = %s\n" % (meter_id, str(self.regra.banda)))
 
             #criando a regra na tabela do switch ovs
-            self.switch_obj.addRegraF(self.regra.ip_src, self.regra.ip_dst, self.regra.tos, self.regra.porta_dst, fila, meter_id, 1)
+            self.switch_obj.addRegraF(self.regra.ip_ver, self.regra.ip_src, self.regra.ip_dst, self.regra.tos, self.regra.porta_dst, fila, meter_id, 1)
             
             self.switch_obj.listarRegras()
         else:

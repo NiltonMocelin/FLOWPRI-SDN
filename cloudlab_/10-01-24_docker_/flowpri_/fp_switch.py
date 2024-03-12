@@ -425,7 +425,7 @@ class SwitchOVS:
         return
 
 #adicionar rotas no switch - por agora fica com o nome de rede
-    def addRede(self, ip_dst, porta): 
+    def addRedeIPv4(self, ip_dst, porta): 
         print("[S%s]Rede adicionada %s: %s" % (self.nome, ip_dst, str(porta)))
         self.redes[ip_dst]=porta
         return
