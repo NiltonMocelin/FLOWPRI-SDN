@@ -12,7 +12,7 @@
 
 --->> propor outras estratégias para classificação de tráfego -- utilizar alguma euristica...
 (talvez algo como dns reverso pudesse ajudar)
-
+ #Implementar DHCPv4 e v6 (o do ipv4 acho que já tem implementado) https://github.com/John-Lin/nat/blob/master/dhcp.py
 
 }
 
@@ -89,7 +89,7 @@
 	- #Resolver a parte de configuracao manual (swtches, regras e rotas)
 	- #Mudar as configuracoes de regras para lidar com a tupla ip_origem, ip_destino, porta_origem, porta_destino, proto
 	- #Descoberta de topologia (já tem implementado no ryu -- tem que usar o do ryu se nao demora muito)
-	- #Implementar DHCPv4 e v6 (o do ipv4 acho que já tem implementado)
+	- #Implementar DHCPv4 e v6 (o do ipv4 acho que já tem implementado) https://github.com/John-Lin/nat/blob/master/dhcp.py
 	- #Resolver a parte básica de roteamento.... 
 	- #Resolver a parte de suporte a IPv6.
 	- #Resolver a parte de classificacao (tem que propor algo diferente)

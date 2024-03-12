@@ -60,6 +60,17 @@ CPT = {} #chave (CLASSE,PRIORIDADE,BANDA): valor TOS
 CPF = {} #classe + prioridade = fila
 #fila + banda = tos
 
+dhcp_msg_type_code = {
+            1: 'DHCP_DISCOVER',
+            2: 'DHCP_OFFER',
+            3: 'DHCP_REQUEST',
+            4: 'DHCP_DECLINE',
+            5: 'DHCP_ACK',
+            6: 'DHCP_NAK',
+            7: 'DHCP_RELEASE',
+            8: 'DHCP_INFORM',
+ }
+
 #banda = valor ; indice = meter_id
 #RATES = [4,16,32,64,128,500,1000,2000,4000,8000,10000,20000,25000] #sao 13 meter bands
 
