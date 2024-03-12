@@ -1058,8 +1058,8 @@ class Dinamico(app_manager.RyuApp):
                     #enviar_contratos(host_ip, host_port, ip_dst_contrato)
                     # - host_ip e host_port (controlador que envia)
                     # - ip_dst_contrato #ip do host destino (deve estar nos dados do pacote icmp 16 recebido
-                    #enviar_contratos(ip_src, PORTAC_C, cip_dst)#deve ir pela fila de controle
-                    Thread(target=enviar_contratos, args=(ip_src, PORTAC_C, cip_dst)).start()
+                        # enviar_contratos(ip_ver, ip_dst, dst_port, contrato_obj)
+                    Thread(target=enviar_contratos, args=(ip_ver, ip_src, PORTAC_C, buscar_contratos[0])).start()
 
                     # logging.info('[Packet_In] icmp 16 - controlador destino - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))
                     print("[%s] tratamento ICMP 16 - controlador destino - fim \n" % (datetime.datetime.now().time()))

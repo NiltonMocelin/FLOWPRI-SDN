@@ -77,13 +77,13 @@ def servidor_socket_hosts():
                 print("[%s] servidor_socket host - fim:\n" % (datetime.datetime.now().time()))
 
             #deletando o contrato anterior e as regras a ele associadas
-            delContratoERegras(switches_rota, contrato)
+            delContratoERegras(switches_rota, contrato = contrato_obj)
     
             #print]("contrato salvo \n")
-            contratos.append(contrato)      
+            contratos.append(contrato_obj)      
 
             print("[%s] servidor_socket host - contrato recebido:\n" % (datetime.datetime.now().time()))
-            print(contrato)
+            print(contrato_obj.toString())
 
             #pegando as acoes do alocarGBAM
             acoes = []
@@ -200,18 +200,21 @@ def servidor_socket_controladores():
 
                    #criar as regras de marcacao e encaminhamento nos switches da entre ip_src e ip_dst
 #enviar um icmp 15 ja perguntando se existem controladores interessados em receber o contrato
-        #pegar os dados do contrato
-            cip_src = contrato['contrato']['ip_origem']
-            cip_dst = contrato['contrato']['ip_destino']
+        #pegar os dados do contrato - manda um por vez
+            cip_src = contrato['ip_src']
+            cip_dst = contrato['ip_dst']
 
-            cip_dport = contrato['contrato']['dst_port']
-            cip_proto = contrato['contrato']['ip_proto']
+            cip_sport = contrato['src_port']
+            cip_dport = contrato['dst_port']
+            cip_proto = contrato['ip_proto']
 
-            cip_ver = contrato['contrato']['ip_ver']
+            cip_ver = contrato['ip_ver']
 
-            banda = contrato['contrato']['banda']
-            prioridade =  contrato['contrato']['prioridade']
-            classe =  contrato['contrato']['classe']
+            banda = contrato['banda']
+            prioridade =  contrato['prioridade']
+            classe =  contrato['classe']
+
+            contrato_obj = Contrato(cip_ver, cip_src, cip_dst, cip_sport, cip_dport, cip_proto, CPT[(classe, prioridade, banda)], classe, prioridade, banda)
 
             #pegando os switches da rota
             switches_rota = SwitchOVS.getRota(None, cip_dst)
@@ -222,13 +225,13 @@ def servidor_socket_controladores():
                 conn.close()
 
             #deletando o contrato anterior e as regras a ele associadas
-            delContratoERegras(switches_rota, cip_src, cip_dst, cip_proto, cip_dport)
+            delContratoERegras(switches_rota, contrato=contrato_obj)
 
             #print]("contrato salvo \n")
-            contratos.append(contrato)
+            contratos.append(contrato_obj)
 
             print("[%s] servidor_socket controlador - contrato recebido:\n" % (datetime.datetime.now().time()))
-            print(contrato)
+            print(contrato_obj.toString())
 
             #pegando as acoes do alocarGBAM
             acoes = []
@@ -237,7 +240,7 @@ def servidor_socket_controladores():
             #nao precisa injetar o pacote,pois era um contrato para este controlador
             for s in switches_rota:
                 out_port = s.getPortaSaida(cip_dst)
-                acoes_aux = s.alocarGBAM(out_port, cip_src, cip_dst, banda, prioridade, classe)
+                acoes_aux = s.alocarGBAM(ip_ver = cip_ver, ip_src= cip_src, ip_dst = cip_dst, src_port = cip_sport, dst_port = cip_dport, proto = cip_proto, porta_saida = out_port, banda = banda, prioridade=prioridade, classe = classe)
 
                 #retorno vazio = nao tem espaco para alocar o fluxo
                 if len(acoes_aux)==0:
@@ -268,7 +271,7 @@ def servidor_socket_controladores():
             for a in acoes:
                 if(a.nome_switch == switches_rota[0].nome and a.codigo == CRIAR):
                     #criando a regra de marcacao - switch mais da borda emissora
-                    switches_rota[0].addRegraC(cip_src, cip_dst, a.regra.tos)
+                    switches_rota[0].addRegraC(ip_ver = cip_ver, ip_src=cip_src, ip_dst= cip_dst, src_port = cip_sport, dst_port=cip_dport, proto = cip_proto, ip_dscp =a.regra.tos)
                     break
 
             #Nao enviar um icmp 15, pois o protocolo atual eh que todos respondam o icmp 15 do primeiro controlador
@@ -327,43 +330,41 @@ def tratador_configuracoes():
 
     return
 
-
-def enviar_contratos(host_ip, host_port, ip_dst_contrato):
+##aqui
+def enviar_contratos(ip_ver, ip_dst, dst_port, contrato_obj):
     #print]("[enviar-contratos] p/ ip_dst: %s, port_dst: %s" %(host_ip, host_port))
     tempo_i = round(time.monotonic()*1000)
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcp.connect((host_ip, host_port))
+    tcp.connect((ip_dst, dst_port))
  
-    print("[%s] enviar contrato p/ %s\n" % (datetime.datetime.now().time(), host_ip))
+    print("[%s] enviar contrato p/ %s\n" % (datetime.datetime.now().time(), ip_dst))
 
     #teste envio [ok]
     #tcp.connect(("10.123.123.2", host_port))
 
-    contratos_contador = 0
-    #contar quantos contratos enviar
-    for i in contratos:
-        if i.ip_dst == ip_dst_contrato:
-            contratos_contador = contratos_contador+1
-            
+    # contratos_contador = 0
+    # #contar quantos contratos enviar
+    # for i in contratos:
+    #     if i.ip_dst == ip_dst_contrato:
+    #         contratos_contador = contratos_contador+1
+    
+    #enviar apenas um contrato
+    contratos_contador = 1
+    
     #enviar quantos contratos serao enviados
     tcp.send(struct.pack('<i',contratos_contador))
 
     #para cada contrato, antes de enviar, verificar o size e enviar o size do vetor de bytes a ser enviado
     #encontrar os contratos que se referem ao ip_dst informado e enviar para o host_ip:host_port
-    for i in contratos:
-        if i.ip_dst == ip_dst_contrato:
-            #print]("enviando->%s" % (json.dumps(i)))
-            vetorbytes = json.dumps(i).encode('utf-8')
-            qtdBytes = struct.pack('<i',len(vetorbytes))
-            tcp.send(qtdBytes)
-            tcp.send(vetorbytes)
 
-            print(i.toString())
-            #usar send
-            # tcp.send(json.dumps(i).encode('utf-8'))
+    vetorbytes = json.dumps(contrato_obj.toJSON()).encode('utf-8')
+    qtdBytes = struct.pack('<i',len(vetorbytes))
+    tcp.send(qtdBytes)
+    tcp.send(vetorbytes)
+    print(contrato_obj.toString())
 
     #fechando a conexao
     #print]("\n")
     tcp.close()
-    print("[%s] enviar contrato p/ %s - fim\n" % (datetime.datetime.now().time(), host_ip))
+    print("[%s] enviar contrato p/ %s - fim\n" % (datetime.datetime.now().time(), ip_dst))
     # logging.info('[Packet_In] icmp 16 - enviar_contrato - fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))

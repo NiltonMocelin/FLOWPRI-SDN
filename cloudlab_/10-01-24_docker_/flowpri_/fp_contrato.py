@@ -36,10 +36,20 @@ class Contrato:
         return True
 
     def toString(self):
-        print("Contrato: ip_src:%s; ip_dst:%s; src_port:%s; dst_port:%s; proto:%s; dscp:%s; classe:%s; prioridade:%s; banda:%s;")
+        return "Contrato: ip_src:%s; ip_dst:%s; src_port:%s; dst_port:%s; proto:%s; dscp:%s; classe:%s; prioridade:%s; banda:%s;" % (self.ip_ver,self.ip_src, self.ip_dst, self.src_port,self.dst_port, self.proto,self.dscp,self.classe,self.prioridade,self.classe)
     
     def toJSON(self):
-        return ''
+        return """{
+            ip_ver:{},
+            ip_proto:{},
+            ip_src:{},
+            ip_dst:{},
+            src_port:{},
+            dst_port:{},
+            banda:{},
+            prioridade:{},
+            classe:{}
+        }""".format(self.ip_ver, self.ip_proto, self.ip_src, self.ip_dst, self.src_port, self.dst_port, self.banda, self.prioridade, self.classe)
     
 
 
