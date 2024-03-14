@@ -1,7 +1,5 @@
 # Nao testado
 
-erro em fp_switch -- revisar todo o código
-
 * ! foi implementado dhcp == funcionando --> mas precisa mudar para que uma classe rede agrupe os switches participantes + a informacao host(mac+ip) deve ser armazenada com os switches, para saber onde os hosts estao (no caso de cenários sem movimento de hosts)
 
 
@@ -15,10 +13,13 @@ erro em fp_switch -- revisar todo o código
 
 }
 
+
 * Poderia ter um servidor intermediario para a parte de descoberta de serviços utilizando o esquema de contratos. Apenas para IPv6
 * Quando um contrato chega em um domínio, este contrato deve subir ao servidor regional
 * quando um pacote chega em um domínio, este deve enviar um icmp inf request para o servidor regional, solicitando um contrato, se existir! (melhor que pedir ao domínio de origem, pois o fluxo pode ser encaminhado por outra rota!!!)
 
+
+-> interface web ta com problema
 
 
 -> implementar a parte gui

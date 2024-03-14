@@ -37,6 +37,19 @@ PORTAC_X = 9999 #porta para receber arquivos de configuracao json do administrad
 PORTAC_ICMP15 = 1115
 PORTAC_ICMP16 = 1116
 
+
+dhcp_msg_type_code = {
+    1: 'DHCP_DISCOVER',
+    2: 'DHCP_OFFER',
+    3: 'DHCP_REQUEST',
+    4: 'DHCP_DECLINE',
+    5: 'DHCP_ACK',
+    6: 'DHCP_NAK',
+    7: 'DHCP_RELEASE',
+    8: 'DHCP_INFORM',
+}
+
+
 IPV4 = '4'
 IPV6 = '41'
 ICMPV4 = '1'

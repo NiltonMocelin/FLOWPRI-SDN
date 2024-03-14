@@ -1,22 +1,29 @@
 from time import sleep
-import eventlet
+# import eventlet
 from eventlet import wsgi
 from eventlet import websocket
-from threading import Thread
-import six
+# from threading import Thread
+# import six
 
 # demo app
-import os
-import random
+# import os
+# import random
 
 
 #################################
 # comunicacao interface web x controlador
 
-PORTA_WEBS_RCV = 9998 #porta para receber solicitacoes de informacoes JSON para a interface WEB
-PORTA_WEBS_SND = 9997 #porta para enviar informacoes JSON para a interface WEB
-PORTA_ACCESS_WEB = 7000
-__IP = '172.17.0.2'
+# PORTA_WEBS_RCV = 9998 #porta para receber solicitacoes de informacoes JSON para a interface WEB
+# PORTA_WEBS_SND = 9997 #porta para enviar informacoes JSON para a interface WEB
+# PORTA_ACCESS_WEB = 7000
+# __IP = '172.17.0.2'
+
+
+PORTA_WEBS_RCV = 9971 #porta para receber solicitacoes de informacoes JSON para a interface WEB
+PORTA_WEBS_SND = 9972 #porta para enviar informacoes JSON para a interface WEB
+PORTA_ACCESS_WEB = 9970
+
+__IP = 'localhost'
 
 
 dados_json = ''
@@ -121,12 +128,39 @@ def lancar_wsgi():
     print('Feito ...')
 
 
+###############################
+# def wsckt_thread():
 
-#if __name__ == "__main__":
-     # run an example app from the command line
+#     async def _websocket_handler(websocket, path):
+#         # Lógica do servidor websocket
+#         return 
+
+
+#     import asyncio
+
+#     try:
+#         import websockets
+#     except:
+#         print('Instalar websockets')
+
+
+#     print('iniciando websocket')
+#     start_server = websockets.serve(_websocket_handler, 'localhost', 8000)
+#     print( ' aa')
+#     asyncio.get_event_loop().run_until_complete(start_server)
+#     print( ' bb')
+#     asyncio.get_event_loop().run_forever()
+#     print( ' cc')
+
+# if __name__ == "__main__":
+#     #  run an example app from the command line
 
 #     t3 = Thread(target=lancar_wsgi)
 #     t3.start()
+
+
+#     t4 = Thread(target=wsckt_thread)
+#     t4.start()
 
 
 #     for i in range(1000):

@@ -1,3 +1,5 @@
+#avoid circular import https://builtin.com/articles/python-circular-import
+
 import socket
 from fp_constants import IPC, PORTAC_C, MACC, PORTAC_H, PORTAC_X, CRIAR, CPT
 from fp_constants import contratos
@@ -5,15 +7,17 @@ from fp_constants import contratos
 from fp_switch import SwitchOVS
 from fp_contrato import Contrato
 
-try:
-    from main_controller import delContratoERegras, tratador_regras, send_icmp, tratador_addSwitch, tratador_delSwitch, tratador_configuracoes, tratador_rotas
-except ImportError:
-    print('erro de importacao aa')
+# try:
+# from main_controller import delContratoERegras, tratador_regras, send_icmpv4, tratador_addSwitch, tratador_rotas
+# except ImportError:
+#     print('erro de importacao aa')
     
 import json, struct, time, datetime
 
 #servidor para escutar hosts
 def servidor_socket_hosts():
+
+    # from main_controller import send_icmpv4, delContratoERegras
     print("Iniciando servidor de contratos para hosts....\n")
 
     #with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -78,7 +82,7 @@ def servidor_socket_hosts():
                 print("[%s] servidor_socket host - fim:\n" % (datetime.datetime.now().time()))
 
             #deletando o contrato anterior e as regras a ele associadas
-            delContratoERegras(switches_rota, contrato = contrato_obj)
+            delContratoERegras(switches_rota=switches_rota, contrato = contrato_obj)
     
             #print]("contrato salvo \n")
             contratos.append(contrato_obj)      
@@ -149,7 +153,7 @@ def servidor_socket_hosts():
             data = {"ip_src":cip_src}
             data = json.dumps(data)
 
-            send_icmp(switch_ultimo_dp, MACC, IPC, MACC, cip_dst, out_port, 0, data, 1, 15,64)        
+            send_icmpv4(switch_ultimo_dp, MACC, IPC, MACC, cip_dst, out_port, 0, data, 1, 15,64)        
 
             # logging.info('[server-host] fim - tempo: %d\n' % (round(time.monotonic()*1000) - tempo_i))        
 
@@ -157,6 +161,9 @@ def servidor_socket_hosts():
 
 #servidor para escutar controladores - mesmo que o de hosts, mas o controlador que recebe um contrato nao gera um icmp inf. req.
 def servidor_socket_controladores():
+
+    from main_controller import delContratoERegras
+
     print("Iniciando servidor de contratos entre controladores....\n")
 
     #with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -226,7 +233,7 @@ def servidor_socket_controladores():
                 conn.close()
 
             #deletando o contrato anterior e as regras a ele associadas
-            delContratoERegras(switches_rota, contrato=contrato_obj)
+            delContratoERegras(switches_rota=switches_rota, contrato=contrato_obj)
 
             #print]("contrato salvo \n")
             contratos.append(contrato_obj)
@@ -286,6 +293,7 @@ def servidor_socket_controladores():
 
 
 def tratador_configuracoes():
+    from main_controller import tratador_regras, tratador_addSwitch, tratador_rotas
     print("Iniciando o tratador de arquivos de config....\n")
 
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

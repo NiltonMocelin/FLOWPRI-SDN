@@ -45,6 +45,8 @@ from fp_constants import REMOVER, CRIAR, EMPRESTANDO, NAOEMPRESTANDO
 
 from fp_constants import switches, contratos, controladores_conhecidos, controller_singleton
 
+from fp_constants import dhcp_msg_type_code
+
 # try:
 from fp_switch import SwitchOVS
 # except ImportError:
@@ -64,7 +66,7 @@ from fp_topology_discovery import handler_switch_enter, handler_switch_leave
 from fp_dhcp import handle_dhcp_discovery, handle_dhcp_request, mac_to_client_ip
 
 # import wsgiWebSocket.interface_web as iwb
-from interface_web import lancar_wsgi, _websocket_rcv, _websocket_snd, dados_json
+# from interface_web import lancar_wsgi #, _websocket_rcv, _websocket_snd, dados_json
 
 
 def getController():
@@ -378,8 +380,8 @@ t3 = Thread(target=tratador_configuracoes)
 t3.start()
 
 ### iniciar o servidor web aqui
-t4 = Thread(target=lancar_wsgi)
-t4.start()
+# t4 = Thread(target=lancar_wsgi)
+# t4.start()
 
 #t1.join()
 
@@ -805,7 +807,7 @@ class Dinamico(app_manager.RyuApp):
             print(dhcpPkt.__dict__)
             try:
                 self.logger.info("Receive DHCP message type %s" %
-                                 (self.dhcp_msg_type_code[msgType]))
+                                 (dhcp_msg_type_code[msgType]))
             except KeyError:
                 self.logger.info("Receive UNKNOWN DHCP message type %d" %
                                  (msgType))

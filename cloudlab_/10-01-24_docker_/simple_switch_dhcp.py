@@ -291,7 +291,8 @@ class SimpleSwitch13(app_manager.RyuApp):
         # if udp.src_port == 67 and udp.dst_port == 68:
         #     handle_dhcp_discovery(datapath, in_port, udp)
         # #####
-
+        
+        #tratador dhcp
         dhcpPkt = pkt.get_protocol(dhcp.dhcp)
         if dhcpPkt:
             #verificar o tipo da mensagem
