@@ -1,14 +1,22 @@
 # import json
 
-contador = 0
-
 class Contrato:
 
-    def __init__(self, ip_ver : str, ip_src: str, ip_dst: str, src_port: str, dst_port: str, proto: str, dscp:str, classe: str, prioridade: str, banda: str):
-        global contador
-        contador += 1
+    def __init__(self, ip_ver, ip_src, ip_dst, src_port, dst_port, proto, dscp, classe, prioridade, banda):
+        """ Parametros:
+        ip_ver : str
+        ip_src: str
+        ip_dst: str
+        src_port: str
+        dst_port: str
+        proto: str
+        dscp:str
+        classe: str
+        prioridade: str
+        banda: str
+        """     
         
-        self.id = contador
+        self.id = ip_ver+"_"+ip_src+"_"+ip_dst+"_"+src_port+"_"+dst_port+"_"+proto
         self.ip_ver = ip_ver
         self.ip_src = ip_src
         self.ip_dst = ip_dst

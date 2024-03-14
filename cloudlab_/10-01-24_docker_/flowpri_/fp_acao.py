@@ -1,17 +1,19 @@
 from fp_constants import CRIAR, CPF, ALL_TABLES, REMOVER
 
-try:
-    from fp_switch import SwitchOVS
-except ImportError:
-    print('Erro de importacao')
-
 #classe para modelar uma acao - remover ou criar regra
 #nome switch - (str) identificar qual switch
 #porta - (int) identificar a porta do switch
 #codigo - (int) identificar a acao 0-CRIAR, 1-REMOVER
 #regra - (Regra) uma regra - com as informacoes suficientes para criar ou remover a regra
 class Acao:
-    def __init__(self, switch_obj : SwitchOVS, porta : int, codigo : int, regra):
+    def __init__(self, switch_obj, porta, codigo, regra):
+        """
+        switch_obj : SwitchOVS
+        porta : int
+        codigo : int
+        regra: Regra
+        """
+
         self.switch_obj=switch_obj
         self.porta = porta #int
         self.codigo = codigo
@@ -47,10 +49,12 @@ class Acao:
             porta = self.switch_obj.getPorta(self.porta)
                         
             #removendo a regra no vetor
-            porta.delRegra(self.regra.ip_src, self.regra.ip_dst, self.regra.tos)
+            # delRegra(self, ip_ver, ip_src, ip_dst, src_port, dst_port, proto, tos):
+            porta.delRegra(self.regra.ip_ver, self.regra.ip_src, self.regra.ip_dst, self.regra.src_port, self.regra.dst_port, self.regra.proto, self.regra.tos)
 
             #removendo a regra da tabela
-            self.switch_obj.delRegraT(self.regra.ip_src, self.regra.ip_dst, self.regra.tos ,ALL_TABLES) #remove a regra no ovswitch
+            # self, ip_ver, ip_src, ip_dst, src_port, dst_port, proto, ip_dscp, tabela=ALL_TABLES):
+            self.switch_obj.delRegraT(self.regra.ip_ver, self.regra.ip_src, self.regra.ip_dst, self.regra.src_port, self.regra.dst_port, self.regra.tos ,ALL_TABLES) #remove a regra no ovswitch
 
             self.switch_obj.delRegraM(meter_id)
 

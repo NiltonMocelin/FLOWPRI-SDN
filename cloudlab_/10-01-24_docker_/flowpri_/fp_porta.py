@@ -2,7 +2,8 @@ from fp_regra import Regra
 from fp_constants import CPT
 
 class Porta:
-    def __init__(self, name :str , bandaC1T : int, bandaC2T : int, tamanhoFilaC1, tamanhoFilaC2, proximoSwitch : str):
+    def __init__(self, name, bandaC1T, bandaC2T, tamanhoFilaC1 , tamanhoFilaC2, proximoSwitch):
+        # name :str , bandaC1T : int, bandaC2T : int, tamanhoFilaC1: int , tamanhoFilaC2: int, proximoSwitch : str):
         #criar filas e setar quantidade de banda para cada classe
 
         #tamanhoFila = quanto alem da banda posso alocar/emprestar
@@ -59,7 +60,7 @@ class Porta:
         return 0
 
     
-    def delRegra(self, ip_ver:str, ip_src: str, ip_dst: str, src_port: str, dst_port: str, proto: str, tos):
+    def delRegra(self, ip_ver, ip_src, ip_dst, src_port, dst_port, proto, tos):
         #retorna 1, caso a regra tenha sido removida na classe 1, e 2 caso tenha sido removida na classe 2
         #print]("[delRegra] porta: %s, src:%s, dst:%s, tos: %d\n" % (self.nome, ip_src, ip_dst, int(tos)))
         #tos eh inteiro no dict

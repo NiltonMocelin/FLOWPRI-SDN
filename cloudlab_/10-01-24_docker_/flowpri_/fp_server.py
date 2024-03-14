@@ -1,13 +1,14 @@
 import socket
 from fp_constants import IPC, PORTAC_C, MACC, PORTAC_H, PORTAC_X, CRIAR, CPT
+from fp_constants import contratos
 
 from fp_switch import SwitchOVS
 from fp_contrato import Contrato
 
 try:
-    from main_controller import contratos, delContratoERegras, tratador_regras, send_icmp, tratador_addSwitch, tratador_delSwitch, tratador_configuracoes, tratador_rotas
+    from main_controller import delContratoERegras, tratador_regras, send_icmp, tratador_addSwitch, tratador_delSwitch, tratador_configuracoes, tratador_rotas
 except ImportError:
-    print('erro de importacao')
+    print('erro de importacao aa')
     
 import json, struct, time, datetime
 

@@ -16,30 +16,15 @@ class SwitchOVS:
         self.nome = name
         self.portas = []
 
-        #isso faz sentido?
         #Como adicionar itens a um dicionario -> dicio['idade'] = 20
         self.macs = {} #chave: mac, valor: porta
         self.redes = {} #chave: ip, valor: porta
         self.hosts= {} #chave: ip, valor: mac
 
-        
-        ####### Rotas e saltos
-        ####### os vetores/dicionarios anteriores sao suficientes para definir as rotas, no entanto uma maneira mais facil eh com uma tabela especifica orientada para redes (self.redes)
-        # em um dominio switches sao programados para possuirem informacoes sobre as rotas que suportam
-        # uma informacao de [ip_rede + porta de saida]
-        # assim, eh definida uma forma de adicionar e remover informacoes de roteamento, que eh salvo na classe do switch no controlador
-
-        #funcoes necessarias:
-        #checkBanda - para ver onde posicionar um fluxo (emprestar largura de banda se preciso)
-        #addRegra
-        #delRegra - deleta a regra por id
-        #getRegra - pensar em um identificador para conseguir as regras
-        #updateRegras - passa todas um vetor de regras vindos do switch, para atualizar o vetor da classe
-
     def addPorta(self, nomePorta, larguraBanda, proximoSwitch):
         print("[S%s] Nova porta: porta=%s, banda=%s, proximoSalto=%s\n" % (str(self.nome), str(nomePorta), str(larguraBanda), str(proximoSwitch)))
         #criar a porta no switch
-        self.portas.append(Porta(nomePorta, larguraBanda*.33, larguraBanda*.35, 0, 0, proximoSwitch))
+        self.portas.append(Porta(nomePorta, int(int(larguraBanda)*.33), int(int(larguraBanda)*.35), 0, 0, int(proximoSwitch)))
 
         #print]("\nSwitch %s criado\n" % (name))
 
@@ -53,7 +38,19 @@ class SwitchOVS:
         return None
 
 #porta_switch antes era dport -> eh a porta onde a regra vai ser salva -> porta de saida do switch
-    def alocarGBAM(self, ip_ver: str, ip_src: str, ip_dst: str, src_port:str, dst_port:str,  proto:str, porta_saida:str, banda:str, prioridade:str, classe:str):
+    def alocarGBAM(self, ip_ver, ip_src, ip_dst, src_port, dst_port,  proto, porta_saida, banda, prioridade, classe):
+        """ Parametros:
+        ip_ver: str
+        ip_src: str
+        ip_dst: str
+        src_port:str
+        dst_port:str
+        proto:str
+        porta_saida:str
+        banda:str
+        prioridade:str
+        classe:str
+        """
 
         banda = int(banda)
         prioridade = int(prioridade)
@@ -61,16 +58,6 @@ class SwitchOVS:
 
         #armazenar as acoes a serem tomadas
         acoes = []
-
-#       As regras sempre estao atualizadas, pois quando uma eh modificada, essa notifica o controlador, que chama updateRegras        
-#        self.updateRegras()# atualizar as regras, pois algumas podem nao estar mais ativas = liberou espaco -- implementar
-
-# o TOS eh decidido aqui dentro, pois dependendo do TOS, pode se definir uma banda, uma prioridade e uma classe
-#a classe, a prioridade e a banda sao os atributos originais do fluxo
-
-#funcao injetar pacote - o pacote que gera o packet in as vezes, em determinados switches, precisam ser reinjetados
-#principalmente no switch que gerou o packet in ou no ultimo switch da rota
-#Mas ha casos em que as regras precisam ser criadas nos switches da rota e ser injetado apenas no ultimo, assim, precisa fazer o tratamento
 
         porta_obj = self.getPorta(str(porta_saida))
  
@@ -220,8 +207,20 @@ class SwitchOVS:
         #algum erro ocorreu 
         return acoes
 
-    def delRegraGBAM(self, ip_ver:str, ip_src:str, ip_dst:str, src_port:str, dst_port:str, proto:str, porta_saida: str, classe: str, prioridade: str, banda: str):
-        
+    def delRegraGBAM(self, ip_ver, ip_src, ip_dst, src_port, dst_port, proto, porta_saida, classe, prioridade, banda):
+        """ Parametro:
+        ip_ver:str
+        ip_src:str
+        ip_dst:str
+        src_port:str
+        dst_port:str
+        proto:str
+        porta_saida: str
+        classe: str
+        prioridade: str
+        banda: str
+        """
+
         #tem que remover por tupla: ip_src, ip_dst, porta_src, porta_dst, proto
         porta_saida_obj = self.getPorta(porta_saida)
 
@@ -243,7 +242,17 @@ class SwitchOVS:
         return False
 
     #criar uma mensagem para remover uma regra de fluxo no ovsswitch
-    def delRegraT(self, ip_ver:str, ip_src:str, ip_dst:str, src_port:str, dst_port:str, proto:str, ip_dscp:int, tabela=ALL_TABLES):
+    def delRegraT(self, ip_ver, ip_src, ip_dst, src_port, dst_port, proto, ip_dscp, tabela=ALL_TABLES):
+        """ Parametros:
+        ip_ver:str
+        ip_src:str
+        ip_dst:str
+        src_port:str
+        dst_port:str
+        proto:str
+        ip_dscp:int
+        tabela=ALL_TABLES
+        """
 
         #tabela = 255 = ofproto.OFPTT_ALL = todas as tabelas
         #print("Deletando regra - ipsrc: %s, ipdst: %s, tos: %d, tabela: %d\n" % (ip_src, ip_dst, tos, tabela))
@@ -302,14 +311,26 @@ class SwitchOVS:
             in_port=100,
             actions=actions,
             data=packet.data)
-        #print("[Pacote-Injetado]: ")
-        #print(out)
-        #print("\n")
-
+        
         datapath.send_msg(out)
 
 #add regra tabela FORWARD
-    def addRegraF(self, ip_ver:str, ip_src: str, ip_dst: str, ip_dscp: int, out_port, src_port, dst_port, proto, fila, meter_id, flag, hardtime=None):
+    def addRegraF(self, ip_ver, ip_src, ip_dst, ip_dscp, out_port, src_port, dst_port, proto, fila, meter_id, flag, hardtime=None):
+        """ Parametros:
+        ip_ver:str
+        ip_src: str
+        ip_dst: str
+        ip_dscp: int
+        out_port: int
+        src_port: int
+        dst_port: int 
+        proto: str
+        fila: int
+        meter_id: int 
+        flag: int
+        hardtime=None
+        """
+
         #https://ryu.readthedocs.io/en/latest/ofproto_v1_3_ref.html#flow-instruction-structures
 # hardtimeout = 5 segundos # isso eh para evitar problemas com pacotes que sao marcados como best-effort por um contrato nao ter chego a tempo. Assim vou garantir que daqui 5s o controlador possa identifica-lo. PROBLEMA: fluxos geralmente nao duram 5s, mas eh uma abordagem.
         
@@ -367,7 +388,17 @@ class SwitchOVS:
         
 #add regra tabela CLASSIFICATION
 #se o destino for um ip de controlador, 
-    def addRegraC(self, ip_ver:str ,ip_src: str, ip_dst:str, src_port:str, dst_port:str, proto:str, ip_dscp:str):
+    def addRegraC(self, ip_ver ,ip_src, ip_dst, src_port, dst_port, proto, ip_dscp):
+        """ parametros:
+        ip_ver: str
+        ip_src: str
+        ip_dst: str
+        src_port: str
+        dst_port: str
+        proto: str
+        ip_dscp: str
+        """
+
         #https://ryu.readthedocs.io/en/latest/ofproto_v1_3_ref.html#flow-instruction-structures
          #criar regra na tabela de marcacao - obs - utilizar idletime para que a regra suma - serve para que em switches que nao sao de borda essa regra nao exista
                          #obs: cada switch passa por um processo de enviar um packet_in para o controlador quando um fluxo novo chega,assim, com o mecanismo de GBAM, pode ser que pacotes de determinados fluxos sejam marcados com TOS diferentes da classe original, devido ao emprestimo, assim, em cada switch o pacote pode ter uma marcacao - mas com essa regra abaixo, os switches que possuem marcacao diferentes vao manter a regra de remarcacao. Caso ela expire e cheguem novos pacotes, ocorrera novo packet in e o controlador ira executar um novo GBAM - que vai criar uma nova regra de marcacao

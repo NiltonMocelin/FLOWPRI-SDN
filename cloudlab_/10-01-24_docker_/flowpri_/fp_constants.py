@@ -1,5 +1,21 @@
 from netifaces import AF_INET, ifaddresses, interfaces
 
+#controller singleton
+controller_singleton = None
+
+# algumas constantes para o controlador
+arpList = {}
+contratos = []
+contratos_enviar = {}
+#self.mac_to_port = {} arrumar esses dois, tirar do controlador e trzer para ca
+#self.ip_to_mac = {}
+
+#vetor com os enderecos ip dos controladores conhecidos (enviaram icmps)
+controladores_conhecidos = []
+
+switches = [] #switches administrados pelo controlador
+
+
 #Listar interfaces disponiveis
 # print(interfaces())
 
