@@ -15,7 +15,6 @@ controladores_conhecidos = []
 
 switches = [] #switches administrados pelo controlador
 
-
 #Listar interfaces disponiveis
 # print(interfaces())
 
@@ -37,6 +36,12 @@ PORTAC_X = 9999 #porta para receber arquivos de configuracao json do administrad
 PORTAC_ICMP15 = 1115
 PORTAC_ICMP16 = 1116
 
+## Interface web
+PORTA_WEBS_RCV = 9971 #porta websocket para solicitacoes de informacoes JSON para a interface WEB
+PORTA_WEBS_SND = 9972 #porta websocket paraenviar informacoes JSON para a interface WEB
+PORTA_ACCESS_WEB = 9970 #porta para acessar a pagina web
+
+websocket_conn = None
 
 dhcp_msg_type_code = {
     1: 'DHCP_DISCOVER',

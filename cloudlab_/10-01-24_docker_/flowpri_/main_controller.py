@@ -58,15 +58,15 @@ from fp_acao import Acao
 from fp_regra import Regra
 
 from fp_contrato import Contrato
-
+print('importando fp_topo_discovery')
 #descoberta de topologia
 from fp_topology_discovery import handler_switch_enter, handler_switch_leave
-
+print('importando fp_dhcp')
 #tratador DHCPv4
 from fp_dhcp import handle_dhcp_discovery, handle_dhcp_request, mac_to_client_ip
-
+print('importando interface_web')
 # import wsgiWebSocket.interface_web as iwb
-# from interface_web import lancar_wsgi #, _websocket_rcv, _websocket_snd, dados_json
+from interface_web import lancar_wsgi #, _websocket_rcv, _websocket_snd, dados_json
 
 
 def getController():
@@ -379,9 +379,9 @@ t2.start()
 t3 = Thread(target=tratador_configuracoes)
 t3.start()
 
-### iniciar o servidor web aqui
-# t4 = Thread(target=lancar_wsgi)
-# t4.start()
+## iniciar o servidor web aqui
+t4 = Thread(target=lancar_wsgi)
+t4.start()
 
 #t1.join()
 

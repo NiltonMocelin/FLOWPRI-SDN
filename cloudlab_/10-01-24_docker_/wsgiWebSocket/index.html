@@ -29,36 +29,40 @@
       // ref1: https://uwsgi-docs.readthedocs.io/en/latest/articles/OffloadingWebsocketsAndSSE.html
       // ref2: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
 
-      
-      // A cada 5s solicita informacoes ao controlador ||| ou faz por arquivo
-      function refresh_data() {
-        setTimeout(
-        () => {
-            //acessar e obter tudo que /dados enviar
-            let url = 'http://172.17.0.2:7000/dados';
+      //teste websocket      
+      //base javascript websocket - https://javascript.info/websocket
 
-            //promisse
-            const dados_json = fetch(url)
-              .then((response) => { 
-                  return response.json().then((data) => {
-                    // console.log(data);
-                    const array_dados = data.controller_stats
-                    // console.log(array_dados[0]['total_memory'])
-                    document.getElementById('controller_stats').innerHTML = `<h3>Total Memory: ${array_dados[0]['total_memory']}MB | Used Memory: ${array_dados[1]['used_memory']}MB | Free Memory: ${array_dados[2]['free_memory']}MB | CPU Utilization: ${array_dados[3]['cpu_utilization']}%</h3>`
-                    return data;
-              }).catch((err) => {
-                  console.log(err);
-              })
-            }); 
+      let websocket = new WebSocket("ws://10.0.0.6:9970/dados");
 
-            refresh_data();
-        }, 5000)
+      // pegar a mensagem como um arraybuffer - https://bun.sh/guides/binary/arraybuffer-to-string
+      websocket.binaryType = "arraybuffer";
+
+      websocket.onopen = function(e) {
+        alert("[open] Connection established");
+        alert("Sending to server");
+        websocket.send("My name is John");
       };
 
-      refresh_data();
+      websocket.onmessage = function(event) {
+
+        const decoder = new TextDecoder();
+        const str = decoder.decode(event.data);
+
+        dados_json = JSON.parse(str);
+
+        //check if key exists in json - obj.hasOwnProperty(prop) -> this way we can handle multiple messages here
+        
+        // alert(`[message] Data received from server: ${JSON.stringify(dados_json.switches)}`);
+    
+        alert(`[message] Data received from server: ${str}`);
+        // document.getElementById('controller_stats').innerHTML = `<h3>dados recebidos: ${str}</h3>`
+        // document.getElementById('controller_stats').innerHTML = `<h3>dados recebidos: ${dados_json.switches[0]}</h3>`
+        document.getElementById('controller_stats').innerHTML = `<h3>dados recebidos: ${JSON.stringify(dados_json.switches[0].nome)}</h3>`
+        
+      };
 
     </script>
 
-   </BODY>
-   </HTML>
+  </BODY>
+  </HTML>
    
