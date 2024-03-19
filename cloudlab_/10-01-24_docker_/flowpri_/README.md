@@ -1,4 +1,16 @@
-# Nao testado
+# A FAZER 
+{
+* Configurar a criação das portas e switches no fp_topology_discovery -- configurar o addporta lá
+* Descobrir com quem cada porta dos switches se conecta. -- verificar como o topology discovery do ryu faz isso e implementar tbm
+* Dar uma olhada no que precisa implementar para o suporte de ipv6
+* Implementar uma GUI bonita e com estatísticas
+* Testar no cloudlab
+* Definir cenários para testes.
+* Implementar controladores e comparar QoS
+* Escrever Artigo
+* Escrever Plano Aula
+* Escrever Plano Dissertação
+}
 
 * ! foi implementado dhcp == funcionando --> mas precisa mudar para que uma classe rede agrupe os switches participantes + a informacao host(mac+ip) deve ser armazenada com os switches, para saber onde os hosts estao (no caso de cenários sem movimento de hosts)
 

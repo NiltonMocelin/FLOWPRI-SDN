@@ -1,3 +1,5 @@
+### USAR PYTHON 3 !!
+
 # importar o tratador da interface web
 import sys, os
 
@@ -503,7 +505,7 @@ class Dinamico(app_manager.RyuApp):
 
         #aqui nao se obtem tantas informacoes sobre os switches como eu gostaria
         tempo_i = round(time.monotonic()*1000)
-        
+    
         datapath = ev.msg.datapath
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -589,15 +591,15 @@ class Dinamico(app_manager.RyuApp):
         datapath.send_msg(out)
 
 # ### Descoberta de topologia
-#     #tratador eventos onde um switch se conecta
-#     @set_ev_cls(event.EventSwitchEnter)
-#     def _handler_switch_enter(self, ev):
-#         handler_switch_enter(self, ev)
+    #tratador eventos onde um switch se conecta
+    @set_ev_cls(event.EventSwitchEnter)
+    def _handler_switch_enter(self, ev):
+        handler_switch_enter(self, ev)
 
-#     #tratador de eventos onde um switch se desconecta
-#     @set_ev_cls(event.EventSwitchLeave)
-#     def _handler_switch_leave(self, ev):
-#         handler_switch_leave(self, ev)
+    #tratador de eventos onde um switch se desconecta
+    @set_ev_cls(event.EventSwitchLeave)
+    def _handler_switch_leave(self, ev):
+        handler_switch_leave(self, ev)
 
 #tratador de eventos de modificacao de portas nos switcches
     @set_ev_cls(ofp_event.EventOFPPortStatus, MAIN_DISPATCHER)
@@ -814,10 +816,10 @@ class Dinamico(app_manager.RyuApp):
                 
             if msgType == dhcp.DHCP_DISCOVER:
                 print( 'TIPO111111111111111')
-                self.handle_dhcp_discovery(dp, in_port, dhcpPkt)
+                handle_dhcp_discovery(dp, in_port, dhcpPkt)
             elif msgType == dp.DHCP_REQUEST:
                 print( '22222222222222222222')
-                self.handle_dhcp_request(dhcpPkt, dp, in_port)
+                handle_dhcp_request(dhcpPkt, dp, in_port)
                 self.logger.info(mac_to_client_ip)
             else:
                 pass
