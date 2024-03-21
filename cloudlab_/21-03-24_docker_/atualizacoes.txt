@@ -1,0 +1,637 @@
+#Curriculo lattes{
+	- http://lattes.cnpq.br/9551890481436021
+}
+
+# A FAZER  -- urgente
+{
+* Configurar a criação das portas e switches no fp_topology_discovery -- configurar o addporta lá
+* Descobrir com quem cada porta dos switches se conecta. -- verificar como o topology discovery do ryu faz isso e implementar tbm
+* Dar uma olhada no que precisa implementar para o suporte de ipv6
+* Implementar uma GUI bonita e com estatísticas
+* Testar no cloudlab
+* Definir cenários para testes.
+* Implementar controladores e comparar QoS
+* Escrever Artigo
+* Escrever Plano Aula
+* Escrever Plano Dissertação
+}
+
+
+#Atalho{
+
+---> hj::: implementar ipv6 + implementar websocket e arrumar o gui para mostrar ao menos os switches e suas regras ativas
+---> escrever esqueleto qualificacao
+---> escrever esqueleto aula
+---> desenvolver arquitetura para priorização
+---> desenvolver arquitetura para QoSAAS
+
+--->> propor outras estratégias para classificação de tráfego -- utilizar alguma euristica...
+(talvez algo como dns reverso pudesse ajudar)
+ #Implementar DHCPv4 e v6 (o do ipv4 acho que já tem implementado) https://github.com/John-Lin/nat/blob/master/dhcp.py
+
+}
+
+
+#Reunião 06/03:
+
+---- comparar valores a partir de outros artigos // talvez nao implementar --- mais rapido!
+- Lucas avaliação estatística -- ver no artigo!
+
+-- futuramente comparar a solução distribuida com a solução centralizada (com servidor centralizado blockchain). Essa grande comparação pode gerar outro journal.
+-- A versão atual com troca de contrato comparando com outros controladores utilizando metricas interessantes --> publicar journal.
+
+-> estagio docencia{
+	* 22/maio Qos fim-a-fim + machine learning classificacao de tráfego * ipv6 
+	* 01/julho qualificação ou 2 de julho  -- preparar o texto da qualificacao
+	* Entrega final 15 dias antes para a banca -- fazer ao menos 2 revisões 
+	* Texto de qualificação pronto até final de maio
+	* 13-18 revisoes finais 
+	* 1/junho entrega versao 1 qualificacao
+	* Sumário da qualificação na próxima reunião (seções + capítulos --- detalhados)
+	*** Resolver a parte de priorização.
+	** apresentar arquitetura de qualidade de servico as a service (devenvolvi alguma coisa em MCA/teste0001.drawio)
+	** propor a nova arquitetura de classificação de tráfego
+
+	******* trabaho futuro e nao pronto 
+	- a parte de qualidade de servico as a service nao precisa aprofundar para a qualificacao -- pode colocar como trabalhos futuros.
+	- propor blockchain como um modulo a ser implementado
+
+	**** priorizar a imlpementacao da base (machine learning + ipv6)
+
+	*** abril pensar nos slides do estágio (sumário apresentacao de 4 horas -- eles precisam ser conectados -- acho que pode ser pegar )
+	*** exercicio
+}
+
+
+#oculos inteligente + interface de ponteiro ou semelhante no céu da boca (ja existente)
+
+
+-->> wsgi websocket https://www.reddit.com/r/pythontips/comments/14xtq85/this_is_how_we_can_easily_run_websockets_with/?rdt=37604
+--> https://stackoverflow.com/questions/27272394/python-client-keeps-websocket-open-and-reacts-to-received-messages
+
+#Dev Finalizado-ou quase{
+	*** Parte de configuracoe manuais [feita=nao testado]
+
+	----> para facilitar as funcoes -> tipar os parametros de todas !!!!
+
+	--- todas as regras de criacao e remocao de regras nas tabelas de fluxo foram alteradas para suportar porta e proto
+	-- Tem que arrumar em cada dependente.
+
+--> arrumar os contratos::: eles devem ser tratados como classe dentro do controlador e nao json
+--> arrumar o formato dos contratos tbm- --- estavam errados --> seguir comentario contrato_cli_v4.py
+
+}
+
+#Ordem de desenvolvimento{
+
+	- switch.addRede(prefixo, int (porta_saida)) --> a parte de rede deve levar em consideracao a versao ip e a mascara
+
+
+	-- entender como gui_topology utiliza wsgi e websocket
+	-- entender onde os switches sao armazenados e como sao enviados ao gui_topology
+
+	--- Algumas coisas já são existentes só colocar para ficar mais funcional{
+		- integrar com ryu/base/app_manager (The central management of Ryu applications.)
+		-- investigar o funcionamento de gui_topology, app_manager, wsgi
+		-- (aparentemente implementa muitas coisas) faucet is an OpenFlow controller for multi table OpenFlow 1.3 switches, that implements layer 2 switching, VLANs, ACLs, and layer 3 IPv4 and IPv6 routing.)
+
+		-- NetworkML classifica dispositivos em papel funcional na rede (dispositivos de adminstradores, impressora, servidor de e-mail e outros ..) https://github.com/faucetsdn/NetworkML
+		-- Podemos utilizar essa classificação como intermediária -- problema que estamos focados em dispositivos multimídia
+		-- essa informação poderia ser utilziada para definir níveis de prioridade.
+
+		-- Adicionar suporte a portas HJJJ {
+			- todas as regras devem ser adicionadas ou removidas conforme a tupla: ip_Src, ip_dst, porta_src, porta_dst, proto!! tirar a dependencia de TOS.
+		
+		--- remover TOS por outro sistema conforme os requisitos das aplicacoes ( classes da classificacao)
+		-- Acoes de criacao de regras identicas nao devem ocorrer (uma regra de remover + uma de adicionar -> se forem iguais, devem se cancelar)
+
+		}
+	}	
+
+	- #Resolver a parte de configuracao manual (swtches, regras e rotas)
+	- #Mudar as configuracoes de regras para lidar com a tupla ip_origem, ip_destino, porta_origem, porta_destino, proto
+	- #Descoberta de topologia (já tem implementado no ryu -- tem que usar o do ryu se nao demora muito)
+	- #Implementar DHCPv4 e v6 (o do ipv4 acho que já tem implementado) https://github.com/John-Lin/nat/blob/master/dhcp.py
+	- #Resolver a parte básica de roteamento.... 
+	- #Resolver a parte de suporte a IPv6.
+	- #Resolver a parte de classificacao (tem que propor algo diferente)
+	- #Resolver a parte de garantia de QoS. -- usand blockchain ??
+	- #Resolver a parte de monitoramento de QoS.
+	- #Resolver a parte de QoS as a Service.{
+		**Outra ideia**
+		- aplicacao no noh destino que classifica o trafego recebido
+		- todos os domínios tbm classificam e registram no servidor blockchain
+		- todos devem entrar em acordo do qos a ser definido 
+		- como identificar o noh destino? ip é provisório! e associar o fluxo a esse noh, para depois cobrar?
+		- De alguma forma comunicar o noh origem sobre o qos configurado... os nohs devem acordar no servidor blockchain.
+		- Se todos concordarem com o qos configurado, ele deve seguir até o qos ser diminuida ou o fluxo interromper.
+		- Cabe as nohs origem e destino monitorarem de tempos em tempos o qos -- em caso de falha, deve provar ao servidor que o fluxo realmente não está sendo tratado com qos (como? n sei).
+		- o servidor vai exigir nova validação - se todos estiverem fornecendo QoS mas no destino não estiver chegando, entao não é possível fornecer QoS fim-a-fim.
+	}
+
+}
+
+#Na parte de classificação{
+
+	**** Data aumentation + personalizacao de base por meio dos ips mais utilizados para os servicos (meta heuristica)
+
+	- Seria interessante utilizar Data Aumentation para aumentar a quantidade de dados 
+	- Simular quando uma aplicaÇão não tem QoS fornecido - ex: packet-loss.
+	- Assim, se pode identificar que uma aplicação não está tendo QoS garantido e ativar
+ um mecanismo para identificar a rota que o fluxo percorre, dizendo que nessa rota não se pode garantir QoS e para que o último domínio tente trocar de rota se puder. (de alguma forma.)
+ - Um jeito seria utilizar STUN para identificar o endereço roteável da origem do pacote, para que o host recebesse o pacote e informasse que o domínio Y que se conecta com o domínio X
+ indiretamente/diretamente deveria tentar trocar de rota pois não consegue fornecer QoS para o fluxo Z.
+ - Essa abordagem necessita de uma aplicação no host. (que eu penso ser o mais ideal -- pois o host deve estar interessado em QoS!!)
+
+#online
+ - como cada domínio pode ter seu próprio tráfego, é necessário que ao passar do tempo o classificador vá entendendo quais endereços de destino são mais propensos a fornecer determinado servico com determinado qos
+ - A principio o classificador nao deve levar em consideracao o ip destino, mas depois de um tempo deve
+ - ? como ? Fazendo uma espécie de classificação não supervisionada, por fora, agrupando os dados conforme seus ips.
+ - posteriormente, se devee utilizar knn para agrupar endereços semelhantes - msm serviço.
+
+ --- com o passar do tempo essa informação precisa ser reaprendida!
+ --- como reaprender a base com o tempo, eu diria knn tbm + a informação dos ips.
+ --- Entao, comeca com o classificador treinado e sem informacao sobre ips destino.
+ --- vai se agrupando e monta-se um novo classificador que utiliza a informação tbm de end. destino.
+ --- com o passar do tempo, é necessário gerar uma nova base para agrupar com a existene-ou substituir.
+ --- utilizar algum modelo nao supervisiionado (como knn) + a informação de ip destino.
+ --- nesse momento, a base de enderecos ip poderia comecar a ser atualizada ou substituida ...
+ --- seguindo o fluxo.
+
+ -- entao o domínio comeca com uma base generica para a classificacao e vai personalizando conforme on nat aplicado por outros dominios ou por este mesmo.
+
+-- poderia utilizar aprendizagem por reforço{
+	onde se implementa um cliente e servidor em uma rede e vai variando os parametros como perda de pacotes e atraso enquanto ocorre o aprendizado - quanto mais errado menor a recompensa (nao sei muito so Reinforcement Learning)
+}
+
+}
+
+
+#Atualizar o lattes{
+	- Apresentacoes AINA + ENIAC + HIS
+	- O Qualidade de contexto tbm dá para colocar DTN.
+}
+
+#Cursos em andamento{
+	*Ver favoritos edge:cursos_andamento
+
+	#CISCO netacad.com{
+		- IoT
+		- CPA
+		- PCAP
+	}
+
+	#CISCO skillsforall.com{
+		- JSE
+		- Data Science
+		- redes básico
+	}
+
+	#UDEMY{
+		- deeplearning
+		- cisco certificate 200-301 (curso preparatorio)
+		- webdev bootcamp
+		- DScience project
+		- aws certificate (curso preparatorio)
+		- clean code
+		- hacking etico
+	}
+
+	# EDX (MIT) https://home.edx.org/
+	{
+		- Vários mas o prazo é curto e certificado pago
+	}
+
+}
+
+#Sobre horas/aula{
+	-- Acho que quero dar a aula sobre ipv6 e
+	 sdn --- pq quase não se vê ipv6 aí aplicar um balanceador
+	  de carga ou implementar algoritmo de roteamento junto com eles -> então 
+	  apresentar uma falha de switch e deixar eles decidirem como resolver - apresentando algumas alternativas.
+	Apresentar o NDP (Neighbor Discovery Protocol) -> ARP para ipv6
+		Básico para ipv6 funcionar{
+			- Neighbor Discovery protocol (NDP) - 
+			- Autoconfiguração stateless de endereço: Router Advertisement, Duplicated address detection, router solicitation,
+			- DHCPv6 (stateful) - solicit, advertise, request, reply 
+
+	}
+
+-- muita coisa pode ser resolvida de roteamento se utilizar Quagga - OpenSource Routing (OSPF e BGP por exemplo).
+
+--> fazer o linux se comportar como roteador ?:> http://labcisco.blogspot.com/2015/04/roteamento-dinamico-no-linux-usando-o.html
+}
+
+#18/01/24{
+
+#Resolver a parte básica de roteamento....
+- Implementar BGP (troca de rotas entre domínios) -- para estabelecer rotas
+- Utilizar um mecanismo eficiente para descobrir a topologia da rede no controlador {
+	- Sempre que um switch se conecta enviar um pacote ICMP para suas portas para que os switches vizinhos se anunciem.
+	- OBs: de tempos em tempos, enviar um pacote para os switches para verificar se estão vivos. 
+}
+
+- Utilizar métricas já conhecidas ou outras ideias para definir as rotas{
+	- conhecendo a topologia é possível definir a rota mais curta.
+	- ou: utilizar o caminho que menos tem dificuldade para fornecer os recursos de qos.
+	- Rotas inter domínios pode ser utilizando eBGP ou propor um eBGP-modificado.
+	- O iBGP deve ser tratado no controlador.
+}
+ 
+#Depois do roteamento...Resolver a parte de classificacao
+
+#Depois da parte de classificacao...Resolver a parte de garantia de QoS.
+
+#Depois da parte de garantia de QoS... Resolver a parte de QoS as a Service.
+
+
+* O que fazer agora...
+ - Implementar trabalhos relacionados ??
+ - Começar a escrever journal flowpri
+ - Melhorar estudo classificação de tráfego
+ - Implementar funcionalidades no flowpri-sdn
+ - Implementar topologia cloudlab
+ - tem que pensar em algum diferencial com IPv6 
+ - Terminar cursos
+
+}
+
+#12/02/24{
+
+	- buscando trabalhos relacionados
+	-- Artigo comparando modelos de gerenciamento de recursos de rede... (G-BAM vs relacionados...)
+	-- Pode envolver outros..
+
+
+}
+
+
+reuniao 06-12{
+
+    - fazer o artigo journal até começo de janeiro.
+    - atualizar as referencias
+    - implementar o classificador no controlador - com o cloudlab
+    - artefatos cloudlab são cobrados pelos journals para repetir testes.
+-- https://docs.cloudlab.us/repeatable-research.html
+ 
+ -- escrever direcionado para journal -- poderia melhorar o texto existente do flowpri com contratos msm
+ 
+  - journal computer comunications
+
+- um dos journals Computer Communications (COMCOM) https://journalinsights.elsevier.com/journals/0140-3664
+
+- Journals que falam de network/managenment/communication
+
+- olhar como os autores estruturam os artigos desse journal.
+- como eles apresentam as seções e os dados
+
+-- variar os cenários do flowpri  - com analises estatísticas
+
+-- nos resultados geralmente eles possuem analises mais profundas.
+
+* lucas borges de moraes -- publicou artigo em journal
+
+- aproveitar para atualizar os trabalhos relacionados - com a revisão dos journals. --- observar os formatos dos journals.
+
+-- elsevier tem um link aonde publicar, que coloca o resumo e ele recomenda journals. -- bom para filtrar os journals passíveis de publicação. journals recommendations algo assim (apenas journals da elsevier)
+- acho que a IEEE tbm tem ferramenta similar.
+
+-- outra forma de escolher os journals é pelo qualis: https://ppgcc.github.io/discentesPPGCC/pt-BR/qualis/
+
+- tem journals que são gratuitos
+- se atentar tbm ao tempo de revisão.
+
+--- intenção é 2 journals : primeiro somente sobre qos com as filas e regras meter + gbam. (seria somente o flowpri)
+ o segundo seria com a classificação e o restante do trabalho..
+ 
+ no entanto é necessário desengessar o texto do aina para o formato de um journal.
+
+-- teste de Dunn's para análise estatística: utilizar o chatgpt para perguntar quais os testes mais adequados para o nosso cenário.
+
+Até 10 janeiro ter uma versão do artigo. 
+Maio precisa ter uma versão da qualificação -> Pelo menos resultados preliminares. (integração pronta + testes)
+
+ - até 16/12
+
+}
+
+#16/08 14h - Reunião:
+{
+	--- proximos passo:
+	- esutdar cloudlab
+	- traduzi artigo para ingles
+	- fazer slides para apresentação do artigo
+	- preparar material para o SIC (provável data final de novembro início de dezembro -> 1 ou 8 de dezembro sextas)
+
+	--- prazo final de definição para SIC 20/09 --- até o final do ano:
+	{
+	-- definir o tema do SIC.
+
+	-- aproveitar slides do eniac e tcc.
+	}
+
+- ENIAC {
+  --- o meu é o ENIAC
+  
+  --- salas pequenas
+
+  ---- geralmente poucos leem e é mais para motivar e levar as ideias.
+  
+  --- 20 min no máx por cada artigo.
+  
+  --- de 25-29 de setembro.
+  
+  --- estão esperando pagamento da inscrição para organizar os artigos.
+
+	--- colocar no github um link para o onedrive com as bases de dados.
+
+	- fazer agora : 
+	--- pagar a inscrição
+	--- encontrar hotesi
+	
+	-- se eles pagarem a viagem:
+	{
+		-- ficar a semana toda
+		-- as vezes tem um turismo lá
+		--
+	}
+	
+	- apresentar o eniac
+	
+	- é uma confência B4 (o pior qualis).
+	
+	- pagar a inscrição
+	
+	- Parpinelli não é o organizador geral
+	
+	- Dicas para eventos:
+	-- olhar onde vai ser feito o congresso no mapa
+	--- verificar hoteis próximos com pouca locomoção
+	--- ler sobre a região
+	--- se der pra ficar no hotel da conferencia - melhor
+	--- os ibis/acor são hoteis 2 e 3 estrelas usáveis
+	--- hoteis muito caídos pode não ser bom de ficar -- incomodo noturno.
+	--- passagens aereas (azul, gol e latan) --- tem que fazer um orçamento
+	--- tem conexão joinville - são paulo - bh.
+	
+	--- Victor (aluno da Janine) teve artigo aceito no ENIAC
+	--- conversar sobre como pode ser as apresentação
+	
+	-- Parpinelli - tem outra conferência em inglês aparentemente - A4 (parece que é para 31/09)
+	
+	-- Para Journal é preciso fazer análises estatísticas comparando com outros trabalhos diretamente.
+	--- Significância estatística
+	--- Alguns journals ultimamente solicitam códigos (artifacts - código e como usar para reproduzir).
+	--- Alguns utilizam o perfil cloudlab para executar a simulação no perfil.
+	
+	--- Traduzir o artigo para que possa ser publicado em outra conferência.
+	}
+
+
+	- melhorar o framework e o texto para publicar em journal
+	- usar o cloud lab pode melhorar a qualidade dos testes pois se tem dominios reais (maquinas, links ...)
+
+	--> estudar o cloud lab ---> aprender a usar... Entender quais os requisitos para usar o material la, permissoes, contas, projetos.
+	-> ideal: passar para imagem em container -- o controlador.
+		--- criar vários hosts que servem como switches virtuais.
+	-- entender como usar imagens/perfis nos hosts
+	-- sair do mininet para o open flow
+
+	-- Edenilson: já consegue fazer as coisas funcionarem.
+
+	--- Fazer documentação dos passos -- para tornar o projeto reproduzível -- inclusive arrumar a documentação projeto.
+
+
+	- prox artigo tbm:
+	-- verificar se o framework perde pacotes enquanto estiveer utilizando um classificador de tráfego e criando as regras de fluxo.
+}
+
+
+SI- apresentação obs:
+
+-- A base para streaming estava errada !
+-- Não apresentar apenas as features mais importantes
+-- Feature importance é uma análise de resultado que deve ser feita após a análise de resultados
+-- Trabalho cumpriu o planejado.
+-- Alinhar com o profe.
+-- Não remover features na mão -> ou especialista ou metodos automáticos de remoção. PCA.
+-- Verificar a necessidade de utilizar um método baseado em streaming.
+-- Organizar os fluxos sem fazer o shuffle!
+
+++___++___+
++_
+_
++
++_
++_+_+_+
+_
++_
++_+
+_
++_
++
++
+- tamanho da caudeira 
+- 
+
+------------------------------
+---> Permanente
+- para dia 17/04 Trabalho de SI sobre chatGPT e teste de turing
+
+-> entender o que o "no free launch" NFL:
+ - o que é
+ - como nos portamos quanto a esse conceito
+ - Qual a metáfora envolvida nesse dizer.
+
+#10/04
+- Fazer a prova da cisco
+- Fazer mais testes do framework e escrever o artigo pro LANMAN (até dia 14/04)
+
+#05/04
+* Poderia comparar com algoritmos que não são SDN.
+- comparar com mpls, diff service, vlan.
+
+##### -> Boa contribuição
+-> rollback. -> detectar domínios intermediários que possuam best-effort. + alguma negociação com aplicações - perguntando se ela aceita a qos disponível.
+-> +descoberta de serviço
+- mais resultados: escalabilidade e desempenho.
+- varios fluxos de mesma classe-> outra: uma com mais prioridade e uma com menos.
+- melhorar como implementar multi-controladores em um mesmo cenário.
+
+- modificar como são apresentados os componentes do framework. Organizar o fluxo de leitura do artigo.
+
+- 
+https://lanman2023.ieee-lanman.org/authors/call-papers
+
+
+
+* Tarefas permanentes:
+-- [PAA] fazer o RGEN até 04/04 - Tipos de dados: int e char  - Utilizar void.
+
+
+#28/03
+
+- QoSP: A Priority-Based Queueing Mechanism in Software-Defined Networking Environments
+-- Entendi nada
+
+**** Implementação de Meter Table =>>> inspirado em: P4-Enabled Bandwidth Management -> podemos comparar aparentemente tem relação - problema que foi implementado fisicamente.
+--- Pensei sobre uma implementação de regras meter para controladores ou cenários onde não é possível utilizar as Regras Meter convencionais. 
+{
+----- Consiste em dividir a largura de banda em chunks, que vão definir a minima largura e banda que pode ser reservada para um fluxo.
+----- Cada chunk de largura de banda é implementado como uma fila, que possui largura de banda mínima garantida e máxima igual a mínima.
+----- O controlador deve armazenar as regras ativas de cada fila e garantir que a largura de banda utilizada não ultrapasse a disponível (caso não seja permitido enfileiramento).
+----- Assim, por exemplo, se o tamanho de chunk for 500kb, eu divido a largura de banda do link, por exemplo 2Mbps, em 4 filas de 500kbps.
+----- Quando o controlador SDN precisa reservar largura de banda para um fluxo de 1.5Mbps, o controlador --- caiu no mesmo problema --- poderia mudar a largura de banda de uma das filas para 1.5mbps e zerar outras duas.
+----- Quando tenho multiplos fluxos, posso ter best-effort em uma fila, mas é garantido que será entre fluxos que somados possuem 500kbps de largura de banda.
+----- Vantagem: essa abordagem limita o uso de largura de banda dos fluxos por meio das filas.
+----- Desvantagem: tem que modificar as filas utilizando script pois o openflow não tem suporte a configuração de filas.
+----- Desvantagem: talvez não seja possível modificar filas htb, mas sim remover e criar de novo e isso seria um impeditivo.
+----- Desvantagem: o tempo para modificar/criar filas pode ser um impeditivo.
+}
+ 
+ #26/03
+ - NetFlow é uma tecnologia Cisco IOS que fornece estatísticas em pacotes que fluem através de um encaminhador Cisco ou um comutador multicamadas.
+ - IPFIX é um formato padrão para exportar informações baseadas em encaminhadores sobre fluxos de tráfego de rede para dispositivos de recolha de dados. 
+
+
+#24/03
+
+- preparar os vídeos !!!
+
+- verificar como o gbam está funcionando no algoritmo e como foi escrito no artigo AINA, para montar os slides
+-> EXPLICAÇÃO do GBAM e do HTB 
+{
+
+	->regra emprestando:
+		* tos é o mesmo
+		* switch ovs> regra é criada como se não tivesse emprestando
+		* classe switch vetor de regras> salvo na classe da qual se empresta, com flag emprestando = 1
+		* A classe que empresta diminui a largura de banda disponível na quantidade emprestada.
+	-> Quando a regra expira e deve ser removida, ela é procurada na fila de prioridade das duas classes,
+	assim emprestando ou não elas será removida
+
+	-> Nesse modelo, se diz que empresta mas o fluxo é alocado na mesma fila da classe original.
+	Ou seja, se a classe não tinha largura de banda, como foi alocado o fluxo e por que se diz 
+	que está emprestando largura de banda?
+		* Isso funciona pq na configuração do HTB, a largura de banda mínima das filas das classes de Tempo-Real
+	e Não-Tempo-Real é igual a soma delas (33%+35%). O controle do uso da largura de banda é feito pelo algoritmo G-BAM.
+		* Isso permite ter dois comportamentos: 
+				(1) Quando ninguém empresta, o G-BAM vai definir 33% e 35% de largura de banda disponível
+	para cada fila das classes.
+				(2) Quando se empresta largura de banda, o G-BAM pode reduzir a quantidade de largura de banda
+	disponível de uma das classes para até 0% e a outra 68%, apenas controlando qual fluxo está ativo no momento e não 
+	deixando fluxos serem alocados quando não é possível fazer o balanço.
+		* Para o HTB está tudo certo ter mais largura de banda mínima reservada do que disponível, enquanto o
+	G-BAM gerenciar, não vai ocorrer enfileiramento.
+}
+
+#netacad - critica ao quiz 4 (perguntas mal traduzidas)
+
+
+
+#23/03
+
+
+(lido)Advances_of_configuring_Quality_of_Service_QoS_in_Software_Defined_Networks_SDN_by_using_meter_table.pdf
+> Dar uma comparada entre RSVP e o FLOWPRI-SDN, pois aparentemente eles são comparaveis.
+Resource Reservation Protocol (RSVP). A bandwidthconsuming application have to wait for RSVP to run hop by
+hop from source to destination, and request bandwidth
+reservation for the application. If the RSVP successfully
+reserve bandwidth along the path, the application can begin
+operating. Routers provide the bandwidth that they have
+reserved as long as application in active is operating
+
+> ele diz que o tráfego que passa pelas regras METER pode ser dropado ou marcado caso ultrapassem o limite definido.
+Na estratégia, o fluxo de dados que ultrapassa é remarcado e encaminhado como outra classe de serviço, por exemplo remarcado com DSCP best-effort
+e enviado para a fila de best-effort. (nao tinha pensado nisso. Pode não ser interessante implementar no modelo com contratos de QoS
+pois a aplicação recebe exatamente o que solicita, mas pode ser interessante no modelo de descoberta de serviços utilizando ML.
+
+>ele também demonstra que as filas de prioridade HTB funcionam. Onde duas filas best-effort uma com menor e outra com maior prioridade com link de 
+400kbps, e com dois fluxos uma em cada com taxa de +-500kbps, o fluxo da fila de maior prioridade dropou menos pacotes (9.7% vs 40%).
+
+
+
+
+#22/03
+- arrumar os slides {
+ * mudar slide 5 para explicar sobre os componentes do framework - sobre os módulos.
+ * deixar o one-hop switch
+ * retirar a closest switch
+ * G-BAM mudar o algoritmo simplificar (com imagem talvez).
+ * remover o slide 11, so comentar no slide da arquitetura isso.
+}
+https://csbc.sbc.org.br/2023/semish/
+
+---->>> gravar um vídeo 
+
+
+- ler sobre estado da arte e novos direcionamentos em redes de computadores/sdn e novas tecnologias utilizadas
+- re-ler o artigo/tcc preparar apresentaç' 	
+
+
+file:///home/niltonmoc/tcc_0001/tcc2/leituras/Alexandre-sdn-based-architecture.pdf
+# bem ruim esse artigo.
+
+Afaq et al. [12] use
+rate limiting techniques to guarantee QoS to short flows often
+termed as mice flows. These latency-sensitive flows, such
+as VoIP, compete with long-lived flows also referred to as
+elephant flows, which are generated by backup operations,
+for instance. The authors use a sampling-based framework
+to detect these time-consuming flows and submit them to a
+QoS module managed by an SDN controller that routes them
+to paths where restricted throughput rates are applied. The
+QoS provision approach of this paper adopts traffic shaping
+techniques only on the elephant flows. Our proposal, in turn,
+allows the creation and molding of different levels for different
+flows, not being restricted to the problem reported by the
+authors and being applicable in other scenarios of use. In
+addition, our architecture predicts that the mapping between
+a given traffic and its respective QoS category, if any, will be
+performed by the final hosts
+
+
+Humernbrum et al. [1] also focus on a specific application.
+The authors create a SDN Northbound API, so Real-Time
+Online Interactive Applications (ROIA) specify their dynamic
+network requirements and have met them at runtime. Applications as multiplayer online games demand for high QoS due
+its intensive and dynamic interactions. The solution in this
+case is similar to the two previous works [10], [11], where the
+SDN controller reconfigures the network, accommodating the
+traffic quality requirements of those applications, transmitting
+the sensitive data flows by a faster connection.
+
+
+#21/03
+Python performance compilador NUMBA.
+torch tem um compilador também (pythorch).
+
+-> comunidade tem usado triton dsl para gpu kernels.
+
+
+USAR rede neural ou algo assim, para descobrir a chave privada de algoritmos de criptografia.
+-> a chave publica é divulgada e com a chave publica se pode criptografar, mas apenas a chave privada consegue descriptografar. - e vice-versa ;
+
+# Revisao slides:
+-> introdução não ficou muito claro o problema.
+-> superficial no como a coisa funciona.
+
+-> comparar algoritmos de descoberta de recursos para decidir se devo utilizar uma ou outra, ou se devo fazer o meu. -talvez escrever artigo.
+
++ fazer: organizar o projeto com markdown
+
++ pensar sobre como fazer o artigo de SI.
+
++ SBRC é a oportunidade para estar publicando o texto em portugues, talvez o SBESC aceite (de engenharia) November 21-24, 2023 ( ultimo ano foi julho-agosto call for paper). https://sbesc.lisha.ufsc.br/sbesc2023/Home
+
+- ( wgrs ) que é o workshop.
+
+- se tiver adiantado, no final do semestre;
+
+-----------------
+
+-----------------------
+Novas ideias:
+- Fluxo que geram packet_in, que não possuem contrato -> passar no algoritmo de descoberta de serviço
+
+- Continuamos utilizando o contrato para descoberta de serviços internos e trocas de conhecimentos entre controladores de diferentes domínios.
