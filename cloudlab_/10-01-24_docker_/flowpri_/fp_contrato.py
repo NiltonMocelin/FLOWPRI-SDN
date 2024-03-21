@@ -57,7 +57,7 @@ class Contrato:
             banda:{},
             prioridade:{},
             classe:{}
-        }""".format(self.ip_ver, self.ip_proto, self.ip_src, self.ip_dst, self.src_port, self.dst_port, self.banda, self.prioridade, self.classe)
+        }""".format(self.ip_ver, self.proto, self.ip_src, self.ip_dst, self.src_port, self.dst_port, self.banda, self.prioridade, self.classe)
     
 
 

@@ -33,6 +33,13 @@
 
 
 #Reunião 06/03:
+
+---- comparar valores a partir de outros artigos // talvez nao implementar --- mais rapido!
+- Lucas avaliação estatística -- ver no artigo!
+
+-- futuramente comparar a solução distribuida com a solução centralizada (com servidor centralizado blockchain). Essa grande comparação pode gerar outro journal.
+-- A versão atual com troca de contrato comparando com outros controladores utilizando metricas interessantes --> publicar journal.
+
 -> estagio docencia{
 	* 22/maio Qos fim-a-fim + machine learning classificacao de tráfego * ipv6 
 	* 01/julho qualificação ou 2 de julho  -- preparar o texto da qualificacao
@@ -42,7 +49,7 @@
 	* 1/junho entrega versao 1 qualificacao
 	* Sumário da qualificação na próxima reunião (seções + capítulos --- detalhados)
 	*** Resolver a parte de priorização.
-	** apresentar arquitetura de qualidade de servico as a service
+	** apresentar arquitetura de qualidade de servico as a service (devenvolvi alguma coisa em MCA/teste0001.drawio)
 	** propor a nova arquitetura de classificação de tráfego
 
 	******* trabaho futuro e nao pronto 
@@ -152,7 +159,10 @@
  --- seguindo o fluxo.
 
  -- entao o domínio comeca com uma base generica para a classificacao e vai personalizando conforme on nat aplicado por outros dominios ou por este mesmo.
-   
+
+-- poderia utilizar aprendizagem por reforço{
+	onde se implementa um cliente e servidor em uma rede e vai variando os parametros como perda de pacotes e atraso enquanto ocorre o aprendizado - quanto mais errado menor a recompensa (nao sei muito so Reinforcement Learning)
+}
 
 }
 

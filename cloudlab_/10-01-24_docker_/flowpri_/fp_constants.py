@@ -43,18 +43,6 @@ PORTA_ACCESS_WEB = 9970 #porta para acessar a pagina web
 
 websocket_conn = None
 
-dhcp_msg_type_code = {
-    1: 'DHCP_DISCOVER',
-    2: 'DHCP_OFFER',
-    3: 'DHCP_REQUEST',
-    4: 'DHCP_DECLINE',
-    5: 'DHCP_ACK',
-    6: 'DHCP_NAK',
-    7: 'DHCP_RELEASE',
-    8: 'DHCP_INFORM',
-}
-
-
 IPV4 = '4'
 IPV6 = '41'
 ICMPV4 = '1'

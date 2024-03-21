@@ -2,8 +2,10 @@
 {
 * Configurar a criação das portas e switches no fp_topology_discovery -- configurar o addporta lá
 * Descobrir com quem cada porta dos switches se conecta. -- verificar como o topology discovery do ryu faz isso e implementar tbm
+
 * Dar uma olhada no que precisa implementar para o suporte de ipv6
 * Implementar uma GUI bonita e com estatísticas
+
 * Testar no cloudlab
 * Definir cenários para testes.
 * Implementar controladores e comparar QoS
